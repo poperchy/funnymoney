@@ -1,0 +1,12 @@
+<!-- @dsCard group="Page shell" height=308 width=1140 -->
+<!doctype html>
+<html>
+<head><meta charset="utf-8"><title>NavBar — preview</title></head>
+<body>
+<div id="root" class="pt-root"></div>
+<script>
+  var P = window.Potato, h = React.createElement;
+  ReactDOM.createRoot(document.getElementById("root")).render(h("div",{style:{padding:20,display:"flex",flexDirection:"column",gap:16,minHeight:300}}, h(P.NavBar,{defaultOpen:true,signIn:"Sign in",cta:{label:"Check a site"},links:[{label:"Solutions"},{label:"Benchmark"},{label:"Blog"},{label:"Pricing"}],menu:[{title:"Change feed",body:"What changed since yesterday"},{title:"Budgets & alerts",body:"Thresholds against production"},{title:"Third parties",body:"Every domain, weight, blocking"},{title:"Weekly digest",body:"Written to be forwarded"},{title:"Free check",body:"One page, one run, no account"},{title:"API & webhooks",body:"Events into your own tools"}]})));
+</script>
+</body>
+</html>

@@ -1,0 +1,12 @@
+<!-- @dsCard group="Article" height=183 -->
+<!doctype html>
+<html>
+<head><meta charset="utf-8"><title>Callout — preview</title></head>
+<body>
+<div id="root" class="pt-root"></div>
+<script>
+  var P = window.Potato, h = React.createElement;
+  ReactDOM.createRoot(document.getElementById("root")).render(h("div",{style:{padding:20,maxWidth:720,display:"flex",flexDirection:"column",gap:12}}, h(P.Callout,null,"Numbers in this post are from the public sample, not from customer sites."), h(P.Callout,{kind:"warning"},"Changing run conditions resets comparability with previous days.")));
+</script>
+</body>
+</html>

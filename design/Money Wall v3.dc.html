@@ -1,0 +1,1056 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<title>Наличка — стена с деньгами</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="" />
+<link href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  body { margin:0; -webkit-font-smoothing:antialiased; }
+  * { box-sizing:border-box; }
+  a { color:#2e6b4c; text-decoration:none; }
+  a:hover { color:#1f4f37; }
+  button, input, select { font-family:inherit; }
+  input:focus, select:focus { outline:none; }
+  @keyframes billOut { 0% { transform:rotate(var(--r)); opacity:1; } 25% { transform:translateY(-24px) rotate(var(--r)) scale(1.08); opacity:1; } 100% { transform:translate(300px,-260px) rotate(24deg) scale(0.85); opacity:0; } }
+  @keyframes billIn { 0% { transform:translateY(-130px) rotate(calc(var(--r) - 30deg)); opacity:0; } 55% { opacity:1; transform:translateY(8px) rotate(var(--r)); } 78% { transform:translateY(-3px) rotate(var(--r)); } 100% { transform:rotate(var(--r)); } }
+  @keyframes billDrop { 0% { transform:translate(var(--sx),var(--sy)) rotate(0deg); opacity:0; } 6% { opacity:1; } 40% { transform:translate(calc(var(--sx) * 0.55 + var(--sw)), calc(var(--sy) * 0.5)) rotate(calc(var(--r) * -0.6)); } 74% { transform:translate(0,5px) rotate(var(--r)); } 87% { transform:translate(0,-4px) rotate(var(--r)); } 100% { transform:rotate(var(--r)); } }
+  @keyframes coinFall { 0% { transform:translateY(-190px); opacity:0; } 12% { opacity:1; } 68% { transform:translateY(0); } 82% { transform:translateY(-9px); } 100% { transform:translateY(0); } }
+  @keyframes receiptIn { 0% { clip-path:inset(0 0 100% 0); transform:translateY(-14px); } 100% { clip-path:inset(0 0 -20px 0); transform:none; } }
+  @keyframes toastIn { from { opacity:0; transform:translate(-50%,12px); } to { opacity:1; transform:translate(-50%,0); } }
+  @keyframes modalIn { from { opacity:0; transform:translateY(14px) scale(0.98); } to { opacity:1; transform:none; } }
+  @keyframes fadeUp { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:none; } }
+  @keyframes pigShake { 0%,100% { transform:rotate(0); } 15% { transform:translateX(-8px) rotate(-9deg); } 35% { transform:translateX(8px) rotate(8deg); } 55% { transform:translateX(-6px) rotate(-6deg); } 75% { transform:translateX(4px) rotate(4deg); } }
+  @keyframes tillIn { from { transform:translate(-50%,-70px) rotate(-6deg); } to { transform:translate(-50%,0) rotate(0); } }
+</style>
+</helmet>
+<div style="min-height:100vh; background:{{ T.page }}; color:{{ T.ink }}; font-family:'Golos Text',system-ui,sans-serif; font-variant-numeric:tabular-nums; transition:background .3s ease, color .3s ease;">
+  <div style="width:1440px; margin:0 auto; position:relative;">
+
+    <sc-if value="{{ isOnboard }}" hint-placeholder-val="{{ true }}">
+      <div style="position:relative; height:900px; overflow:hidden; background:radial-gradient(ellipse 760px 520px at 50% 0%, {{ T.spot }}, transparent 70%), {{ T.page }};">
+        <div style="position:absolute; top:24px; left:28px; right:28px; display:flex; justify-content:space-between; align-items:center; z-index:20;">
+          <span style="font-size:18px; font-weight:700; letter-spacing:-0.02em;">наличка</span>
+          <div style="display:flex; gap:10px;">
+            <select value="{{ currency }}" onChange="{{ onCurrency }}" aria-label="Валюта" style="height:40px; padding:0 14px; border-radius:999px; border:1px solid {{ T.line }}; background:transparent; color:{{ T.ink }}; font-size:14px; font-weight:500; cursor:pointer;">
+              <sc-for list="{{ currencies }}" as="o" hint-placeholder-count="6"><option value="{{ o.code }}">{{ o.label }}</option></sc-for>
+            </select>
+            <button onClick="{{ toggleTheme }}" style="height:40px; padding:0 16px; border-radius:999px; border:1px solid {{ T.line }}; background:transparent; color:{{ T.ink }}; font-size:14px; font-weight:500; cursor:pointer;">{{ themeLabel }}</button>
+            <sc-if value="{{ canSkip }}" hint-placeholder-val="{{ false }}">
+              <button onClick="{{ toWall }}" style="height:40px; padding:0 16px; border-radius:999px; border:none; background:{{ T.btn2 }}; color:{{ T.ink }}; font-size:14px; font-weight:500; cursor:pointer;">Не сейчас</button>
+            </sc-if>
+          </div>
+        </div>
+
+        <div style="position:absolute; left:590px; top:{{ handTop }}; width:260px; height:340px; z-index:10; transition:top .8s cubic-bezier(.5,0,.3,1) .35s;">
+          <svg viewBox="0 0 260 340" width="260" height="340" style="position:absolute; inset:0; overflow:visible;">
+            <rect x="82" y="-60" width="96" height="210" rx="20" fill="{{ T.sleeve }}"></rect>
+            <rect x="82" y="-60" width="22" height="210" rx="11" fill="rgba(255,255,255,0.08)"></rect>
+            <rect x="76" y="124" width="108" height="34" rx="12" fill="{{ T.cuff }}"></rect>
+            <rect x="76" y="148" width="108" height="6" fill="rgba(0,0,0,0.08)"></rect>
+            <path d="M80 152 C70 186 78 214 130 218 C182 214 190 186 180 152 Z" fill="{{ T.skin }}"></path>
+            <path d="M92 170 C104 182 156 182 168 170" fill="none" stroke="{{ T.skinShade }}" stroke-width="2" stroke-linecap="round" opacity="0.6"></path>
+          </svg>
+          <div style="position:absolute; left:20px; top:192px; opacity:{{ stackOpacity }}; transition:opacity .15s ease;">{{ stack }}</div>
+          <svg viewBox="0 0 260 340" width="260" height="340" style="position:absolute; inset:0; overflow:visible; pointer-events:none;">
+            <g style="transform-origin:130px 176px; transform:{{ fingersT }}; transition:transform .35s cubic-bezier(.3,1.4,.5,1);">
+              <rect x="84" y="176" width="24" height="64" rx="12" fill="{{ T.skin }}" stroke="{{ T.skinShade }}" stroke-width="1.5"></rect>
+              <rect x="107" y="178" width="24" height="70" rx="12" fill="{{ T.skin }}" stroke="{{ T.skinShade }}" stroke-width="1.5"></rect>
+              <rect x="130" y="178" width="24" height="68" rx="12" fill="{{ T.skin }}" stroke="{{ T.skinShade }}" stroke-width="1.5"></rect>
+              <rect x="153" y="176" width="22" height="58" rx="11" fill="{{ T.skin }}" stroke="{{ T.skinShade }}" stroke-width="1.5"></rect>
+              <path d="M90 228 h12 M113 236 h12 M136 234 h12 M158 222 h11" stroke="{{ T.skinShade }}" stroke-width="1.5" stroke-linecap="round" opacity="0.55"></path>
+            </g>
+            <g style="transform-origin:84px 168px; transform:{{ thumbT }}; transition:transform .35s cubic-bezier(.3,1.4,.5,1);">
+              <ellipse cx="74" cy="196" rx="15" ry="32" transform="rotate(-22 74 196)" fill="{{ T.skin }}" stroke="{{ T.skinShade }}" stroke-width="1.5"></ellipse>
+            </g>
+          </svg>
+        </div>
+
+        <div style="position:absolute; left:0; right:0; top:352px; display:flex; flex-direction:column; align-items:center; gap:14px; text-align:center; z-index:15;">
+          <h1 style="margin:0; font-size:54px; line-height:1.02; letter-spacing:-0.04em; font-weight:700;">{{ onboardTitle }}</h1>
+          <sc-if value="{{ showInput }}" hint-placeholder-val="{{ true }}">
+            <div style="display:flex; flex-direction:column; align-items:center; gap:18px;">
+              <div style="font-size:18px; color:{{ T.ink2 }};">{{ incomeSummary }}</div>
+              <div style="display:flex; gap:16px; justify-content:center;">
+                <sc-for list="{{ denoms }}" as="d" hint-placeholder-count="6">
+                  <div style="display:flex; flex-direction:column; align-items:center; gap:8px;">
+                    <button onClick="{{ d.add }}" onContextMenu="{{ d.remove }}" aria-label="{{ d.label }}" style="position:relative; width:150px; height:75px; padding:0; border:none; background:transparent; cursor:pointer; transition:transform .18s cubic-bezier(.22,.8,.3,1);" style-hover="transform:translateY(-5px) rotate(-1.5deg);" style-active="transform:translateY(1px) scale(0.97);">
+                      {{ d.face }}
+                      <sc-if value="{{ d.has }}" hint-placeholder-val="{{ false }}">
+                        <span style="position:absolute; left:-10px; top:-12px; z-index:2; min-width:30px; height:30px; padding:0 8px; border-radius:999px; background:{{ T.ink }}; color:{{ T.page }}; font-size:14px; font-weight:700; display:flex; align-items:center; justify-content:center; box-shadow:0 4px 10px -4px rgba(0,0,0,0.5);">×{{ d.count }}</span>
+                      </sc-if>
+                    </button>
+                    <button onClick="{{ d.remove }}" aria-label="Убрать" style="width:32px; height:32px; border-radius:999px; border:1px solid {{ T.line }}; background:transparent; color:{{ T.ink }}; font-size:18px; line-height:1; cursor:pointer; visibility:{{ d.minusVis }};">−</button>
+                  </div>
+                </sc-for>
+              </div>
+              <div style="display:flex; align-items:center; gap:12px;">
+                <button onClick="{{ confirmIncome }}" disabled="{{ incomeInvalid }}" style="height:54px; padding:0 30px; border-radius:999px; border:none; background:{{ T.accent }}; color:{{ T.accentInk }}; font-size:17px; font-weight:600; cursor:pointer; opacity:{{ incomeOpacity }}; box-shadow:0 12px 26px -14px rgba(30,70,50,0.9);">Получил</button>
+                <button onClick="{{ likeLast }}" style="height:54px; padding:0 22px; border-radius:999px; border:1.5px solid {{ T.line }}; background:{{ T.btn2 }}; color:{{ T.ink }}; font-size:15px; font-weight:600; cursor:pointer;">Как в прошлый раз · {{ lastIncome }}</button>
+                <sc-if value="{{ hasIncome }}" hint-placeholder-val="{{ false }}">
+                  <button onClick="{{ resetIncome }}" style="height:54px; padding:0 18px; border-radius:999px; border:none; background:transparent; color:{{ T.ink2 }}; font-size:15px; cursor:pointer;">Сбросить</button>
+                </sc-if>
+                <sc-if value="{{ manualClosed }}" hint-placeholder-val="{{ true }}">
+                  <button onClick="{{ openManual }}" style="border:none; background:transparent; color:{{ T.ink2 }}; font-size:14px; text-decoration:underline; text-underline-offset:3px; cursor:pointer;">ввести вручную</button>
+                </sc-if>
+                <sc-if value="{{ manualOpen }}" hint-placeholder-val="{{ false }}">
+                  <label style="display:flex; align-items:center; gap:8px; height:44px; padding:0 14px; border-radius:999px; border:1px solid {{ T.line }}; background:{{ T.field }};">
+                    <input value="{{ manualValue }}" onChange="{{ onManual }}" onKeyDown="{{ onManualKey }}" autoFocus="{{ true }}" inputMode="numeric" placeholder="сумма" style="width:90px; border:none; background:transparent; color:{{ T.ink }}; font-size:16px; font-weight:600;" />
+                    <span style="font-size:13px; color:{{ T.ink2 }};">{{ cur }}</span>
+                  </label>
+                </sc-if>
+              </div>
+              <div style="font-size:13px; color:{{ T.ink2 }};">Клик по купюре добавляет её в пачку, правый клик или «−» убирает</div>
+            </div>
+          </sc-if>
+          <sc-if value="{{ showLanded }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex; flex-direction:column; align-items:center; gap:18px; animation:fadeUp .4s ease both;">
+              <span style="font-size:20px; color:{{ T.ink2 }}; max-width:560px; text-wrap:balance;">{{ landedNote }}</span>
+              <button onClick="{{ toWall }}" style="height:54px; padding:0 30px; border-radius:999px; border:none; background:{{ T.accent }}; color:{{ T.accentInk }}; font-size:17px; font-weight:600; cursor:pointer;">К стене →</button>
+            </div>
+          </sc-if>
+        </div>
+
+        <div style="position:absolute; left:0; right:0; bottom:0; height:220px; background-color:{{ T.wood }}; background-image:repeating-linear-gradient(91deg, rgba(0,0,0,0.06) 0 1px, transparent 1px 7px, rgba(255,255,255,0.04) 7px 8px, transparent 8px 15px), linear-gradient(180deg, rgba(255,255,255,0.16), rgba(0,0,0,0.25)); box-shadow:inset 0 2px 0 rgba(255,255,255,0.18), 0 -20px 40px -20px rgba(40,20,0,0.35);"></div>
+        <div style="position:absolute; left:305px; top:690px; width:692px; height:170px; transform:scale(1.2); transform-origin:0 0; z-index:12;">{{ heap }}</div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ isWall }}" hint-placeholder-val="{{ false }}">
+      <div>
+        <header style="height:84px; padding:0 28px; display:flex; align-items:center; justify-content:space-between; gap:24px; border-bottom:1px solid {{ T.line }};">
+          <div style="display:flex; align-items:center; gap:40px;">
+            <div style="display:flex; flex-direction:column; gap:2px;">
+              <span style="font-size:13px; color:{{ T.ink2 }};">Всё твоё богатство</span>
+              <span style="font-size:34px; line-height:1.05; font-weight:600; letter-spacing:-0.03em;">{{ balance }} <span style="font-size:18px; font-weight:500; color:{{ T.ink2 }};">{{ cur }}</span></span>
+            </div>
+            <div style="height:40px; width:1px; background:{{ T.line }};"></div>
+            <div style="display:flex; flex-direction:column; gap:2px;">
+              <span style="font-size:17px; font-weight:600; letter-spacing:-0.01em;">Октябрь 2026</span>
+              <span style="font-size:13px; color:{{ T.ink2 }};">осталось 3 дня, держимся</span>
+            </div>
+          </div>
+          <div style="display:flex; align-items:center; gap:10px;">
+            <select value="{{ currency }}" onChange="{{ onCurrency }}" aria-label="Валюта" style="height:44px; padding:0 14px; border-radius:999px; border:1px solid {{ T.line }}; background:transparent; color:{{ T.ink }}; font-size:14px; font-weight:500; cursor:pointer;">
+              <sc-for list="{{ currencies }}" as="o" hint-placeholder-count="6"><option value="{{ o.code }}">{{ o.label }}</option></sc-for>
+            </select>
+            <button onClick="{{ toggleTheme }}" style="height:44px; padding:0 16px; border-radius:999px; border:1px solid {{ T.line }}; background:transparent; color:{{ T.ink }}; font-size:14px; font-weight:500; cursor:pointer;">{{ themeLabel }}</button>
+            <button onClick="{{ openIncome }}" style="height:44px; padding:0 18px; border-radius:999px; border:none; background:{{ T.btn2 }}; color:{{ T.ink }}; font-size:14px; font-weight:600; cursor:pointer;">+ Зарплата</button>
+            <button onClick="{{ openManualSpend }}" style="height:48px; padding:0 28px; border-radius:999px; border:none; background:{{ T.accent }}; color:{{ T.accentInk }}; font-size:16px; font-weight:600; cursor:pointer; box-shadow:0 10px 22px -12px rgba(30,70,50,0.8);">Потратить</button>
+          </div>
+        </header>
+
+        <div style="display:flex; gap:24px; padding:24px 28px 28px; align-items:stretch;">
+          <div style="width:1060px; flex:none; display:flex; flex-direction:column; gap:12px;">
+
+            <div style="position:relative; padding:16px; border-radius:20px; background-color:{{ T.wood }}; background-image:repeating-linear-gradient(92deg, rgba(0,0,0,0.07) 0 1px, transparent 1px 6px, rgba(255,255,255,0.04) 6px 7px, transparent 7px 13px), linear-gradient(180deg, rgba(255,255,255,0.12), rgba(0,0,0,0.18)); box-shadow:0 34px 60px -34px rgba(40,20,0,0.75), inset 0 1px 0 rgba(255,255,255,0.2), inset 0 0 0 1px rgba(0,0,0,0.25);">
+              <div style="position:relative; display:grid; grid-template-columns:repeat(8, minmax(0,1fr)); grid-template-rows:repeat(4, 118px); gap:10px; padding:10px; border-radius:8px; background-color:{{ T.woodDark }}; background-image:repeating-linear-gradient(90deg, rgba(0,0,0,0.08) 0 1px, transparent 1px 5px); box-shadow:inset 0 3px 10px rgba(0,0,0,0.45);">
+                <sc-for list="{{ cells }}" as="c" hint-placeholder-count="9">
+                  <div data-cell="{{ c.id }}" style="position:relative; grid-column:{{ c.gc }}; grid-row:{{ c.gr }}; border-radius:5px; background-color:{{ T.cork }}; box-shadow:inset 0 2px 6px rgba(50,25,5,0.45), inset 0 0 0 1px rgba(0,0,0,0.12);">
+                    <div style="position:absolute; inset:0; border-radius:5px; pointer-events:none; background-image:url('data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%27200%27 height=%27200%27%3E%3Cfilter id=%27n%27%3E%3CfeTurbulence type=%27fractalNoise%27 baseFrequency=%270.9%27 numOctaves=%273%27 stitchTiles=%27stitch%27/%3E%3CfeColorMatrix values=%270 0 0 0 0.22 0 0 0 0 0.12 0 0 0 0 0.04 0 0 0 0.75 0%27/%3E%3C/filter%3E%3Crect width=%27100%25%27 height=%27100%25%27 filter=%27url(%23n)%27/%3E%3C/svg%3E'), url('data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%27320%27 height=%27320%27%3E%3Cfilter id=%27m%27%3E%3CfeTurbulence type=%27fractalNoise%27 baseFrequency=%270.05%27 numOctaves=%272%27 stitchTiles=%27stitch%27/%3E%3CfeColorMatrix values=%270 0 0 0 0.3 0 0 0 0 0.16 0 0 0 0 0.05 0 0 0 0.5 0%27/%3E%3C/filter%3E%3Crect width=%27100%25%27 height=%27100%25%27 filter=%27url(%23m)%27/%3E%3C/svg%3E'), radial-gradient(ellipse at 30% 15%, rgba(255,255,255,0.14), transparent 60%); opacity:0.9;"></div>
+                    <div style="position:absolute; left:8px; top:8px; z-index:40; max-width:calc(100% - 16px); padding:6px 10px 6px 18px; border-radius:3px; background:{{ T.tag }}; color:{{ T.tagInk }}; box-shadow:0 1px 1px rgba(0,0,0,0.2), 0 4px 8px -4px rgba(0,0,0,0.35); transform:rotate({{ c.tagRot }}); pointer-events:none;">
+                      <span style="position:absolute; left:6px; top:9px; width:7px; height:7px; border-radius:999px; background:radial-gradient(circle at 35% 30%, #ff8a6a, #b8321b); box-shadow:0 1px 1px rgba(0,0,0,0.4);"></span>
+                      <div style="font-size:13px; font-weight:600; line-height:1.2; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ c.name }}</div>
+                      <div style="font-size:11px; line-height:1.3; white-space:nowrap;"><span style="font-weight:600;">{{ c.amount }}</span><span style="opacity:0.6;"> / {{ c.budget }}</span></div>
+                      <sc-if value="{{ c.low }}" hint-placeholder-val="{{ false }}">
+                        <div style="margin-top:2px; font-size:10px; line-height:1.25; font-weight:600; color:#b8321b;">Осторожно, на донышке</div>
+                      </sc-if>
+                    </div>
+                    <sc-if value="{{ c.empty }}" hint-placeholder-val="{{ false }}">
+                      <div style="position:absolute; inset:52px 10px 10px 10px; border:2px dashed {{ T.dash }}; border-radius:6px; display:flex; align-items:center; justify-content:center; text-align:center; padding:6px; font-size:13px; line-height:1.35; font-weight:500; color:{{ T.dashInk }};">Тут было что-то. Было.</div>
+                    </sc-if>
+                    {{ c.bills }}
+                    <sc-if value="{{ c.isTarget }}" hint-placeholder-val="{{ false }}">
+                      <div style="position:absolute; inset:-3px; z-index:45; border-radius:7px; border:2px solid rgba(255,250,235,0.95); background:rgba(255,250,235,0.14); box-shadow:0 0 0 4px rgba(255,250,235,0.25); pointer-events:none;"></div>
+                    </sc-if>
+                  </div>
+                </sc-for>
+                <div style="position:absolute; inset:0; z-index:60; border-radius:8px; pointer-events:none; background:{{ T.light }};"></div>
+              </div>
+            </div>
+
+            <div style="position:relative; height:236px; display:flex; align-items:flex-end; gap:20px; padding:0 14px 16px;">
+              <div style="position:absolute; left:0; right:0; bottom:0; height:16px; border-radius:4px; background-color:{{ T.wood }}; background-image:repeating-linear-gradient(90deg, rgba(0,0,0,0.08) 0 1px, transparent 1px 7px), linear-gradient(180deg, rgba(255,255,255,0.18), rgba(0,0,0,0.2)); box-shadow:0 14px 20px -12px rgba(40,20,0,0.6);"></div>
+
+              <div data-cell="piggy" style="position:relative; width:232px; height:182px; flex:none; margin-bottom:2px;">{{ pig }}</div>
+
+              <div style="width:168px; flex:none; display:flex; flex-direction:column; gap:4px; padding-bottom:20px;">
+                <span style="font-size:15px; font-weight:600;">Нужная мусорка</span>
+                <span style="font-size:26px; line-height:1.1; font-weight:600; letter-spacing:-0.03em;">{{ pigTotal }}</span>
+                <span style="font-size:13px; line-height:1.4; color:{{ T.ink2 }};">{{ pigNote }}</span>
+                <button onClick="{{ openPig }}" disabled="{{ pigEmpty }}" style="margin-top:6px; align-self:flex-start; height:38px; padding:0 16px; border-radius:999px; border:1px solid {{ T.line }}; background:{{ T.btn2 }}; color:{{ T.ink }}; font-size:13px; font-weight:600; cursor:pointer; opacity:{{ pigBtnOpacity }};">Забрать</button>
+              </div>
+
+              <div data-cell="pile" style="position:relative; flex:1; align-self:stretch; margin-bottom:6px;">
+                <div style="position:absolute; left:0; right:0; top:0; z-index:50; display:flex; align-items:flex-start; justify-content:space-between; gap:12px; pointer-events:none;">
+                  <div style="display:flex; flex-direction:column; gap:2px;">
+                    <span style="font-size:16px;">Нераспределено: <span style="font-weight:700;">{{ pileTotal }} {{ cur }}</span></span>
+                    <span style="font-size:13px; color:{{ T.ink2 }};">{{ pileNote }}</span>
+                  </div>
+                  <button onClick="{{ autoSpread }}" disabled="{{ pileEmpty }}" style="pointer-events:auto; height:40px; padding:0 18px; border-radius:999px; border:1.5px solid {{ T.accent }}; background:{{ T.accentWash }}; color:{{ T.ink }}; font-size:14px; font-weight:600; cursor:pointer; opacity:{{ spreadOpacity }};">Разложить как в прошлый раз</button>
+                </div>
+                <sc-if value="{{ pileEmpty }}" hint-placeholder-val="{{ false }}">
+                  <div style="position:absolute; left:0; right:0; top:56px; bottom:14px; border:2px dashed {{ T.line }}; border-radius:14px; display:flex; align-items:center; justify-content:center; font-size:14px; color:{{ T.ink2 }};">Пусто. Сюда можно вернуть купюру, если передумал</div>
+                </sc-if>
+                {{ pileBills }}
+                <sc-if value="{{ pileTarget }}" hint-placeholder-val="{{ false }}">
+                  <div style="position:absolute; left:-6px; right:-6px; top:50px; bottom:4px; z-index:45; border-radius:16px; border:2px solid {{ T.accent }}; background:{{ T.accentWash }}; pointer-events:none;"></div>
+                </sc-if>
+              </div>
+            </div>
+          </div>
+
+          <aside style="flex:1; min-width:0; display:flex; flex-direction:column; gap:16px;">
+            <div data-cell="spent" style="position:relative; height:168px; border-radius:20px; background:{{ T.till }}; color:#f6efe3; padding:16px 18px; overflow:hidden; box-shadow:{{ spentShadow }}; transition:box-shadow .2s ease, transform .2s ease; transform:{{ spentScale }};">
+              <div style="position:relative; z-index:3; display:flex; flex-direction:column; gap:2px;">
+                <span style="font-size:18px; font-weight:700; letter-spacing:-0.01em;">Потрачено</span>
+                <span style="font-size:13px; color:rgba(246,239,227,0.7);">{{ spentHint }}</span>
+              </div>
+              <div style="position:absolute; left:22px; right:22px; bottom:30px; height:62px; border-radius:12px; background:rgba(0,0,0,0.35); box-shadow:inset 0 3px 8px rgba(0,0,0,0.5);">
+                <div style="position:absolute; left:14px; right:14px; top:12px; height:8px; border-radius:999px; background:#0b0806; box-shadow:0 1px 0 rgba(255,255,255,0.12);"></div>
+                <div style="position:absolute; left:0; right:0; top:-60px; height:76px; overflow:hidden;">{{ tillBill }}</div>
+                <div style="position:absolute; left:14px; bottom:10px; font-size:12px; color:rgba(246,239,227,0.55);">−{{ spentTotal }} за октябрь</div>
+              </div>
+            </div>
+            <div style="flex:1; min-height:0; border-radius:20px; background:{{ T.panel }}; padding:18px 18px 20px; display:flex; flex-direction:column; gap:14px; max-height:680px; overflow:auto;">
+              <span style="font-size:16px; font-weight:600;">Куда ушли деньги</span>
+              <div style="display:flex; flex-direction:column; gap:16px;">{{ receipts }}</div>
+            </div>
+          </aside>
+        </div>
+      </div>
+    </sc-if>
+  </div>
+
+  {{ dragGhost }}
+
+  <sc-if value="{{ dropOpen }}" hint-placeholder-val="{{ false }}">
+    <div style="position:fixed; inset:0; z-index:200; background:rgba(25,16,8,0.45); backdrop-filter:blur(4px); display:flex; align-items:center; justify-content:center; padding:24px;">
+      <div style="width:620px; max-width:100%; border-radius:24px; background:{{ T.modal }}; color:{{ T.ink }}; padding:28px; box-shadow:0 40px 80px -30px rgba(20,10,0,0.6); animation:modalIn .3s cubic-bezier(.22,.8,.3,1) both; display:flex; flex-direction:column; gap:20px;">
+        <div style="display:flex; align-items:center; gap:16px;">
+          <div style="position:relative; width:100px; height:50px; flex:none;">{{ dropBillFace }}</div>
+          <div style="display:flex; flex-direction:column; gap:3px; min-width:0;">
+            <span style="font-size:26px; font-weight:700; letter-spacing:-0.025em; line-height:1.1;">{{ dropJoke }}</span>
+            <span style="font-size:14px; color:{{ T.ink2 }};">{{ dropFrom }}</span>
+          </div>
+        </div>
+
+        <div style="display:flex; flex-direction:column; gap:10px;">
+          <span style="font-size:14px; color:{{ T.ink2 }};">Сколько потратил?</span>
+          <div style="display:flex; gap:8px; flex-wrap:wrap;">
+            <sc-for list="{{ dropQuick }}" as="q" hint-placeholder-count="4">
+              <button onClick="{{ q.pick }}" style="height:42px; padding:0 18px; border-radius:999px; border:1.5px solid {{ q.border }}; background:{{ q.bg }}; color:{{ T.ink }}; font-size:15px; font-weight:600; cursor:pointer;">{{ q.label }}</button>
+            </sc-for>
+          </div>
+        </div>
+
+        <div style="display:flex; flex-direction:column; gap:10px;">
+          <span style="font-size:14px; color:{{ T.ink2 }};">Или отметь сдачу, которую дали</span>
+          <div style="display:flex; gap:12px; flex-wrap:wrap; align-items:flex-end;">
+            <sc-for list="{{ changeBtns }}" as="b" hint-placeholder-count="8">
+              <div style="display:flex; flex-direction:column; align-items:center; gap:6px;">
+                <button onClick="{{ b.add }}" onContextMenu="{{ b.remove }}" aria-label="{{ b.label }}" style="position:relative; width:{{ b.w }}; height:{{ b.h }}; padding:0; border:none; background:transparent; cursor:pointer; transition:transform .15s ease;" style-hover="transform:translateY(-3px);">
+                  {{ b.face }}
+                  <sc-if value="{{ b.has }}" hint-placeholder-val="{{ false }}">
+                    <span style="position:absolute; left:-9px; top:-10px; z-index:2; min-width:24px; height:24px; padding:0 6px; border-radius:999px; background:{{ T.ink }}; color:{{ T.page }}; font-size:12px; font-weight:700; display:flex; align-items:center; justify-content:center;">×{{ b.count }}</span>
+                  </sc-if>
+                </button>
+                <button onClick="{{ b.remove }}" aria-label="Убрать" style="width:26px; height:26px; border-radius:999px; border:1px solid {{ T.line }}; background:transparent; color:{{ T.ink }}; font-size:15px; line-height:1; cursor:pointer; visibility:{{ b.minusVis }};">−</button>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+
+        <sc-if value="{{ canTopUp }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap; font-size:14px; color:{{ T.ink2 }};">
+            <span>Не хватило? Докинь из этой же ячейки:</span>
+            <sc-for list="{{ topUps }}" as="t" hint-placeholder-count="3">
+              <button onClick="{{ t.add }}" style="height:34px; padding:0 14px; border-radius:999px; border:1px solid {{ T.line }}; background:{{ T.btn2 }}; color:{{ T.ink }}; font-size:14px; font-weight:600; cursor:pointer;">+{{ t.d }}</button>
+            </sc-for>
+          </div>
+        </sc-if>
+
+        <div style="padding:14px 16px; border-radius:14px; background:{{ T.field }}; font-size:15px; line-height:1.55; color:{{ dropSummaryColor }};">{{ dropSummary }}</div>
+
+        <sc-if value="{{ dropNoteHidden }}" hint-placeholder-val="{{ true }}">
+          <button onClick="{{ showDropNote }}" style="align-self:flex-start; border:none; background:transparent; padding:0; color:{{ T.ink2 }}; font-size:14px; text-decoration:underline; text-underline-offset:3px; cursor:pointer;">+ комментарий, если хочется</button>
+        </sc-if>
+        <sc-if value="{{ dropNoteShown }}" hint-placeholder-val="{{ false }}">
+          <input value="{{ dropNote }}" onChange="{{ onDropNote }}" autoFocus="{{ true }}" placeholder="На что, если не секрет" style="height:46px; padding:0 16px; border-radius:14px; border:1px solid {{ T.line }}; background:{{ T.field }}; color:{{ T.ink }}; font-size:15px;" />
+        </sc-if>
+
+        <div style="display:flex; gap:10px; justify-content:flex-end;">
+          <button onClick="{{ cancelDrop }}" style="height:50px; padding:0 22px; border-radius:999px; border:1px solid {{ T.line }}; background:transparent; color:{{ T.ink }}; font-size:15px; font-weight:500; cursor:pointer;">Ой, верни обратно</button>
+          <button onClick="{{ confirmDrop }}" disabled="{{ dropInvalid }}" style="height:50px; padding:0 26px; border-radius:999px; border:none; background:{{ T.accent }}; color:{{ T.accentInk }}; font-size:15px; font-weight:600; cursor:pointer; opacity:{{ dropOpacity }};">{{ dropCta }}</button>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ manualSpendOpen }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ closeManualSpend }}" style="position:fixed; inset:0; z-index:200; background:rgba(25,16,8,0.45); backdrop-filter:blur(4px); display:flex; align-items:center; justify-content:center; padding:24px;">
+      <div onClick="{{ stop }}" style="width:560px; max-width:100%; border-radius:24px; background:{{ T.modal }}; color:{{ T.ink }}; padding:28px; box-shadow:0 40px 80px -30px rgba(20,10,0,0.6); animation:modalIn .3s cubic-bezier(.22,.8,.3,1) both; display:flex; flex-direction:column; gap:20px;">
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:16px;">
+          <div style="display:flex; flex-direction:column; gap:3px;">
+            <span style="font-size:26px; font-weight:700; letter-spacing:-0.025em;">На что тратим?</span>
+            <span style="font-size:14px; color:{{ T.ink2 }};">Вообще проще перетащить купюру в «Потрачено», но можно и так</span>
+          </div>
+          <button onClick="{{ closeManualSpend }}" aria-label="Закрыть" style="width:44px; height:44px; flex:none; border-radius:999px; border:none; background:{{ T.btn2 }}; color:{{ T.ink }}; font-size:16px; cursor:pointer;">✕</button>
+        </div>
+        <div style="display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:8px;">
+          <sc-for list="{{ modalCats }}" as="m" hint-placeholder-count="10">
+            <button onClick="{{ m.pick }}" disabled="{{ m.disabled }}" style="min-height:56px; padding:8px 12px; border-radius:14px; border:2px solid {{ m.border }}; background:{{ m.bg }}; color:{{ T.ink }}; text-align:left; cursor:pointer; opacity:{{ m.opacity }}; display:flex; flex-direction:column; gap:2px;">
+              <span style="font-size:14px; font-weight:600;">{{ m.name }}</span>
+              <span style="font-size:12px; color:{{ T.ink2 }};">{{ m.left }}</span>
+            </button>
+          </sc-for>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:10px;">
+          <span style="font-size:14px; color:{{ T.ink2 }};">Сколько? Твои частые суммы</span>
+          <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+            <sc-for list="{{ manualQuick }}" as="q" hint-placeholder-count="4">
+              <button onClick="{{ q.pick }}" style="height:44px; padding:0 20px; border-radius:999px; border:1.5px solid {{ q.border }}; background:{{ q.bg }}; color:{{ T.ink }}; font-size:16px; font-weight:600; cursor:pointer;">{{ q.label }}</button>
+            </sc-for>
+            <sc-if value="{{ mInputHidden }}" hint-placeholder-val="{{ true }}">
+              <button onClick="{{ showMInput }}" style="border:none; background:transparent; color:{{ T.ink2 }}; font-size:14px; text-decoration:underline; text-underline-offset:3px; cursor:pointer;">ввести вручную</button>
+            </sc-if>
+            <sc-if value="{{ mInputShown }}" hint-placeholder-val="{{ false }}">
+              <label style="display:flex; align-items:center; gap:8px; height:44px; padding:0 14px; border-radius:999px; border:1px solid {{ T.line }}; background:{{ T.field }};">
+                <input value="{{ mAmt }}" onChange="{{ onMAmt }}" onKeyDown="{{ onMKey }}" autoFocus="{{ true }}" inputMode="decimal" placeholder="0,00" style="width:90px; border:none; background:transparent; color:{{ T.ink }}; font-size:16px; font-weight:600;" />
+                <span style="font-size:13px; color:{{ T.ink2 }};">{{ cur }}</span>
+              </label>
+            </sc-if>
+          </div>
+        </div>
+        <div style="padding:14px 16px; border-radius:14px; background:{{ T.field }}; font-size:14px; line-height:1.55; color:{{ planColor }};">{{ planText }}</div>
+        <sc-if value="{{ mNoteHidden }}" hint-placeholder-val="{{ true }}">
+          <button onClick="{{ showMNote }}" style="align-self:flex-start; border:none; background:transparent; padding:0; color:{{ T.ink2 }}; font-size:14px; text-decoration:underline; text-underline-offset:3px; cursor:pointer;">+ комментарий, если хочется</button>
+        </sc-if>
+        <sc-if value="{{ mNoteShown }}" hint-placeholder-val="{{ false }}">
+          <input value="{{ mNote }}" onChange="{{ onMNote }}" placeholder="На что, если не секрет" style="height:46px; padding:0 16px; border-radius:14px; border:1px solid {{ T.line }}; background:{{ T.field }}; color:{{ T.ink }}; font-size:15px;" />
+        </sc-if>
+        <div style="display:flex; gap:10px; justify-content:flex-end;">
+          <button onClick="{{ closeManualSpend }}" style="height:50px; padding:0 22px; border-radius:999px; border:1px solid {{ T.line }}; background:transparent; color:{{ T.ink }}; font-size:15px; font-weight:500; cursor:pointer;">Передумал</button>
+          <button onClick="{{ doManualSpend }}" disabled="{{ cantSpend }}" style="height:50px; padding:0 26px; border-radius:999px; border:none; background:{{ T.accent }}; color:{{ T.accentInk }}; font-size:15px; font-weight:600; cursor:pointer; opacity:{{ spendOpacity }};">{{ spendLabel }}</button>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ pigOpen }}" hint-placeholder-val="{{ false }}">
+    <div style="position:fixed; inset:0; z-index:210; background:rgba(25,16,8,0.5); backdrop-filter:blur(4px); display:flex; align-items:center; justify-content:center; padding:24px;">
+      <div style="width:560px; max-width:100%; border-radius:26px; background:{{ T.modal }}; color:{{ T.ink }}; padding:32px 32px 28px; box-shadow:0 40px 80px -30px rgba(20,10,0,0.6); animation:modalIn .3s cubic-bezier(.22,.8,.3,1) both; display:flex; flex-direction:column; align-items:center; gap:18px; text-align:center;">
+        <div onClick="{{ shakePig }}" style="position:relative; width:330px; height:250px; cursor:{{ pigCursor }};">
+          <div key="{{ shakeKey }}" style="position:absolute; left:0; top:0; width:232px; height:182px; transform:scale(1.42); transform-origin:0 0; animation:{{ shakeAnim }};">{{ bigPig }}</div>
+        </div>
+        <span style="font-size:26px; font-weight:700; letter-spacing:-0.025em; line-height:1.15; max-width:460px; text-wrap:balance;">{{ pigTitle }}</span>
+        <span style="font-size:15px; line-height:1.5; color:{{ T.ink2 }}; max-width:420px;">{{ pigSub }}</span>
+        <sc-if value="{{ pigAsk }}" hint-placeholder-val="{{ true }}">
+          <div style="display:flex; gap:10px;">
+            <button onClick="{{ closePig }}" style="height:50px; padding:0 22px; border-radius:999px; border:1px solid {{ T.line }}; background:transparent; color:{{ T.ink }}; font-size:15px; font-weight:500; cursor:pointer;">Не, пусть лежит</button>
+            <button onClick="{{ pigYes }}" style="height:50px; padding:0 26px; border-radius:999px; border:none; background:{{ T.accent }}; color:{{ T.accentInk }}; font-size:15px; font-weight:600; cursor:pointer;">Да, мне надо</button>
+          </div>
+        </sc-if>
+        <sc-if value="{{ pigShaking }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex; gap:8px;">
+            <sc-for list="{{ shakeDots }}" as="s" hint-placeholder-count="3">
+              <span style="width:12px; height:12px; border-radius:999px; background:{{ s.bg }}; display:block;"></span>
+            </sc-for>
+          </div>
+        </sc-if>
+        <sc-if value="{{ pigBroken }}" hint-placeholder-val="{{ false }}">
+          <button onClick="{{ takePig }}" style="height:50px; padding:0 28px; border-radius:999px; border:none; background:{{ T.accent }}; color:{{ T.accentInk }}; font-size:15px; font-weight:600; cursor:pointer;">Забрать в кучу</button>
+        </sc-if>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ hasToast }}" hint-placeholder-val="{{ false }}">
+    <div key="{{ toastKey }}" style="position:fixed; left:50%; bottom:28px; z-index:250; transform:translate(-50%,0); max-width:680px; padding:14px 22px; border-radius:999px; background:{{ T.toast }}; color:{{ T.toastInk }}; font-size:14px; line-height:1.4; box-shadow:0 20px 40px -20px rgba(0,0,0,0.6); animation:toastIn .35s ease both;">{{ toast }}</div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1440,&quot;height&quot;:960},&quot;scene&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;income&quot;,&quot;falling&quot;,&quot;pile&quot;,&quot;wall&quot;,&quot;drag&quot;,&quot;dropSpend&quot;,&quot;manualSpend&quot;,&quot;piggy&quot;,&quot;empty&quot;],&quot;default&quot;:&quot;income&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;theme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;light&quot;,&quot;dark&quot;],&quot;default&quot;:&quot;light&quot;,&quot;tsType&quot;:&quot;'light'|'dark'&quot;},&quot;currency&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;BYN&quot;,&quot;USD&quot;,&quot;EUR&quot;,&quot;RUB&quot;,&quot;PLN&quot;,&quot;KZT&quot;],&quot;default&quot;:&quot;BYN&quot;,&quot;tsType&quot;:&quot;string&quot;}}">
+const BW = 100, BH = 50, COLW = 117.25, ROWH = 118, GAP = 10, PILE_W = 600, PILE_H = 214;
+const HEAP_W = 692, HEAP_H = 170, HEAP_SX = 346, HEAP_SY = -367;
+const CATS = [
+  { id: 'podushka', name: 'Подушка', budget: 1100, c: 1, r: 1, cs: 3, rs: 2, bills: [200,200,200,200,100,100,50,50] },
+  { id: 'arenda', name: 'Аренда', budget: 900, c: 4, r: 1, cs: 2, rs: 2, bills: [200,200,200,200,100] },
+  { id: 'eda', name: 'Еда', budget: 800, c: 6, r: 1, cs: 3, rs: 2, bills: [200,100,100,50,50,50,20,20,20,10,10,10] },
+  { id: 'transport', name: 'Транспорт', budget: 150, c: 1, r: 3, cs: 2, rs: 2, bills: [50,20,20,10,10,5,5] },
+  { id: 'fun', name: 'Развлечения', budget: 250, c: 3, r: 3, cs: 2, rs: 2, bills: [100,50,50,20,10,5] },
+  { id: 'cafe', name: 'Кафе', budget: 120, c: 5, r: 3, cs: 1, rs: 2, bills: [10,5] },
+  { id: 'health', name: 'Здоровье', budget: 100, c: 6, r: 3, cs: 2, rs: 1, bills: [50,20,5] },
+  { id: 'gifts', name: 'Подарки', budget: 100, c: 6, r: 4, cs: 2, rs: 1, bills: [] },
+  { id: 'phone', name: 'Связь', budget: 40, c: 8, r: 3, cs: 1, rs: 2, bills: [20,20] }
+];
+const JOKE = {
+  podushka: 'Подушка худеет. Надеюсь, по делу', arenda: 'Крыша над головой. Уважаем', eda: 'Еда — это святое',
+  transport: 'Ехать-то надо', fun: 'Заслужил. Наверное', cafe: 'Это не кофе, это топливо', health: 'Здоровье дороже. Буквально',
+  gifts: 'Щедрая душа', phone: 'Без связи никуда', pile: 'Прямо из кучи? Смело'
+};
+const FILL_ORDER = ['arenda', 'eda', 'transport', 'phone', 'health', 'cafe', 'fun', 'gifts', 'podushka'];
+const PAL = {
+  5:   ['#93d3bc', '#3d927a', '#2b6e5b'], 10:  ['#f4cb73', '#d18a2b', '#9c6216'], 20:  ['#96bcef', '#3f6fc2', '#2b4f94'],
+  50:  ['#eba3ba', '#c1517a', '#8f3557'], 100: ['#bea8ec', '#6f53c4', '#4f3994'], 200: ['#f3a985', '#c95a36', '#963d20']
+};
+const CURRENCIES = [
+  { code: 'BYN', label: 'BYN · Br' }, { code: 'USD', label: 'USD · $' }, { code: 'EUR', label: 'EUR · €' },
+  { code: 'RUB', label: 'RUB · ₽' }, { code: 'PLN', label: 'PLN · zł' }, { code: 'KZT', label: 'KZT · ₸' }
+];
+const COIN = { 1: [13, 'cu'], 2: [14, 'cu'], 5: [16, 'cu'], 10: [15, 'br'], 20: [17, 'br'], 50: [18, 'br'], 100: [19, 'ag'], 200: [21, 'bi'] };
+const METAL = { cu: ['#eab087', '#a65f31', '#6f3a1a'], br: ['#f5de95', '#b8933c', '#7f6020'], ag: ['#f4f4ef', '#a6a69f', '#6f6f69'] };
+const BILL_D = [200, 100, 50, 20, 10, 5];
+const COIN_D = [200, 100, 50, 20, 10, 5, 2, 1];
+const CHANGE_COINS = [200, 100, 50, 20, 10];
+const FREQ = [1500, 4000, 12000, 850];
+const THEMES = {
+  light: { page: '#f1ece3', spot: 'rgba(255,236,200,0.9)', ink: '#2a231b', ink2: '#776b5c', line: 'rgba(42,35,27,0.14)', wood: '#9c6b40', woodDark: '#6c4628', cork: '#c99967',
+    tag: '#fffaf0', tagInk: '#2a231b', dash: 'rgba(255,248,235,0.85)', dashInk: '#fff8ec', panel: '#e8e1d5', modal: '#fbf8f2', field: '#f1ece3',
+    accent: '#2e6b4c', accentInk: '#fffaf0', accentWash: 'rgba(46,107,76,0.1)', btn2: 'rgba(42,35,27,0.07)', till: 'linear-gradient(160deg,#3b3129,#231c16)',
+    light: 'radial-gradient(ellipse at 45% 20%, rgba(255,240,210,0.16), transparent 60%)', toast: '#2a231b', toastInk: '#fbf8f2', paper: '#fffdf8',
+    skin: '#f2c7a2', skinShade: '#c98f66', sleeve: '#3f5f8a', cuff: '#f4efe6' },
+  dark: { page: '#17130f', spot: 'rgba(255,190,110,0.16)', ink: '#f2e9db', ink2: '#a3957f', line: 'rgba(242,233,219,0.13)', wood: '#55391f', woodDark: '#2c1d10', cork: '#86603a',
+    tag: '#efe5d2', tagInk: '#2a231b', dash: 'rgba(255,240,215,0.5)', dashInk: '#f2e2c6', panel: '#211b16', modal: '#26201a', field: '#1c1712',
+    accent: '#6fb48d', accentInk: '#10241a', accentWash: 'rgba(111,180,141,0.14)', btn2: 'rgba(242,233,219,0.08)', till: 'linear-gradient(160deg,#0f0c09,#060504)',
+    light: 'radial-gradient(ellipse at 45% 25%, rgba(255,200,130,0.12), transparent 55%), radial-gradient(ellipse at 50% 50%, transparent 45%, rgba(0,0,0,0.38))', toast: '#f2e9db', toastInk: '#17130f', paper: '#ebe3d3',
+    skin: '#d9ab86', skinShade: '#a8734f', sleeve: '#2f4767', cuff: '#d9d2c4' }
+};
+const RECEIPTS = [
+  { id: 'r1', shop: 'Продукты', cat: 'eda', amt: 4730, paid: 5000, when: 'сегодня, 18:42' },
+  { id: 'r2', shop: 'Такси', cat: 'transport', amt: 860, paid: 1000, when: 'сегодня, 09:15' },
+  { id: 'r3', shop: 'Кофейня у дома', cat: 'cafe', amt: 650, paid: 1000, when: 'вчера, 16:03' },
+  { id: 'r4', shop: 'Кино', cat: 'fun', amt: 2400, paid: 5000, when: '27 окт, 20:10' }
+];
+const PIG0 = [200,200,200,100,100,100,100,50,50,50,50,20,20,20,20,20,10,10,10,10,10,10,10,10,5,5,5,5,5,5,5,5,5,5,5,5,2,2,2,2,2,2,2,2,1,1,1,1];
+
+const rng = s => () => { s |= 0; s = s + 0x6D2B79F5 | 0; let t = Math.imul(s ^ s >>> 15, 1 | s); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+const gauss = R => (R() + R() + R() - 1.5) / 1.5;
+const cellSize = c => ({ w: c.cs * COLW + (c.cs - 1) * GAP, h: c.rs * ROWH + (c.rs - 1) * GAP });
+const catOf = id => id === 'pile' ? { id: 'pile', name: 'Нераспределено' } : CATS.find(c => c.id === id);
+const fmt = k => (k / 100).toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const fmtR = k => (k % 100 === 0 ? (k / 100).toLocaleString('ru-RU') : fmt(k));
+const coinLabel = k => k >= 100 ? String(k / 100) : '0,' + String(k).padStart(2, '0');
+const decompose = (k, list) => { const out = []; for (const d of list) while (k >= d) { out.push(d); k -= d; } return out; };
+const payout = rub => {
+  let left = rub - rub % 5; const out = [];
+  for (const id of FILL_ORDER) { const c = catOf(id); const take = Math.min(c.budget, left); out.push(...decompose(take, BILL_D)); left -= take; if (left <= 0) break; }
+  out.push(...decompose(left, BILL_D));
+  return out;
+};
+const changeFor = k => { const rub = Math.floor(k / 100); const bills = decompose(rub - rub % 5, BILL_D).map(d => d * 100); return [...bills, ...decompose(k - bills.reduce((a, b) => a + b, 0), COIN_D)]; };
+let UID = 1000;
+
+class Component extends DCLogic {
+  constructor(p) {
+    super(p);
+    this.state = this.initial(p || {});
+  }
+  initial(p) {
+    const scene = p.scene || 'income';
+    this.z = 1;
+    const filled = !['income', 'falling', 'pile'].includes(scene);
+    const empty = scene === 'empty';
+    const cells = { pile: [] };
+    CATS.forEach((c, ci) => {
+      const R = rng(ci * 97 + 13);
+      let list = filled ? c.bills : [];
+      if (empty && ['gifts', 'phone', 'health'].includes(c.id)) list = [];
+      if (empty && c.id === 'cafe') list = [5];
+      cells[c.id] = list.map(d => this.mk(d, c.id, R));
+    });
+    const RP = rng(31);
+    if (scene === 'pile') cells.pile = payout(3600).map(d => this.mk(d, 'pile', RP));
+    else if (filled && !empty) cells.pile = [20, 10, 10].map(d => this.mk(d, 'pile', RP));
+    const RJ = rng(7);
+    const pig = { coins: empty ? [] : PIG0.map((k, i) => this.pigCoin(k, i, RJ)), bills: empty ? [] : [{ id: 'pb1', d: 20, x: 70, y: 74, r: -12 }] };
+    let phase = filled || scene === 'pile' ? 'wall' : 'income', heap = [];
+    if (scene === 'falling') { phase = 'falling'; heap = this.makeHeap(payout(3600)); }
+    let drop = null;
+    if (scene === 'dropSpend') {
+      const b = cells.fun.find(x => x.d === 50);
+      cells.fun = cells.fun.filter(x => x !== b);
+      drop = { cat: 'fun', paid: [b], change: [2000, 500, 100, 50], note: '', showNote: false };
+    }
+    return {
+      phase, cells, heap, frozen: scene === 'falling',
+      incomeBills: scene === 'income' ? [200, 200, 200, 100, 100, 50, 20, 10] : scene === 'falling' ? payout(3600) : [],
+      manualIncome: false, manualValue: '', everOnboarded: phase === 'wall', lastIncome: 3600,
+      pig, receipts: RECEIPTS.map(r => ({ ...r })), hover: null, drag: null, drop,
+      manual: scene === 'manualSpend' ? { cat: 'eda', amt: 4000, input: '', showInput: false, note: '', showNote: false } : null,
+      pigModal: scene === 'piggy' ? { step: 'ask', shakes: 0, key: 0 } : null,
+      toast: null, toastKey: 0, theme: p.theme || 'light', currency: p.currency || 'BYN'
+    };
+  }
+  mk(d, id, R, extra) { return { id: 'b' + (UID++), d, ...this.place(id, R), z: this.z++, ...(extra || {}) }; }
+  place(id, R) {
+    if (id === 'pile') {
+      const x = PILE_W / 2 - BW / 2 + gauss(R) * (PILE_W / 2 - BW / 2 - 10);
+      const y = 62 + (PILE_H - 62) / 2 - BH / 2 + gauss(R) * 32;
+      return { x: Math.max(0, Math.min(PILE_W - BW, x)), y: Math.max(60, Math.min(PILE_H - BH - 4, y)), r: (R() - 0.5) * 70 };
+    }
+    const { w, h } = cellSize(catOf(id));
+    return { x: 4 + R() * Math.max(0, w - BW - 8), y: 50 + R() * Math.max(0, h - BH - 58), r: (R() - 0.5) * 26 };
+  }
+  makeHeap(ds) {
+    const R = rng(ds.length * 13 + 5);
+    return ds.map((d, i) => {
+      const fx = Math.max(0, Math.min(HEAP_W - BW, HEAP_W / 2 - BW / 2 + gauss(R) * 230));
+      const fy = Math.max(0, Math.min(HEAP_H - BH, HEAP_H / 2 - BH / 2 + gauss(R) * 42));
+      return { id: 'h' + (UID++), d, x: fx, y: fy, r: (R() - 0.5) * 80, z: i + 1, delay: i * 45, sx: HEAP_SX - (fx + BW / 2), sy: HEAP_SY - (fy + BH / 2), sw: (R() - 0.5) * 120 };
+    });
+  }
+  pigCoin(k, i, R) {
+    const s = COIN[k][0];
+    const bb = 6 + Math.floor(i / 8) * 4.6 + R() * 3;
+    const dy = (124 - bb) - 62;
+    const hw = Math.max(10, 90 * Math.sqrt(Math.max(0, 1 - (dy / 62) ** 2)) - 10);
+    return { id: 'c' + (UID++), k, x: 90 - hw + R() * Math.max(0, 2 * hw - s), b: bb };
+  }
+  componentDidMount() {
+    this.onMove = e => this.move(e);
+    this.onUp = e => this.up(e);
+    this.onKey = e => { if (e.key === 'Escape') this.setState({ manual: null, pigModal: null }); };
+    window.addEventListener('keydown', this.onKey);
+    if (this.props.scene === 'drag') this.demoT = setTimeout(() => this.dragDemo(), 400);
+  }
+  dragDemo() {
+    const el = document.querySelector('[data-cell="spent"]');
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    const b = this.state.cells.fun[1];
+    this.setState({ drag: { id: b.id, from: 'fun', d: b.d, x: r.left + r.width / 2 + 10, y: r.top + 70, ox: 50, oy: 25, target: 'spent', demo: true } });
+  }
+  componentDidUpdate(prev) {
+    if (prev.theme !== this.props.theme && this.props.theme) this.setState({ theme: this.props.theme });
+    if (prev.currency !== this.props.currency && this.props.currency) this.setState({ currency: this.props.currency });
+    if (prev.scene !== this.props.scene) {
+      this.setState({ ...this.initial(this.props), theme: this.state.theme, currency: this.state.currency });
+      clearTimeout(this.demoT);
+      if (this.props.scene === 'drag') this.demoT = setTimeout(() => this.dragDemo(), 400);
+    }
+  }
+  componentWillUnmount() {
+    window.removeEventListener('pointermove', this.onMove);
+    window.removeEventListener('pointerup', this.onUp);
+    window.removeEventListener('keydown', this.onKey);
+    [this.demoT, this.t1, this.t2, this.toastT, this.fallT].forEach(clearTimeout);
+  }
+  showToast(text) {
+    clearTimeout(this.toastT);
+    this.setState(s => ({ toast: text, toastKey: s.toastKey + 1 }));
+    this.toastT = setTimeout(() => this.setState({ toast: null }), 4200);
+  }
+  clearFlagsLater(ms) {
+    clearTimeout(this.t2);
+    this.t2 = setTimeout(() => this.setState(s => {
+      const cells = {}; Object.keys(s.cells).forEach(k => cells[k] = s.cells[k].map(b => b.entering ? { ...b, entering: false } : b));
+      return { cells, pig: { ...s.pig, coins: s.pig.coins.map(c => c.falling ? { ...c, falling: false } : c) }, receipts: s.receipts.map(r => ({ ...r, fresh: false })) };
+    }), ms);
+  }
+  addCoinsToPig(s, ks, delay0) {
+    const R = rng(Date.now() % 100000 + ks.length);
+    const start = s.pig.coins.length;
+    return ks.map((k, i) => ({ ...this.pigCoin(k, start + i, R), falling: true, delay: delay0 + i * 110 }));
+  }
+
+  incomeK() { return this.state.incomeBills.reduce((a, d) => a + d, 0); }
+  confirmIncome() {
+    const ds = this.state.incomeBills;
+    if (!ds.length) return;
+    const heap = this.makeHeap(ds);
+    this.setState({ phase: 'falling', heap, frozen: false, lastIncome: this.incomeK() });
+    this.fallT = setTimeout(() => this.setState({ phase: 'landed' }), heap.length * 45 + 1000);
+  }
+  toWall() {
+    const s = this.state;
+    if (!s.heap.length || s.phase === 'income') { this.setState({ phase: 'wall', heap: [] }); return; }
+    const R = rng(Date.now() % 100000);
+    const added = s.heap.map((h, i) => this.mk(h.d, 'pile', R, { entering: true, delay: i * 30 }));
+    const extra = this.pendingCoins || []; this.pendingCoins = [];
+    this.setState({ phase: 'wall', heap: [], everOnboarded: true, cells: { ...s.cells, pile: [...s.cells.pile, ...added] }, pig: { ...s.pig, coins: [...s.pig.coins, ...this.addCoinsToPig(s, extra, 600)] } });
+    this.clearFlagsLater(2600);
+  }
+  autoSpread() {
+    const s = this.state;
+    const need = {}; CATS.forEach(c => need[c.id] = c.budget * 100 - this.sumK(this.live(c.id)));
+    const cells = { ...s.cells }; const keep = []; let n = 0;
+    const R = rng(Date.now() % 100000);
+    [...s.cells.pile].sort((a, b) => b.d - a.d).forEach(b => {
+      const cand = FILL_ORDER.filter(id => need[id] >= b.d * 100).sort((a, c) => need[c] - need[a])[0];
+      if (!cand) { keep.push(b); return; }
+      need[cand] -= b.d * 100;
+      cells[cand] = [...cells[cand], { ...b, ...this.place(cand, R), z: this.z++, entering: true, delay: (n++) * 55 }];
+    });
+    cells.pile = keep;
+    this.setState({ cells });
+    this.clearFlagsLater(n * 55 + 1200);
+    this.showToast(n ? 'Разложил как в прошлый раз. Стабильность — признак мастерства' : 'Подходящих купюр нет. Тут нужен человек');
+  }
+
+  down(e, id, from) {
+    if (this.state.drop || this.state.manual || this.state.pigModal || e.button > 0) return;
+    e.preventDefault();
+    const r = e.currentTarget.getBoundingClientRect();
+    this.pd = { id, from, sx: e.clientX, sy: e.clientY, ox: e.clientX - r.left, oy: e.clientY - r.top };
+    window.addEventListener('pointermove', this.onMove);
+    window.addEventListener('pointerup', this.onUp);
+  }
+  targetAt(x, y) {
+    const el = document.elementFromPoint(x, y);
+    const c = el && el.closest && el.closest('[data-cell]');
+    return c ? c.getAttribute('data-cell') : null;
+  }
+  move(e) {
+    const p = this.pd; if (!p) return;
+    if (!this.state.drag || this.state.drag.demo) {
+      if (Math.hypot(e.clientX - p.sx, e.clientY - p.sy) < 4) return;
+      const b = this.state.cells[p.from].find(x => x.id === p.id);
+      if (!b) return;
+      this.setState({ drag: { id: p.id, from: p.from, d: b.d, x: e.clientX, y: e.clientY, ox: p.ox, oy: p.oy, target: this.targetAt(e.clientX, e.clientY) }, hover: null });
+    } else {
+      this.setState(s => ({ drag: { ...s.drag, x: e.clientX, y: e.clientY, target: this.targetAt(e.clientX, e.clientY) } }));
+    }
+  }
+  up(e) {
+    window.removeEventListener('pointermove', this.onMove);
+    window.removeEventListener('pointerup', this.onUp);
+    const d = this.state.drag; this.pd = null;
+    if (!d || d.demo) return;
+    const to = d.target;
+    if (!to || to === d.from && to === 'piggy') { this.setState({ drag: null }); return; }
+    const take = s => { const b = s.cells[d.from].find(x => x.id === d.id); return [b, { ...s.cells, [d.from]: s.cells[d.from].filter(x => x.id !== d.id) }]; };
+    if (to === 'spent') {
+      this.setState(s => { const [b, cells] = take(s); return { cells, drag: null, drop: { cat: d.from, paid: [b], change: [], note: '', showNote: false } }; });
+      return;
+    }
+    if (to === 'piggy') {
+      this.setState(s => {
+        const [b, cells] = take(s); const R = rng(Date.now() % 9999);
+        return { cells, drag: null, pig: { ...s.pig, bills: [...s.pig.bills, { id: b.id, d: b.d, x: 40 + R() * 60, y: 66 + R() * 18, r: (R() - 0.5) * 40 }] } };
+      });
+      this.showToast('Свинка довольна: +' + d.d + '. Хрю');
+      return;
+    }
+    const el = document.querySelector('[data-cell="' + to + '"]');
+    const r = el.getBoundingClientRect();
+    const minY = to === 'pile' ? 58 : 44;
+    const x = Math.min(Math.max(e.clientX - d.ox - r.left, -4), r.width - BW + 4);
+    const y = Math.min(Math.max(e.clientY - d.oy - r.top, minY), r.height - BH + 2);
+    this.setState(s => {
+      const [b, cells] = take(s);
+      cells[to] = [...cells[to], { ...b, x, y, r: (Math.random() - 0.5) * (to === 'pile' ? 60 : 20), z: this.z++, entering: false }];
+      return { cells, drag: null };
+    });
+    if (to !== d.from) this.showToast(to === 'pile' ? 'Вернул в кучу. Подумаем ещё' : 'Переезд: ' + d.d + ' из «' + catOf(d.from).name + '» в «' + catOf(to).name + '». Прошёл успешно');
+  }
+
+  live(id, s) { return (s || this.state).cells[id].filter(b => !b.leaving); }
+  sumK(list) { return list.reduce((a, b) => a + b.d * 100, 0); }
+
+  dropUpdate(fn) { this.setState(s => ({ drop: { ...s.drop, ...fn(s.drop) } })); }
+  cancelDrop() {
+    const dr = this.state.drop; if (!dr) return;
+    this.setState(s => ({ drop: null, cells: { ...s.cells, [dr.cat]: [...s.cells[dr.cat], ...dr.paid.map(b => ({ ...b, z: this.z++, entering: true, delay: 0 }))] } }));
+    this.clearFlagsLater(900);
+    this.showToast('Вернул на место. Мудро');
+  }
+  confirmDrop() {
+    const s = this.state, dr = s.drop;
+    const paid = this.sumK(dr.paid), ch = dr.change.reduce((a, b) => a + b, 0), spent = paid - ch;
+    if (spent <= 0) return;
+    const billsBack = dr.change.filter(k => k >= 500).map(k => k / 100);
+    const coins = dr.change.filter(k => k < 500).flatMap(k => decompose(k, COIN_D));
+    const R = rng(Date.now() % 100000);
+    const fresh = billsBack.map((d, i) => this.mk(d, dr.cat, R, { entering: true, delay: 200 + i * 110 }));
+    const rc = { id: 'r' + (UID++), shop: dr.note.trim() || catOf(dr.cat).name, cat: dr.cat, amt: spent, paid, when: 'только что', fresh: true };
+    this.setState({
+      drop: null, lastTill: dr.paid[dr.paid.length - 1].d,
+      cells: { ...s.cells, [dr.cat]: [...s.cells[dr.cat], ...fresh] },
+      pig: { ...s.pig, coins: [...s.pig.coins, ...this.addCoinsToPig(s, coins, 300 + billsBack.length * 110)] },
+      receipts: [rc, ...s.receipts]
+    });
+    this.clearFlagsLater(2800);
+    const coinK = coins.reduce((a, b) => a + b, 0);
+    this.showToast('Прощай, дружок · −' + fmt(spent) + (billsBack.length ? ' · сдача ' + billsBack.join(' + ') + ' вернулась' : '') + (coinK ? ' · ' + fmt(coinK) + ' свинке' : ''));
+  }
+
+  manualAmtK() {
+    const m = this.state.manual; if (!m) return 0;
+    if (m.showInput && m.input) { const v = parseFloat(String(m.input).replace(/\s/g, '').replace(',', '.')); return isFinite(v) ? Math.round(v * 100) : 0; }
+    return m.amt || 0;
+  }
+  plan(id, amt) {
+    const bills = this.live(id), total = this.sumK(bills);
+    if (amt <= 0) return { ok: false, total, msg: 'Выбери сумму. Или напиши, если её нет в чипах.' };
+    if (amt > total) return { ok: false, total, msg: 'В «' + catOf(id).name + '» только ' + fmtR(total) + '. Не хватает ' + fmt(amt - total) + ', перекинь купюру из соседней ячейки.' };
+    const one = [...bills].sort((a, b) => a.d - b.d).find(b => b.d * 100 >= amt);
+    let taken;
+    if (one) taken = [one];
+    else { taken = []; let s = 0; for (const b of [...bills].sort((a, b) => b.d - a.d)) { taken.push(b); s += b.d * 100; if (s >= amt) break; } }
+    const paid = this.sumK(taken), change = changeFor(paid - amt);
+    return { ok: true, total, taken, paid, back: change.filter(k => k >= 500).map(k => k / 100), coins: change.filter(k => k < 500) };
+  }
+  manualSpend() {
+    const m = this.state.manual, amt = this.manualAmtK(), id = m.cat;
+    const p = this.plan(id, amt);
+    if (!p.ok) return;
+    const ids = new Set(p.taken.map(b => b.id));
+    this.setState(s => ({ manual: null, cells: { ...s.cells, [id]: s.cells[id].map(b => ids.has(b.id) ? { ...b, leaving: true } : b) } }));
+    const note = (m.note || '').trim() || catOf(id).name;
+    this.t1 = setTimeout(() => {
+      const R = rng(Date.now() % 100000);
+      this.setState(s => {
+        const fresh = p.back.map((d, i) => this.mk(d, id, R, { entering: true, delay: i * 110 }));
+        const rc = { id: 'r' + (UID++), shop: note, cat: id, amt, paid: p.paid, when: 'только что', fresh: true };
+        return { cells: { ...s.cells, [id]: [...s.cells[id].filter(b => !ids.has(b.id)), ...fresh] }, pig: { ...s.pig, coins: [...s.pig.coins, ...this.addCoinsToPig(s, p.coins.flatMap(k => decompose(k, COIN_D)), 250 + p.back.length * 110)] }, receipts: [rc, ...s.receipts] };
+      });
+      this.showToast(JOKE[id] + ' · −' + fmt(amt));
+      this.clearFlagsLater(2600);
+    }, 650);
+  }
+
+  pigTotalK() { const p = this.state.pig; return p.coins.reduce((a, c) => a + c.k, 0) + p.bills.reduce((a, b) => a + b.d * 100, 0); }
+  shakePig() {
+    const m = this.state.pigModal; if (!m || m.step !== 'shake') return;
+    const n = m.shakes + 1;
+    this.setState({ pigModal: { ...m, shakes: n, key: m.key + 1, step: n >= 3 ? 'broken' : 'shake' } });
+  }
+  takePig() {
+    const s = this.state;
+    const coinK = s.pig.coins.reduce((a, c) => a + c.k, 0);
+    const fives = Math.floor(coinK / 500) * 5;
+    const ds = [...s.pig.bills.map(b => b.d), ...decompose(fives, BILL_D)];
+    const rest = decompose(coinK - fives * 100, COIN_D);
+    const R = rng(Date.now() % 100000);
+    this.setState({
+      pigModal: null,
+      cells: { ...s.cells, pile: [...s.cells.pile, ...ds.map((d, i) => this.mk(d, 'pile', R, { entering: true, delay: i * 80 }))] },
+      pig: { coins: rest.map((k, i) => this.pigCoin(k, i, R)), bills: [] }
+    });
+    this.clearFlagsLater(ds.length * 80 + 1200);
+    this.showToast('Забрал ' + fmtR(fives * 100 + ds.slice(0, s.pig.bills.length).reduce((a, d) => a + d * 100, 0)) + ' в кучу. Новая свинка уже на месте и снова голодает');
+  }
+
+  billFace(d, cur) {
+    const h = React.createElement, P = PAL[d];
+    const A = (st, txt, k) => h('div', { key: k, style: { position: 'absolute', ...st } }, txt);
+    return [
+      A({ inset: 3, border: '1px solid rgba(255,255,255,0.5)', borderRadius: 3 }, null, 'f'),
+      A({ left: 7, top: 7, width: 34, height: 34, borderRadius: '50%', overflow: 'hidden', background: 'rgba(255,255,255,0.3)', border: '1.5px solid rgba(255,255,255,0.75)' }, [
+        A({ left: 11, top: 6, width: 10, height: 10, borderRadius: '50%', background: 'rgba(255,255,255,0.95)' }, null, 's'),
+        A({ left: -8, right: 6, bottom: -12, height: 24, borderRadius: '50%', background: P[2], opacity: 0.55 }, null, 'h1'),
+        A({ left: 8, right: -10, bottom: -14, height: 24, borderRadius: '50%', background: P[2], opacity: 0.85 }, null, 'h2')
+      ], 'm'),
+      A({ left: 46, top: 9, width: 30, height: 30, background: 'repeating-radial-gradient(circle at 0 100%, transparent 0 3px, rgba(255,255,255,0.32) 3px 4px)', borderRadius: 4 }, null, 'g'),
+      A({ right: 7, top: 5, fontSize: 7, fontWeight: 700, letterSpacing: '0.1em', color: 'rgba(255,255,255,0.9)' }, cur, 'c'),
+      A({ left: 7, bottom: 3, fontSize: 8, fontWeight: 700, color: 'rgba(255,255,255,0.85)' }, String(d), 'n1'),
+      A({ right: 7, bottom: 2, fontSize: 20, fontWeight: 700, letterSpacing: '-0.03em', color: '#fff', textShadow: '0 1px 0 rgba(0,0,0,0.22)' }, String(d), 'n2'),
+      A({ inset: 0, background: 'linear-gradient(160deg, rgba(255,255,255,0.3), transparent 42%, rgba(0,0,0,0.1))' }, null, 'sh')
+    ];
+  }
+  billBg(d) { const P = PAL[d]; return 'repeating-linear-gradient(45deg, rgba(255,255,255,0.07) 0 2px, transparent 2px 6px), linear-gradient(135deg, ' + P[0] + ', ' + P[1] + ')'; }
+  staticBill(d, scale, extra) {
+    return React.createElement('div', { style: { position: 'absolute', left: 0, top: 0, width: BW, height: BH, transform: 'scale(' + scale + ')', transformOrigin: '0 0', borderRadius: 4, overflow: 'hidden', background: this.billBg(d), boxShadow: '0 1px 1px rgba(0,0,0,0.22), 0 6px 10px -4px rgba(40,20,0,0.45)', pointerEvents: 'none', ...(extra || {}) } }, this.billFace(d, this.state.currency));
+  }
+  billEl(b, o) {
+    const h = React.createElement; o = o || {};
+    const style = {
+      position: o.ghost ? 'fixed' : 'absolute', left: b.x, top: b.y, width: BW, height: BH, '--r': b.r + 'deg',
+      transform: o.ghost ? 'rotate(-4deg) scale(1.1)' : o.hover ? 'translateY(-6px) rotate(' + (b.r * 0.5) + 'deg) scale(1.06)' : 'rotate(' + b.r + 'deg)',
+      transition: o.ghost ? 'none' : 'transform .22s cubic-bezier(.22,.8,.3,1), box-shadow .22s ease, opacity .15s ease',
+      boxShadow: o.ghost ? '0 3px 3px rgba(0,0,0,0.2), 0 30px 34px -10px rgba(30,15,0,0.55)' : o.hover ? '0 2px 2px rgba(0,0,0,0.18), 0 18px 22px -8px rgba(40,20,0,0.5)' : '0 1px 1px rgba(0,0,0,0.24), 0 5px 8px -3px rgba(40,20,0,0.4)',
+      borderRadius: 4, zIndex: o.ghost ? 1000 : o.hover ? 38 : b.z, cursor: o.ghost ? 'grabbing' : 'grab', opacity: o.hidden ? 0 : 1,
+      pointerEvents: o.ghost || b.leaving ? 'none' : 'auto', touchAction: 'none', userSelect: 'none', overflow: 'hidden', background: this.billBg(b.d),
+      animation: b.leaving ? 'billOut .65s cubic-bezier(.5,0,.6,1) forwards' : b.entering ? 'billIn .7s cubic-bezier(.22,.8,.3,1) ' + (b.delay || 0) + 'ms backwards' : 'none'
+    };
+    const ev = o.ghost ? {} : {
+      onPointerDown: e => this.down(e, b.id, o.cell),
+      onPointerEnter: () => { if (!this.state.drag) this.setState({ hover: b.id }); },
+      onPointerLeave: () => { if (this.state.hover === b.id) this.setState({ hover: null }); }
+    };
+    return h('div', { key: b.id + (o.ghost ? 'g' : ''), style, ...ev, 'aria-label': b.d + ' ' + this.state.currency }, this.billFace(b.d, this.state.currency));
+  }
+  heapEl(b) {
+    const h = React.createElement, frozen = this.state.frozen;
+    return h('div', { key: b.id, style: {
+      position: 'absolute', left: b.x, top: b.y, width: BW, height: BH, borderRadius: 4, overflow: 'hidden', zIndex: b.z,
+      '--r': b.r + 'deg', '--sx': b.sx + 'px', '--sy': b.sy + 'px', '--sw': b.sw + 'px', transform: 'rotate(' + b.r + 'deg)',
+      background: this.billBg(b.d), boxShadow: '0 1px 1px rgba(0,0,0,0.24), 0 6px 9px -3px rgba(30,15,0,0.45)',
+      animation: 'billDrop 1s cubic-bezier(.45,.05,.55,.95) ' + (frozen ? (b.delay - 560) : b.delay) + 'ms backwards',
+      animationPlayState: frozen ? 'paused' : 'running'
+    } }, this.billFace(b.d, this.state.currency));
+  }
+  stackEl(ds) {
+    const h = React.createElement;
+    if (!ds.length) return h('div', { style: { width: 220, height: 110, borderRadius: 10, border: '2px dashed rgba(120,90,60,0.35)' } });
+    const L = Math.min(30, ds.length), top = ds[ds.length - 1];
+    const layers = [];
+    for (let i = L - 1; i >= 1; i--) {
+      const d = ds[(ds.length - 1 - i + ds.length) % ds.length];
+      layers.push(h('div', { key: 'l' + i, style: { position: 'absolute', left: i * 1.5, top: i * 1.8, width: 220, height: 110, borderRadius: 8, background: 'linear-gradient(135deg, ' + PAL[d][0] + ', ' + PAL[d][1] + ')', boxShadow: 'inset 0 0 0 1px rgba(0,0,0,0.14), 0 1px 0 rgba(0,0,0,0.12)' } }));
+    }
+    const face = h('div', { key: 'top-' + ds.length, style: { position: 'absolute', left: 0, top: 0, width: 220, height: 110, animation: 'fadeUp .25s ease both' } },
+      h('div', { style: { position: 'absolute', left: 0, top: 0, width: BW, height: BH, transform: 'scale(2.2)', transformOrigin: '0 0', borderRadius: 4, overflow: 'hidden', background: this.billBg(top) } }, this.billFace(top, this.state.currency)));
+    const band = ds.length >= 10 ? h('div', { key: 'band', style: { position: 'absolute', left: 86, top: -3, width: 40, height: 116 + L * 1.8, background: '#efe2c3', backgroundImage: 'repeating-linear-gradient(0deg, rgba(120,80,30,0.08) 0 1px, transparent 1px 4px)', boxShadow: '0 1px 2px rgba(0,0,0,0.25)', borderRadius: 2 } }) : null;
+    return h('div', { style: { position: 'relative', width: 220 + L * 1.5, height: 110 + L * 1.8, filter: 'drop-shadow(0 18px 18px rgba(30,15,0,0.35))' } }, [...layers, face, band]);
+  }
+  coinStyle(k) {
+    const [s, m] = COIN[k], M = m === 'bi' ? METAL.ag : METAL[m];
+    const bg = m === 'bi' ? 'radial-gradient(ellipse at 40% 35%, #f6e09a 0 30%, #b8933c 44%, #eeeeea 47%, #9e9e97 80%)' : 'radial-gradient(ellipse at 35% 30%, ' + M[0] + ', ' + M[1] + ' 72%)';
+    return { s, bg, edge: M[2] };
+  }
+  coinEl(c) {
+    const { s, bg, edge } = this.coinStyle(c.k);
+    return React.createElement('div', { key: c.id, style: {
+      position: 'absolute', left: c.x, bottom: c.b, width: s, height: s * 0.5, borderRadius: '50%', background: bg,
+      boxShadow: '0 ' + Math.round(s * 0.12) + 'px 0 ' + edge + ', 0 3px 4px rgba(0,0,0,0.25)',
+      animation: c.falling ? 'coinFall .9s cubic-bezier(.4,0,.6,1) ' + (c.delay || 0) + 'ms backwards' : 'none'
+    } });
+  }
+  pigEl(o) {
+    const h = React.createElement, s = this.state, pig = s.pig;
+    const fill = '#f5adc0', edge = '#d97692', glass = 'rgba(247,170,192,0.34)';
+    const A = (k, st, kids) => h('div', { key: k, style: { position: 'absolute', ...st } }, kids);
+    const leg = (k, x) => A(k, { left: x, top: 134, width: 24, height: 30, borderRadius: '6px 6px 10px 10px', background: fill, border: '3px solid ' + edge });
+    const total = this.pigTotalK();
+    const stick = Math.min(6, Math.floor(pig.coins.length / 9));
+    const sticking = [];
+    for (let i = 0; i < stick; i++) {
+      const k = pig.coins[pig.coins.length - 1 - i].k, cs = this.coinStyle(k);
+      sticking.push(A('st' + i, { left: 92 + i * 6 - stick * 3, top: 12 - (i % 2) * 5, width: 7, height: cs.s, borderRadius: 3, background: cs.bg, boxShadow: '1px 0 0 ' + cs.edge, transform: 'rotate(' + ((i - stick / 2) * 9) + 'deg)', zIndex: 1 }));
+    }
+    const inner = o.broken ? [] : [
+      ...pig.coins.map(c => this.coinEl(c)),
+      ...pig.bills.map(b => A(b.id, { left: b.x, top: b.y, width: BW, height: BH, transform: 'rotate(' + b.r + 'deg) scale(0.5)', transformOrigin: '0 0', borderRadius: 4, overflow: 'hidden', background: this.billBg(b.d), boxShadow: '0 2px 4px rgba(0,0,0,0.25)' }, this.billFace(b.d, s.currency)))
+    ];
+    const body = (k, clip) => A(k, { left: 16, top: 26, width: 180, height: 124, borderRadius: '50%', border: '3px solid ' + edge, background: glass, overflow: 'hidden', clipPath: clip || 'none', boxShadow: o.target ? '0 0 0 6px rgba(255,250,235,0.6)' : 'none', zIndex: 2 }, [
+      A('in', { inset: 0 }, clip ? [] : inner),
+      A('hl', { left: 26, top: 14, width: 70, height: 28, borderRadius: '50%', background: 'radial-gradient(ellipse, rgba(255,255,255,0.7), transparent 70%)' }),
+      A('hl2', { right: 30, bottom: 12, width: 40, height: 12, borderRadius: '50%', background: 'rgba(255,255,255,0.25)' })
+    ]);
+    const slot = A('slot', { left: 84, top: 26, width: 46, height: 8, borderRadius: 4, background: '#8a3f55', zIndex: 3 });
+    const tail = A('tail', { left: 0, top: 64, width: 24, height: 24, border: '4px solid ' + edge, borderRadius: '50%', borderRightColor: 'transparent', borderBottomColor: 'transparent', transform: 'rotate(-40deg)' });
+    const ears = [A('e1', { left: 140, top: 20, width: 26, height: 26, background: fill, border: '3px solid ' + edge, borderRadius: '4px 70% 4px 70%', transform: 'rotate(-18deg)', zIndex: 3 }), A('e2', { left: 160, top: 32, width: 22, height: 22, background: fill, border: '3px solid ' + edge, borderRadius: '4px 70% 4px 70%', transform: 'rotate(8deg)', zIndex: 3 })];
+    const snout = A('sn', { left: 186, top: 72, width: 36, height: 42, borderRadius: '50%', background: fill, border: '3px solid ' + edge, zIndex: 3 }, [
+      A('n1', { left: 8, top: 11, width: 6, height: 11, borderRadius: '50%', background: '#8a3f55' }), A('n2', { left: 18, top: 11, width: 6, height: 11, borderRadius: '50%', background: '#8a3f55' })
+    ]);
+    const eye = A('eye', { left: 164, top: 60, width: 8, height: 10, borderRadius: '50%', background: '#3a2328', zIndex: 3 });
+    if (!o.broken) return h('div', { style: { position: 'absolute', inset: 0 } }, [tail, leg('l1', 42), leg('l2', 68), leg('l3', 128), leg('l4', 154), ...sticking, body('b'), slot, ...ears, snout, eye]);
+    const R = rng(99);
+    const spill = [
+      ...pig.coins.slice(-40).map((c, i) => { const cs = this.coinStyle(c.k); return A('sp' + i, { left: 30 + R() * 170, top: 150 + R() * 22, width: cs.s, height: cs.s * 0.5, borderRadius: '50%', background: cs.bg, boxShadow: '0 2px 0 ' + cs.edge, zIndex: 4 }); }),
+      ...pig.bills.map((b, i) => A('spb' + i, { left: 60 + i * 30, top: 136 + R() * 10, width: BW, height: BH, transform: 'rotate(' + ((R() - 0.5) * 40) + 'deg) scale(0.55)', transformOrigin: '0 0', borderRadius: 4, overflow: 'hidden', background: this.billBg(b.d), zIndex: 5 }, this.billFace(b.d, s.currency)))
+    ];
+    return h('div', { style: { position: 'absolute', inset: 0 } }, [
+      A('L', { inset: 0, transform: 'translate(-30px,10px) rotate(-16deg)', transformOrigin: '30% 80%', transition: 'transform .5s cubic-bezier(.3,1.4,.5,1)' }, [tail, leg('l1', 42), leg('l2', 68), body('bl', 'inset(0 50% 0 0)')]),
+      A('R', { inset: 0, transform: 'translate(32px,8px) rotate(14deg)', transformOrigin: '70% 80%', transition: 'transform .5s cubic-bezier(.3,1.4,.5,1)' }, [leg('l3', 128), leg('l4', 154), body('br', 'inset(0 0 0 50%)'), ...ears, snout, eye]),
+      ...spill
+    ]);
+  }
+  receiptEl(r, i, T) {
+    const h = React.createElement, mono = "'IBM Plex Mono',ui-monospace,monospace";
+    const row = (a, b, st, k) => h('div', { key: k, style: { display: 'flex', justifyContent: 'space-between', gap: 10, ...st } }, h('span', null, a), h('span', null, b));
+    const sep = k => h('div', { key: k, style: { borderTop: '1px dashed rgba(42,35,27,0.3)', margin: '8px 0' } });
+    return h('div', { key: r.id, style: { transform: 'rotate(' + (i % 2 ? 0.7 : -0.6) + 'deg)', filter: 'drop-shadow(0 1px 1px rgba(0,0,0,0.12)) drop-shadow(0 8px 10px rgba(40,20,0,0.18))' } },
+      h('div', { style: { animation: r.fresh ? 'receiptIn .9s cubic-bezier(.22,.8,.3,1) both' : 'none' } },
+        h('div', { style: { background: T.paper, color: '#2a231b', padding: '14px 16px 8px', fontFamily: mono, fontSize: 12, lineHeight: 1.55 } }, [
+          h('div', { key: 'a', style: { fontSize: 13, fontWeight: 600, textTransform: 'uppercase', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' } }, r.shop),
+          h('div', { key: 'b', style: { color: '#857866' } }, r.when),
+          sep('s1'),
+          row(catOf(r.cat).name, fmt(r.amt), null, 'c'),
+          row('дал', fmt(r.paid), { color: '#857866' }, 'd'),
+          row('сдача', fmt(r.paid - r.amt), { color: '#857866' }, 'e'),
+          sep('s2'),
+          row('ИТОГО', fmt(r.amt), { fontSize: 14, fontWeight: 600 }, 'f')
+        ]),
+        h('div', { style: { height: 8, background: 'linear-gradient(-45deg, transparent 5.5px, ' + T.paper + ' 0) 0 0 / 10px 8px repeat-x, linear-gradient(45deg, transparent 5.5px, ' + T.paper + ' 0) 0 0 / 10px 8px repeat-x' } })
+      )
+    );
+  }
+
+  renderVals() {
+    const s = this.state, T = THEMES[s.theme] || THEMES.light, cur = s.currency, h = React.createElement;
+    const drag = s.drag;
+    const cellsK = CATS.reduce((a, c) => a + this.sumK(this.live(c.id)), 0);
+    const pileK = this.sumK(this.live('pile'));
+    const pigK = this.pigTotalK();
+    const dropK = s.drop ? this.sumK(s.drop.paid) : 0;
+    const open = s.phase !== 'income';
+    const incK = this.incomeK();
+    const prevent = fn => e => { e.preventDefault(); fn(); };
+    const landedNote = incK >= 2000 ? 'Ого, богач! Ну давай раскладывать, пока не разлетелось' : incK < 700 ? 'Ну… бывает. Зато раскладывать быстро' : 'Неплохо! Давай разложим, пока ветер не поднялся';
+
+    const v = {
+      T, cur, currency: cur, currencies: CURRENCIES,
+      onCurrency: e => this.setState({ currency: e.target.value }),
+      isOnboard: s.phase !== 'wall', isWall: s.phase === 'wall',
+      canSkip: s.everOnboarded && s.phase === 'income',
+      handTop: open ? '-190px' : '-36px',
+      fingersT: open ? 'translateY(-34px) scaleY(0.45)' : 'none',
+      thumbT: open ? 'rotate(-58deg) translate(-10px,-10px)' : 'none',
+      stackOpacity: open ? 0 : 1, stack: open ? null : this.stackEl(s.incomeBills),
+      onboardTitle: s.phase === 'income' ? 'Сколько получил?' : s.phase === 'falling' ? 'Лови!' : fmtR(incK * 100) + ' ' + cur + ' на столе',
+      showInput: s.phase === 'income', showLanded: s.phase === 'landed',
+      incomeSummary: incK ? 'В пачке ' + fmtR(incK * 100) + ' ' + cur + ' · ' + s.incomeBills.length + ' купюр' : 'Пока пусто. Накидай купюр в руку',
+      denoms: [5, 10, 20, 50, 100, 200].map(d => {
+        const count = s.incomeBills.filter(x => x === d).length;
+        const add = () => this.setState(st => ({ incomeBills: [...st.incomeBills, d], manualIncome: false }));
+        const rem = () => this.setState(st => { const i = st.incomeBills.lastIndexOf(d); if (i < 0) return null; const a = [...st.incomeBills]; a.splice(i, 1); return { incomeBills: a }; });
+        return { label: 'Добавить ' + d, count, has: count > 0, minusVis: count ? 'visible' : 'hidden', add, remove: prevent(rem), face: this.staticBill(d, 1.5) };
+      }),
+      hasIncome: s.incomeBills.length > 0,
+      resetIncome: () => this.setState({ incomeBills: [], manualValue: '' }),
+      likeLast: () => this.setState({ incomeBills: payout(s.lastIncome), manualIncome: false }),
+      lastIncome: fmtR(s.lastIncome * 100),
+      manualClosed: !s.manualIncome, manualOpen: s.manualIncome,
+      openManual: () => this.setState({ manualIncome: true }),
+      manualValue: s.manualValue,
+      onManual: e => { const raw = e.target.value.replace(/\D/g, '').slice(0, 6); const n = parseInt(raw || '0', 10); this.pendingCoins = n % 5 ? decompose((n % 5) * 100, COIN_D) : []; this.setState({ manualValue: raw, incomeBills: n >= 5 ? payout(n) : [] }); },
+      onManualKey: e => { if (e.key === 'Enter') this.confirmIncome(); },
+      incomeInvalid: !s.incomeBills.length, incomeOpacity: s.incomeBills.length ? 1 : 0.4,
+      confirmIncome: () => this.confirmIncome(), landedNote,
+      toWall: () => this.toWall(),
+      openIncome: () => this.setState({ phase: 'income', incomeBills: [], heap: [], manualIncome: false, manualValue: '' }),
+      heap: s.heap.map(b => this.heapEl(b)),
+      balance: fmt(cellsK + pileK + pigK + dropK),
+      themeLabel: s.theme === 'dark' ? '☀ Днём' : '☾ Ночью',
+      toggleTheme: () => this.setState({ theme: s.theme === 'dark' ? 'light' : 'dark' }),
+      stop: e => e.stopPropagation(),
+      cells: CATS.map((c, i) => {
+        const list = s.cells[c.id], live = list.filter(b => !b.leaving), k = this.sumK(live);
+        return {
+          id: c.id, name: c.name, gc: c.c + ' / span ' + c.cs, gr: c.r + ' / span ' + c.rs,
+          amount: fmtR(k), budget: c.budget, empty: live.length === 0, low: k > 0 && k <= c.budget * 100 * 0.15,
+          tagRot: ((i * 37) % 5 - 2) * 0.8 + 'deg',
+          isTarget: !!(drag && drag.target === c.id && drag.target !== drag.from),
+          bills: list.map(b => this.billEl(b, { cell: c.id, hover: s.hover === b.id, hidden: drag && drag.id === b.id }))
+        };
+      }),
+      pileBills: s.cells.pile.map(b => this.billEl(b, { cell: 'pile', hover: s.hover === b.id, hidden: drag && drag.id === b.id })),
+      pileTotal: fmtR(pileK), pileEmpty: s.cells.pile.length === 0, spreadOpacity: s.cells.pile.length ? 1 : 0.4,
+      pileNote: s.cells.pile.length ? 'Деньги без дела грустят. Разложи их' : 'Всё по местам. Красота',
+      pileTarget: !!(drag && drag.target === 'pile' && drag.from !== 'pile'),
+      autoSpread: () => this.autoSpread(),
+      dragGhost: drag ? this.billEl({ id: drag.id, d: drag.d, x: drag.x - drag.ox, y: drag.y - drag.oy, r: 0, z: 0 }, { ghost: true }) : null,
+      pig: this.pigEl({ target: drag && drag.target === 'piggy' }),
+      pigTotal: fmt(pigK) + ' ' + cur,
+      pigNote: pigK === 0 ? 'Свинка голодает' : s.pig.coins.length + ' монет' + (s.pig.bills.length ? ' и ' + s.pig.bills.length + ' купюр' : '') + '. Закинуть купюру — перетащи на свинку',
+      pigEmpty: pigK === 0, pigBtnOpacity: pigK === 0 ? 0.4 : 1,
+      openPig: () => this.setState({ pigModal: { step: 'ask', shakes: 0, key: 0 } }),
+      spentHint: drag && drag.target === 'spent' ? 'Отпускай. Не бойся' : drag ? 'Сюда, сюда' : 'Брось сюда купюру из ячейки',
+      spentShadow: drag && drag.target === 'spent' ? '0 0 0 3px ' + T.accent + ', 0 24px 40px -20px rgba(0,0,0,0.6)' : '0 24px 40px -24px rgba(0,0,0,0.55)',
+      spentScale: drag && drag.target === 'spent' ? 'scale(1.02)' : 'none',
+      tillBill: (s.drop || s.lastTill) ? h('div', { key: 'till' + (s.drop ? s.drop.paid.length : 'x') + (s.lastTill || ''), style: { position: 'absolute', left: '50%', top: 18, width: BW, height: BH, transform: 'translateX(-50%)', animation: 'tillIn .45s cubic-bezier(.22,.8,.3,1) both' } }, this.staticBill(s.drop ? s.drop.paid[s.drop.paid.length - 1].d : s.lastTill, 1)) : null,
+      receipts: s.receipts.slice(0, 8).map((r, i) => this.receiptEl(r, i, T)),
+      spentTotal: fmt(s.receipts.reduce((a, r) => a + r.amt, 0)),
+      hasToast: !!s.toast, toast: s.toast, toastKey: s.toastKey
+    };
+
+    const dr = s.drop;
+    v.dropOpen = !!dr;
+    if (dr) {
+      const paid = this.sumK(dr.paid), chK = dr.change.reduce((a, b) => a + b, 0), spent = paid - chK;
+      v.dropBillFace = this.staticBill(dr.paid[0].d, 1, { transform: 'rotate(-6deg)' });
+      v.dropJoke = JOKE[dr.cat];
+      v.dropFrom = 'Из «' + catOf(dr.cat).name + '»: ' + dr.paid.map(b => b.d).join(' + ') + ' ' + cur;
+      const quicks = FREQ.filter(f => f < paid).map(f => ({ k: f, label: fmtR(f) }));
+      v.dropQuick = [{ k: paid, label: 'Без сдачи · ' + fmtR(paid) }, ...quicks].map(q => {
+        const on = spent === q.k && chK >= 0;
+        return { label: q.label, border: on ? T.accent : T.line, bg: on ? T.accentWash : 'transparent', pick: () => this.dropUpdate(() => ({ change: changeFor(paid - q.k) })) };
+      });
+      const btns = [...BILL_D.filter(d => d * 100 < paid).reverse().map(d => ({ k: d * 100, bill: d })), ...CHANGE_COINS.map(k => ({ k }))];
+      v.changeBtns = btns.map(b => {
+        const count = dr.change.filter(x => x === b.k).length;
+        const add = () => this.dropUpdate(o => ({ change: [...o.change, b.k] }));
+        const rem = () => this.dropUpdate(o => { const i = o.change.lastIndexOf(b.k); if (i < 0) return {}; const a = [...o.change]; a.splice(i, 1); return { change: a }; });
+        let face;
+        if (b.bill) face = this.staticBill(b.bill, 0.8);
+        else {
+          const cs = this.coinStyle(b.k);
+          face = h('div', { style: { position: 'absolute', inset: 0, borderRadius: '50%', background: cs.bg, boxShadow: 'inset 0 -3px 0 ' + cs.edge + ', 0 3px 6px rgba(0,0,0,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700, color: '#3a2a14' } }, coinLabel(b.k));
+        }
+        return { label: (b.bill ? 'Купюра ' : 'Монета ') + coinLabel(b.k), w: b.bill ? '80px' : '44px', h: b.bill ? '40px' : '44px', face, count, has: count > 0, minusVis: count ? 'visible' : 'hidden', add, remove: prevent(rem) };
+      });
+      const rest = [...new Set(this.live(dr.cat).map(b => b.d))].sort((a, b) => a - b);
+      v.canTopUp = rest.length > 0;
+      v.topUps = rest.map(d => ({ d, add: () => this.setState(st => {
+        const b = st.cells[dr.cat].find(x => x.d === d && !x.leaving);
+        return { cells: { ...st.cells, [dr.cat]: st.cells[dr.cat].filter(x => x !== b) }, drop: { ...st.drop, paid: [...st.drop.paid, b] } };
+      }) }));
+      const billsBack = dr.change.filter(k => k >= 500).map(k => k / 100);
+      const coinK = dr.change.filter(k => k < 500).reduce((a, b) => a + b, 0);
+      if (spent <= 0) { v.dropSummary = 'Сдачи больше, чем дал? Так не бывает. Ну или тебе очень повезло'; v.dropSummaryColor = '#c0452f'; }
+      else {
+        let t = 'Потратил ' + fmt(spent) + ' ' + cur + '.';
+        if (!chK) t += ' Без сдачи, чисто.';
+        else { if (billsBack.length) t += ' ' + billsBack.join(' + ') + ' вернутся в «' + catOf(dr.cat).name + '».'; if (coinK) t += ' ' + fmt(coinK) + ' мелочью — свинке.'; }
+        v.dropSummary = t; v.dropSummaryColor = T.ink2;
+      }
+      v.dropInvalid = spent <= 0; v.dropOpacity = spent > 0 ? 1 : 0.4;
+      v.dropCta = spent > 0 ? 'Готово · −' + fmt(spent) : 'Готово';
+      v.dropNoteHidden = !dr.showNote; v.dropNoteShown = dr.showNote; v.dropNote = dr.note;
+      v.showDropNote = () => this.dropUpdate(() => ({ showNote: true }));
+      v.onDropNote = e => { const val = e.target.value; this.dropUpdate(() => ({ note: val })); };
+      v.cancelDrop = () => this.cancelDrop(); v.confirmDrop = () => this.confirmDrop();
+    }
+
+    const m = s.manual;
+    v.manualSpendOpen = !!m;
+    v.openManualSpend = () => this.setState({ manual: { cat: 'eda', amt: 0, input: '', showInput: false, note: '', showNote: false } });
+    v.closeManualSpend = () => this.setState({ manual: null });
+    if (m) {
+      const amt = this.manualAmtK(), p = this.plan(m.cat, amt);
+      const upd = o => this.setState(st => ({ manual: { ...st.manual, ...o } }));
+      v.modalCats = [...CATS.map(c => c.id), 'pile'].map(id => {
+        const k = this.sumK(this.live(id)), on = m.cat === id;
+        return { name: catOf(id).name, left: k ? 'есть ' + fmtR(k) : 'пусто, увы', disabled: k === 0, opacity: k === 0 ? 0.4 : 1, border: on ? T.accent : T.line, bg: on ? T.accentWash : 'transparent', pick: () => upd({ cat: id }) };
+      });
+      v.manualQuick = FREQ.map(f => ({ label: fmtR(f), border: amt === f ? T.accent : T.line, bg: amt === f ? T.accentWash : 'transparent', pick: () => upd({ amt: f, showInput: false, input: '' }) }));
+      v.mInputHidden = !m.showInput; v.mInputShown = m.showInput; v.mAmt = m.input;
+      v.showMInput = () => upd({ showInput: true });
+      v.onMAmt = e => upd({ input: e.target.value.replace(/[^\d.,]/g, '') });
+      v.onMKey = e => { if (e.key === 'Enter') this.manualSpend(); };
+      v.mNoteHidden = !m.showNote; v.mNoteShown = m.showNote; v.mNote = m.note;
+      v.showMNote = () => upd({ showNote: true });
+      v.onMNote = e => upd({ note: e.target.value });
+      let planText = p.msg;
+      if (p.ok) {
+        planText = 'Возьмём ' + p.taken.map(b => b.d).join(' + ') + ' из «' + catOf(m.cat).name + '».';
+        if (p.paid === amt) planText += ' Без сдачи.';
+        else { if (p.back.length) planText += ' Сдача ' + p.back.join(' + ') + ' вернётся купюрами.'; const ck = p.coins.reduce((a, b) => a + b, 0); if (ck) planText += ' ' + fmt(ck) + ' мелочью — свинке.'; }
+      }
+      v.planText = planText; v.planColor = p.ok || amt <= 0 ? T.ink2 : '#c0452f';
+      v.cantSpend = !p.ok; v.spendOpacity = p.ok ? 1 : 0.4;
+      v.spendLabel = amt > 0 ? 'Потратить ' + fmt(amt) : 'Потратить';
+      v.doManualSpend = () => this.manualSpend();
+    }
+
+    const pm = s.pigModal;
+    v.pigOpen = !!pm;
+    if (pm) {
+      v.bigPig = this.pigEl({ broken: pm.step === 'broken' });
+      v.shakeKey = pm.key; v.shakeAnim = pm.key ? 'pigShake .5s ease both' : 'none';
+      v.pigCursor = pm.step === 'shake' ? 'pointer' : 'default';
+      v.shakePig = () => this.shakePig();
+      v.pigAsk = pm.step === 'ask'; v.pigShaking = pm.step === 'shake'; v.pigBroken = pm.step === 'broken';
+      v.pigTitle = pm.step === 'ask' ? 'Ты точно уверен, что хочешь забрать нажитое непосильным трудом?' : pm.step === 'shake' ? 'Тогда тряси её!' : 'Выпало ' + fmt(pigK) + ' ' + cur + '. Свинка простит. Наверное';
+      v.pigSub = pm.step === 'ask' ? 'Там ' + fmt(pigK) + ' ' + cur + '. Монеты станут купюрами и лягут в кучу, остаток мелочи останется свинке.' : pm.step === 'shake' ? 'Кликай по свинке. Ещё ' + (3 - pm.shakes) + ' ' + (3 - pm.shakes === 1 ? 'раз' : 'раза') + ' — и она сдастся' : 'Забирай. Новая свинка уже на подходе';
+      v.shakeDots = [0, 1, 2].map(i => ({ bg: i < pm.shakes ? T.accent : T.line }));
+      v.closePig = () => this.setState({ pigModal: null });
+      v.pigYes = () => this.setState({ pigModal: { ...pm, step: 'shake' } });
+      v.takePig = () => this.takePig();
+    }
+    return v;
+  }
+}
+</script>
+</body>
+</html>

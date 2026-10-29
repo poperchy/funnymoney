@@ -1,0 +1,12 @@
+<!-- @dsCard group="Blocks" height=661 width=1200 -->
+<!doctype html>
+<html>
+<head><meta charset="utf-8"><title>BentoGrid — preview</title></head>
+<body>
+<div id="root" class="pt-root"></div>
+<script>
+  var P = window.Potato, h = React.createElement;
+  ReactDOM.createRoot(document.getElementById("root")).render(h(P.BentoGrid,{title:"One product, six things it watches",tiles:[{size:"big",label:"Change feed",accent:true,title:"What changed since yesterday, in sentences",diffs:[{kind:"bad",file:"app.js 142 → 389 KB",cost:"LCP +1.3s"},{kind:"new",file:"+ static.hotjar.com",cost:"TBT +410ms"},{kind:"good",file:"− jquery-legacy.min.js",cost:"−87 KB"}]},{tone:"tint1",label:"Noise",value:"2–3",note:"false events per site per week"},{tone:"tint2",label:"Coverage",value:"41 / 41",note:"pages crawled, not sampled"},{size:"wide",tone:"dark",label:"Budget alert",aside:"09:16 · slack",text:h(React.Fragment,null,"JS budget broken on shop.example.com — ",h("span",{style:{color:"var(--code-string)"}},"389 KB"),", +139 over, from app.js after the 08:51 deploy.")},{label:"Third parties",tags:["gtm",{label:"hotjar · new",tone:"danger"},"fb pixel","intercom","+7"]},{size:"wide",tone:"tint3",label:"LCP · 14 days",note:"Two days over budget, both after a deploy",bars:[2.1,2.2,2.0,2.3,2.1,2.4,2.2,2.1,3.1,2.6,2.3,2.2,2.4,3.8],limit:2.5,max:4},{label:"Setup",text:"No tag, no SDK. Paste a domain."}]}));
+</script>
+</body>
+</html>

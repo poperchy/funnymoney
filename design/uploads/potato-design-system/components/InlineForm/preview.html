@@ -1,0 +1,12 @@
+<!-- @dsCard group="Controls" height=168 -->
+<!doctype html>
+<html>
+<head><meta charset="utf-8"><title>InlineForm — preview</title></head>
+<body>
+<div id="root" class="pt-root"></div>
+<script>
+  var P = window.Potato, h = React.createElement;
+  ReactDOM.createRoot(document.getElementById("root")).render(h("div",{style:{padding:20,display:"flex",flexDirection:"column",gap:14,maxWidth:480}}, h(P.InlineForm,null), h(P.InlineForm,{size:"sm",action:"Notify me",doneLabel:"On the list ✓"})));
+</script>
+</body>
+</html>

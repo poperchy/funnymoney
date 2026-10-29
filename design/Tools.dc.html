@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<title>Free Website Performance Tools: Core Web Vitals, Page Size, Compression - haprycon</title>
+<meta name="description" content="Free tools to test website speed: check Core Web Vitals, measure page weight by file type, and see if gzip or Brotli is on. Paste a URL, no sign-up." />
+<link rel="canonical" href="https://haprycon.com/tools" />
+<link rel="preload" href="fonts/InstrumentSans-Latin.woff2" as="font" type="font/woff2" crossorigin="" />
+<style>
+  @font-face { font-family:'Instrument Sans'; src:url('fonts/InstrumentSans-Latin.woff2') format('woff2'); font-weight:400 700; font-display:swap; }
+  body { margin:0; background:#fcfcfd; -webkit-font-smoothing:antialiased; }
+  * { box-sizing:border-box; }
+  a { color:#5b52e0; text-decoration:none; }
+  a:hover { color:#4038c4; }
+  ::selection { background:#ddd9ff; }
+  @keyframes float1 { 0%,100% { transform:translate3d(0,0,0) scale(1); } 50% { transform:translate3d(24px,-32px,0) scale(1.06); } }
+  @keyframes float2 { 0%,100% { transform:translate3d(0,0,0) scale(1); } 50% { transform:translate3d(-30px,26px,0) scale(0.94); } }
+</style>
+</helmet>
+<div style="font-family:'Instrument Sans',system-ui,sans-serif; color:#16151c; background:#fcfcfd; min-height:100vh; overflow-x:hidden;">
+
+  <header style="position:sticky; top:0; z-index:40; background:rgba(252,252,253,0.8); backdrop-filter:blur(14px); border-bottom:1px solid rgba(22,21,28,0.06);">
+    <div style="max-width:1140px; margin:0 auto; padding:14px 28px; display:flex; align-items:center; justify-content:space-between; gap:24px; flex-wrap:wrap;">
+      <a href="/" style="display:flex; align-items:center; gap:10px; color:#16151c;">
+        <img src="https://haprycon.com/images/logo.svg" alt="" width="24" height="24" style="display:block; width:24px; height:24px;" />
+        <span style="font-size:17px; font-weight:600; letter-spacing:-0.02em;">haprycon</span>
+      </a>
+      <nav style="display:flex; align-items:center; gap:26px; font-size:14px; flex-wrap:wrap;">
+        <a href="/tools" style="color:#16151c; font-weight:500;">Tools</a>
+      </nav>
+    </div>
+  </header>
+
+  <section style="position:relative;">
+    <div style="position:absolute; inset:-120px 0 -420px; pointer-events:none; overflow:hidden; -webkit-mask-image:linear-gradient(to bottom,#000 60%,transparent); mask-image:linear-gradient(to bottom,#000 60%,transparent);">{{ blobs }}</div>
+    <div style="position:relative; max-width:1140px; margin:0 auto; padding:40px 28px 0;">
+      <nav aria-label="Breadcrumb" style="display:flex; gap:8px; align-items:center; font-size:14px; color:#6b6875;">
+        <a href="/" style="color:#6b6875;">haprycon</a><span style="color:#c4c1cc;">/</span><span style="color:#16151c;">Tools</span>
+      </nav>
+      <h1 style="margin:56px 0 0; max-width:760px; font-size:60px; line-height:1.04; letter-spacing:-0.045em; font-weight:600; text-wrap:balance;">Free tools to test <span style="background:linear-gradient(100deg,#6b5ef0,#c17be0 55%,#f2a0b8); -webkit-background-clip:text; background-clip:text; color:transparent;">website speed</span></h1>
+      <p style="margin:22px 0 0; max-width:580px; font-size:19px; line-height:1.6; color:#5d5a68; text-wrap:pretty;">Paste a URL, get a straight answer. Each tool checks one thing, explains the result and tells you what to change. No sign-up.</p>
+    </div>
+  </section>
+
+  <main style="position:relative; max-width:1140px; margin:0 auto; padding:56px 28px 0;">
+    <div style="display:grid; grid-template-columns:{{ gridCols }}; gap:20px;">
+      <sc-for list="{{ tools }}" as="t" hint-placeholder-count="3">
+        <a href="{{ t.href }}" style="display:flex; flex-direction:column; color:#16151c; border-radius:20px; background:rgba(255,255,255,0.88); border:1px solid rgba(22,21,28,0.08); box-shadow:0 30px 60px -48px rgba(70,56,180,0.5); backdrop-filter:blur(10px); overflow:hidden; transition:transform .2s ease, box-shadow .2s ease;" style-hover="transform:translateY(-3px); box-shadow:0 36px 70px -40px rgba(70,56,180,0.55); color:#16151c;">
+          <sc-if value="{{ showPreview }}" hint-placeholder-val="{{ true }}">
+            <div style="padding:20px 22px; border-bottom:1px solid rgba(22,21,28,0.07); background:linear-gradient(120deg,rgba(107,94,240,0.05),rgba(242,160,184,0.07)); display:flex; flex-direction:column; gap:10px; min-height:148px; justify-content:center;">
+              <div style="display:flex; justify-content:space-between; gap:12px; font-size:13px; font-weight:500; color:#8b8894; white-space:nowrap; overflow:hidden;"><span>{{ t.previewLabel }}</span></div>
+              <sc-for list="{{ t.rows }}" as="r" hint-placeholder-count="3">
+                <div style="display:grid; grid-template-columns:90px minmax(0,1fr) auto; gap:12px; align-items:center; font-size:13px;">
+                  <span style="color:#6b6875;">{{ r.k }}</span>
+                  <span style="height:6px; border-radius:999px; background:rgba(22,21,28,0.06); overflow:hidden; display:block;"><span style="display:block; height:100%; width:{{ r.w }}; background:{{ r.c }}; border-radius:999px;"></span></span>
+                  <span style="color:#16151c;">{{ r.v }}</span>
+                </div>
+              </sc-for>
+            </div>
+          </sc-if>
+          <div style="padding:22px 22px 24px; display:flex; flex-direction:column; gap:12px; flex:1;">
+            <h2 style="margin:0; font-size:23px; line-height:1.2; letter-spacing:-0.025em; font-weight:600;">{{ t.name }}</h2>
+            <p style="margin:0; font-size:15px; line-height:1.55; color:#5d5a68; text-wrap:pretty;">{{ t.desc }}</p>
+            <div style="font-size:14px; line-height:1.5; color:#4c4956;"><span style="color:#8b8894;">Use it when </span>{{ t.when }}</div>
+            <div style="margin-top:auto; padding-top:10px; display:flex; align-items:center; justify-content:space-between; gap:12px;">
+              <span style="font-size:14px; font-weight:500; color:#5b52e0;">Open checker →</span>
+            </div>
+          </div>
+        </a>
+      </sc-for>
+    </div>
+
+    <section style="margin:96px 0 0; border-radius:24px; padding:44px 40px; background:linear-gradient(120deg,rgba(107,94,240,0.08),rgba(242,160,184,0.11)); border:1px solid rgba(22,21,28,0.06); display:flex; align-items:center; justify-content:space-between; gap:28px; flex-wrap:wrap;">
+      <div style="max-width:560px;">
+        <h2 style="margin:0; font-size:30px; line-height:1.15; letter-spacing:-0.03em; font-weight:600; text-wrap:balance;">A check shows one moment. Regressions happen on a Tuesday.</h2>
+        <p style="margin:12px 0 0; font-size:16px; line-height:1.6; color:#5d5a68;">haprycon runs these checks across your whole site every morning and tells you only what changed.</p>
+      </div>
+      <a href="/" style="flex:none; padding:13px 24px; border-radius:999px; background:#16151c; color:#fcfcfd; font-size:15px; font-weight:500;">See how monitoring works →</a>
+    </section>
+  </main>
+
+  <footer style="margin-top:96px; border-top:1px solid rgba(22,21,28,0.07);">
+    <div style="max-width:1140px; margin:0 auto; padding:36px 28px 48px; display:flex; justify-content:space-between; align-items:center; gap:24px; flex-wrap:wrap; font-size:14px; color:#6b6875;">
+      <div style="display:flex; align-items:center; gap:10px;"><img src="https://haprycon.com/images/logo.svg" alt="" width="20" height="20" style="display:block; width:20px; height:20px;" /><span style="font-size:13px; color:#8b8894;">haprycon © 2026</span></div>
+      <nav style="display:flex; gap:22px; flex-wrap:wrap;">
+        <a href="/about" style="color:#6b6875;" style-hover="color:#16151c;">About</a>
+        <a href="/contact" style="color:#6b6875;" style-hover="color:#16151c;">Contact</a>
+        <a href="/privacy" style="color:#6b6875;" style-hover="color:#16151c;">Privacy</a>
+      </nav>
+    </div>
+  </footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;layout&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;grid&quot;,&quot;list&quot;],&quot;default&quot;:&quot;grid&quot;,&quot;tsType&quot;:&quot;'grid'|'list'&quot;},&quot;showPreview&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;}}">
+class Component extends DCLogic {
+  renderVals() {
+    const h = React.createElement;
+    const blob = (k, s) => h('div', { key: k, style: { position: 'absolute', borderRadius: '999px', filter: 'blur(70px)', ...s } });
+    const blobs = [
+      blob('a', { width: 520, height: 520, top: 0, right: -120, background: 'radial-gradient(circle,rgba(123,108,246,0.28),transparent 70%)', animation: 'float1 18s ease-in-out infinite' }),
+      blob('b', { width: 440, height: 440, top: 120, right: 260, background: 'radial-gradient(circle,rgba(242,160,184,0.26),transparent 70%)', animation: 'float2 22s ease-in-out infinite' })
+    ];
+    const layout = this.props.layout ?? 'grid';
+    const tools = [
+      { name: 'Core Web Vitals checker', href: 'https://haprycon.com/core-web-vitals-checker', path: '/core-web-vitals-checker', tag: 'LOADING · INTERACTIVITY · STABILITY',
+        desc: 'Measures LCP, INP and CLS for a page and names the element or script behind each slow number.',
+        when: 'a page feels slow or Search Console flags it.', previewLabel: 'Core Web Vitals',
+        rows: [{ k: 'LCP', v: '2.1 s', w: '62%', c: '#1f9d63' }, { k: 'INP', v: '240 ms', w: '74%', c: '#f0a33c' }, { k: 'CLS', v: '0.04', w: '22%', c: '#1f9d63' }] },
+      { name: 'Page size checker', href: 'https://haprycon.com/page-size-checker', path: '/page-size-checker', tag: 'WEIGHT · REQUESTS',
+        desc: 'Totals everything a page downloads and splits it by images, scripts, styles and fonts, largest files first.',
+        when: 'the page got heavier and you need to know what added it.', previewLabel: 'Total 2.4 MB',
+        rows: [{ k: 'Images', v: '1.3 MB', w: '54%', c: '#7b6cf6' }, { k: 'Scripts', v: '780 KB', w: '33%', c: '#c17be0' }, { k: 'Fonts', v: '210 KB', w: '9%', c: '#f2a0b8' }] },
+      { name: 'Gzip & Brotli checker', href: 'https://haprycon.com/gzip-brotli-checker', path: '/gzip-brotli-checker', tag: 'COMPRESSION · HEADERS',
+        desc: 'Shows which encoding the server returns, bytes saved per file and which CSS and JS go out uncompressed.',
+        when: 'text files look large or you just changed CDN or server.', previewLabel: 'Encoding: br',
+        rows: [{ k: 'Original', v: '412 KB', w: '100%', c: 'rgba(22,21,28,0.18)' }, { k: 'Sent', v: '96 KB', w: '23%', c: '#1f9d63' }, { k: 'Raw files', v: '2 of 31', w: '7%', c: '#d64550' }] }
+    ];
+    return {
+      blobs, tools,
+      showPreview: this.props.showPreview ?? true,
+      gridCols: layout === 'list' ? 'minmax(0,1fr)' : 'repeat(auto-fit,minmax(min(100%,250px),1fr))'
+    };
+  }
+}
+</script>
+</body>
+</html>

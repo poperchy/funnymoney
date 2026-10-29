@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>iTravel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet" />
+<script src="https://unpkg.com/d3@7.9.0/dist/d3.min.js" integrity="sha384-CjloA8y00+1SDAUkjs099PVfnY2KmDC2BZnws9kh8D/lX1s46w6EPhpXdqMfjK6i" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/topojson-client@3.1.0/dist/topojson-client.min.js" integrity="sha384-Ukv1p/xTma6P4/2bY5KzWBw+ydSpXmhCMtyciIQVDJ1RmOxtCYNMF1uXT9T63H67" crossorigin="anonymous"></script>
+<style>
+  :root {
+    --ink: #17161a;
+    --muted: #6f6b74;
+    --line: rgba(23,22,26,0.1);
+    --accent: #d8502f;
+    --surface: #ffffff;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; overflow: hidden; font-family: 'Instrument Sans', system-ui, sans-serif; color: var(--ink); background: #dde5e7; }
+  a { color: var(--accent); text-decoration: none; }
+  button { font-family: inherit; }
+
+  #map { position: absolute; inset: 0; cursor: grab; }
+  #map.dragging { cursor: grabbing; }
+  #map svg { display: block; width: 100%; height: 100%; }
+  .land { fill: #f3ede3; stroke: rgba(23,22,26,0.22); vector-effect: non-scaling-stroke; stroke-width: 0.7; }
+  .water { fill: #dde5e7; }
+  .track { fill: none; stroke: var(--accent); stroke-width: 2; stroke-dasharray: 2 7; stroke-linecap: round; opacity: 0.75; vector-effect: non-scaling-stroke; }
+  .track.feed { stroke: #17161a; }
+  .pin circle { fill: var(--accent); stroke: #fff; stroke-width: 2; }
+  .pin.feed circle { fill: #17161a; }
+  .pin.ghost circle { fill: #fff; stroke: var(--accent); stroke-width: 2.5; }
+  .pin text { fill: #fff; font-size: 12px; font-weight: 600; text-anchor: middle; dominant-baseline: central; }
+  .pin .leader { stroke: var(--accent); stroke-width: 1.5; }
+  .pin.feed .leader { stroke: #17161a; }
+  .pin .anchor { fill: var(--accent); stroke: #fff; stroke-width: 1; }
+  .pin.feed .anchor { fill: #17161a; }
+  .pin.ghost text { fill: var(--ink); }
+  .pin { cursor: pointer; }
+  .plabel {
+    position: absolute; transform: translate(-50%, -140%); background: var(--surface); color: var(--ink);
+    padding: 7px 12px; border-radius: 10px; font-size: 13px; white-space: nowrap; pointer-events: none;
+    box-shadow: 0 10px 26px -14px rgba(23,22,26,0.6); display: none; z-index: 400;
+  }
+  .plabel b { display: block; font-weight: 600; }
+  .plabel span { color: var(--muted); font-size: 12px; }
+
+  .topbar { position: absolute; z-index: 700; top: 18px; left: 18px; right: 18px; display: flex; gap: 12px; align-items: center; pointer-events: none; transition: right 0.32s cubic-bezier(0.22,0.8,0.3,1); }
+  body.panel-open .topbar { right: 430px; }
+  .brand { pointer-events: auto; display: flex; align-items: center; gap: 9px; height: 46px; padding: 0 18px; background: var(--surface); border-radius: 999px; box-shadow: 0 8px 26px -14px rgba(23,22,26,0.5); }
+  .brand b { font-family: 'Instrument Serif', Georgia, serif; font-weight: 400; font-size: 21px; letter-spacing: -0.01em; }
+  .brand i { width: 9px; height: 9px; border-radius: 999px; background: var(--accent); display: block; }
+
+  .searchwrap { pointer-events: auto; position: relative; flex: 1; max-width: 420px; }
+  .search { width: 100%; height: 46px; border: none; border-radius: 999px; padding: 0 20px; background: var(--surface); box-shadow: 0 8px 26px -14px rgba(23,22,26,0.5); font-size: 15px; color: var(--ink); }
+  .search:focus { outline: 2px solid var(--accent); outline-offset: -2px; }
+  .results { position: absolute; z-index: 720; top: 54px; left: 0; right: 0; background: var(--surface); border-radius: 16px; box-shadow: 0 20px 44px -22px rgba(23,22,26,0.55); overflow: hidden; display: none; }
+  .results.open { display: block; }
+  .res { padding: 11px 18px; cursor: pointer; border-bottom: 1px solid var(--line); }
+  .res:last-child { border-bottom: none; }
+  .res:hover { background: #f7f5f2; }
+  .res .t { font-size: 15px; }
+  .res .s { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .res .empty { color: var(--muted); font-size: 14px; }
+
+  .zoomer { position: absolute; z-index: 500; right: 18px; bottom: 22px; display: flex; flex-direction: column; background: var(--surface); border-radius: 14px; overflow: hidden; box-shadow: 0 10px 28px -18px rgba(23,22,26,0.6); }
+  .zoomer button { width: 38px; height: 38px; border: none; background: transparent; font-size: 17px; cursor: pointer; color: var(--ink); }
+  .zoomer button + button { border-top: 1px solid var(--line); }
+
+  .panel { position: absolute; z-index: 600; top: 18px; right: 18px; bottom: 18px; width: 392px; background: var(--surface); border-radius: 22px; box-shadow: 0 26px 60px -30px rgba(23,22,26,0.6); display: flex; flex-direction: column; overflow: hidden; transition: transform 0.32s cubic-bezier(0.22,0.8,0.3,1), opacity 0.2s ease; }
+  .panel.closed { transform: translateX(calc(100% + 28px)); opacity: 0; pointer-events: none; }
+  .panel-toggle { position: absolute; z-index: 550; top: 18px; right: 18px; height: 46px; padding: 0 20px; border: none; border-radius: 999px; background: var(--ink); color: #fff; font-size: 14px; font-weight: 500; cursor: pointer; box-shadow: 0 8px 26px -14px rgba(23,22,26,0.6); display: flex; align-items: center; gap: 9px; }
+  .tabs { display: flex; gap: 6px; padding: 16px 18px 12px; border-bottom: 1px solid var(--line); align-items: center; }
+  .tab { border: none; background: transparent; color: var(--muted); font-size: 14px; padding: 8px 15px; border-radius: 999px; cursor: pointer; }
+  .tab.on { background: var(--ink); color: #fff; }
+  .closebtn { margin-left: auto; border: none; background: transparent; color: var(--muted); font-size: 18px; cursor: pointer; padding: 4px 6px; }
+  .scroll { overflow-y: auto; flex: 1; -webkit-overflow-scrolling: touch; }
+
+  .card { padding: 16px 18px; border-bottom: 1px solid var(--line); cursor: pointer; }
+  .card:hover { background: #faf8f6; }
+  .card h3 { margin: 0; font-size: 17px; font-weight: 600; letter-spacing: -0.015em; }
+  .card .meta { margin-top: 5px; font-size: 13px; color: var(--muted); }
+  .row { display: flex; align-items: center; justify-content: space-between; gap: 14px; }
+  .chip { font-size: 11px; letter-spacing: 0.04em; text-transform: uppercase; padding: 3px 9px; border-radius: 999px; background: rgba(23,22,26,0.06); color: var(--muted); white-space: nowrap; }
+  .chip.pub { background: rgba(216,80,47,0.12); color: var(--accent); }
+  .strip { margin-top: 10px; display: flex; gap: 4px; }
+  .strip span { height: 4px; border-radius: 999px; background: rgba(216,80,47,0.35); flex: 1; }
+
+  .detail { display: none; flex-direction: column; height: 100%; }
+  .detail.on { display: flex; }
+  .dhead { padding: 16px 18px; border-bottom: 1px solid var(--line); }
+  .back { border: none; background: transparent; color: var(--muted); font-size: 13px; cursor: pointer; padding: 0; }
+  .dhead h2 { margin: 10px 0 0; font-family: 'Instrument Serif', Georgia, serif; font-weight: 400; font-size: 27px; line-height: 1.12; letter-spacing: -0.01em; }
+  .dhead .meta { margin-top: 6px; font-size: 13px; color: var(--muted); }
+  .share { margin-top: 14px; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 14px; border-radius: 14px; background: #f6f3ef; }
+  .share .t { font-size: 14px; font-weight: 500; }
+  .share .s { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .sw { width: 44px; height: 25px; border-radius: 999px; border: none; cursor: pointer; padding: 3px; display: flex; background: #d5d0c9; }
+  .sw i { width: 19px; height: 19px; border-radius: 999px; background: #fff; display: block; box-shadow: 0 1px 3px rgba(0,0,0,0.22); transition: transform 0.18s ease; }
+  .sw.on { background: var(--accent); }
+  .sw.on i { transform: translateX(19px); }
+
+  .day { padding: 14px 18px 4px; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+  .place { display: grid; grid-template-columns: 26px 1fr; gap: 12px; padding: 9px 18px; cursor: pointer; align-items: start; }
+  .place:hover { background: #faf8f6; }
+  .place .n { width: 24px; height: 24px; border-radius: 999px; background: var(--accent); color: #fff; font-size: 12px; font-weight: 600; display: flex; align-items: center; justify-content: center; margin-top: 1px; }
+  .place .t { font-size: 15px; }
+  .place .s { font-size: 12.5px; color: var(--muted); margin-top: 2px; line-height: 1.4; }
+
+  .author { display: flex; align-items: center; gap: 10px; margin-top: 12px; }
+  .ava { width: 30px; height: 30px; border-radius: 999px; background: #17161a; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 13px; }
+  .rate { font-size: 13px; color: var(--muted); }
+  .rate b { color: var(--ink); font-weight: 600; }
+
+  .foot { padding: 14px 18px; border-top: 1px solid var(--line); display: flex; gap: 10px; }
+  .btn { flex: 1; border: none; border-radius: 999px; padding: 12px 16px; font-size: 14px; font-weight: 500; cursor: pointer; }
+  .btn.pri { background: var(--accent); color: #fff; }
+  .btn.sec { background: #f1eeea; color: var(--ink); }
+  .note { padding: 12px 18px 18px; font-size: 12px; color: #9a959f; }
+
+  .credit { position: absolute; z-index: 400; left: 18px; bottom: 22px; font-size: 11px; color: #74707a; background: rgba(255,255,255,0.75); padding: 5px 12px; border-radius: 999px; }
+
+  @media (max-width: 820px) {
+    .topbar { top: 12px; left: 12px; right: 12px; }
+    .brand { padding: 0 14px; }
+    .brand b { font-size: 19px; }
+    .panel { top: auto; left: 0; right: 0; bottom: 0; width: auto; height: 62vh; border-radius: 22px 22px 0 0; }
+    .panel.closed { transform: translateY(calc(100% + 20px)); }
+    .panel-toggle { top: auto; bottom: 20px; right: 50%; transform: translateX(50%); }
+    body.panel-open .topbar { right: 12px; }
+    .zoomer, .credit { display: none; }
+  }
+</style>
+</head>
+<body>
+<div id="map"></div>
+<div class="plabel" id="plabel"></div>
+
+<div class="topbar">
+  <div class="brand"><i></i><b>iTravel</b></div>
+  <div class="searchwrap">
+    <input class="search" id="search" placeholder="Найти место на карте" autocomplete="off" />
+    <div class="results" id="results"></div>
+  </div>
+</div>
+
+<div class="zoomer"><button id="zin">+</button><button id="zout">−</button></div>
+<div class="credit">Геометрия: Natural Earth</div>
+
+<button class="panel-toggle" id="toggle"><span>Мои маршруты</span></button>
+
+<div class="panel closed" id="panel">
+  <div id="listView">
+    <div class="tabs">
+      <button class="tab on" data-tab="mine">Мои маршруты</button>
+      <button class="tab" data-tab="feed">Лента</button>
+      <button class="closebtn" id="close">✕</button>
+    </div>
+    <div class="scroll" id="list"></div>
+  </div>
+  <div class="detail" id="detailView"></div>
+</div>
+
+<script>
+const mine = [
+  { id: 'lis', title: 'Лиссабон на четыре дня', city: 'Португалия', shared: false, days: [
+    { label: 'День 1 · Байша', places: [
+      { n: 'Праса ду Комерсиу', note: 'Приехать к 9 утра, пока пусто', ll: [-9.1366, 38.7077] },
+      { n: 'Арку да Руа Аугушта', note: 'Наверх 3,50 €, вид на Байшу', ll: [-9.1369, 38.7093] },
+      { n: 'Эливадор ди Санта-Жушта', note: 'Очередь; подняться пешком с Кармо', ll: [-9.1394, 38.7118] },
+      { n: 'A Brasileira', note: 'Кофе стоя у стойки, 0,90 €', ll: [-9.1424, 38.7107] } ] },
+    { label: 'День 2 · Алфама', places: [
+      { n: 'Замок Святого Георгия', note: 'Билет заранее, иначе 40 минут очереди', ll: [-9.1335, 38.7139] },
+      { n: 'Мирадору Санта-Лузия', note: 'Лучше на закате', ll: [-9.1303, 38.7118] },
+      { n: 'Национальный пантеон', note: 'Крыша — самый тихий вид в городе', ll: [-9.1247, 38.7153] } ] },
+    { label: 'День 3 · Белен', places: [
+      { n: 'Монастырь Жеронимуш', note: 'В 9:30 без очереди', ll: [-9.2065, 38.6979] },
+      { n: 'Башня Белен', note: 'Снаружи достаточно', ll: [-9.2160, 38.6916] },
+      { n: 'Pastéis de Belém', note: 'Брать внутри, не в окне навынос', ll: [-9.2032, 38.6975] } ] },
+    { label: 'День 4 · Алкантара', places: [
+      { n: 'LX Factory', note: 'Воскресный рынок до 16:00', ll: [-9.1786, 38.7033] },
+      { n: 'Pilar 7', note: 'Стеклянный пол под мостом', ll: [-9.1773, 38.6994] } ] }
+  ] },
+  { id: 'tok', title: 'Токио, первый раз', city: 'Япония', shared: true, days: [
+    { label: 'День 1 · Сибуя и Синдзюку', places: [
+      { n: 'Перекрёсток Сибуя', note: 'Сверху из Shibuya Sky, слот на 17:20', ll: [139.7005, 35.6595] },
+      { n: 'Мэйдзи-дзингу', note: 'Вход со стороны Харадзюку', ll: [139.6993, 35.6764] },
+      { n: 'Синдзюку-Гёэн', note: '500 ¥, закрывается в 18:00', ll: [139.7100, 35.6852] } ] },
+    { label: 'День 2 · Асакуса и Уэно', places: [
+      { n: 'Сэнсо-дзи', note: 'До 8 утра — пустая улица Накамисэ', ll: [139.7967, 35.7148] },
+      { n: 'Парк Уэно', note: 'Музей закрыт по понедельникам', ll: [139.7745, 35.7156] },
+      { n: 'Амэёко', note: 'Обед на ходу', ll: [139.7743, 35.7089] } ] },
+    { label: 'День 3 · Залив', places: [
+      { n: 'Цукидзи, внешний рынок', note: 'Приходить до 10:00', ll: [139.7707, 35.6654] },
+      { n: 'Тоёсу', note: 'Аукцион только по записи', ll: [139.7867, 35.6450] },
+      { n: 'Одайба', note: 'Обратно на водном автобусе', ll: [139.7770, 35.6297] } ] }
+  ] },
+  { id: 'geo', title: 'Грузия: Тбилиси и Кахетия', city: 'Грузия', shared: false, days: [
+    { label: 'Дни 1–2 · Тбилиси', places: [
+      { n: 'Площадь Свободы', note: 'Старт пешком отсюда', ll: [44.8015, 41.6934] },
+      { n: 'Абанотубани', note: 'Серные бани, номер на двоих 60 ₾', ll: [44.8093, 41.6889] },
+      { n: 'Мтацминда', note: 'Фуникулёр, вечером очередь', ll: [44.7869, 41.6953] } ] },
+    { label: 'Дни 3–4 · Сигнахи', places: [
+      { n: 'Сигнахи', note: 'Ночь в городе, а не в Тбилиси', ll: [45.9214, 41.6197] },
+      { n: 'Монастырь Бодбе', note: '15 минут пешком под гору', ll: [45.9247, 41.6067] } ] },
+    { label: 'Дни 5–6 · Телави', places: [
+      { n: 'Телави', note: 'Рынок утром, дегустация после', ll: [45.4731, 41.9197] },
+      { n: 'Алаверди', note: 'Плечи закрыты, платок на входе', ll: [45.3772, 42.0322] } ] }
+  ] }
+];
+
+const feed = [
+  { id: 'porto', title: 'Северная Португалия на машине', city: 'Португалия', author: 'Марина К.', rating: 4.8, saves: 312, days: [
+    { label: 'Маршрут', places: [
+      { n: 'Порту', note: 'Две ночи, парковка у Бульяна', ll: [-8.6109, 41.1496] },
+      { n: 'Гимарайнш', note: 'Полдня хватает', ll: [-8.2918, 41.4425] },
+      { n: 'Брага', note: 'Бон-Жезуш — подъём по лестнице', ll: [-8.4265, 41.5454] },
+      { n: 'Пиньян, долина Дору', note: 'Дорога N222 вдоль реки', ll: [-7.5453, 41.1867] } ] }
+  ] },
+  { id: 'kyoto', title: 'Киото пешком, без автобусов', city: 'Япония', author: 'Даня', rating: 4.9, saves: 1204, days: [
+    { label: 'Маршрут', places: [
+      { n: 'Фусими Инари', note: 'Приходить в 6:30, иначе толпа', ll: [135.7727, 34.9671] },
+      { n: 'Киёмидзу-дэра', note: 'Подъём через Саннэндзака', ll: [135.7850, 34.9949] },
+      { n: 'Гион', note: 'Вечером, но без съёмки гейш', ll: [135.7752, 35.0037] },
+      { n: 'Арасияма', note: 'Последний день, электричкой', ll: [135.6668, 35.0094] } ] }
+  ] },
+  { id: 'arm', title: 'Армения за выходные', city: 'Армения', author: 'Гор А.', rating: 4.6, saves: 189, days: [
+    { label: 'Маршрут', places: [
+      { n: 'Площадь Республики', note: 'Фонтаны после 21:00', ll: [44.5126, 40.1776] },
+      { n: 'Гарни', note: 'Такси из Еревана 6000 ֏', ll: [44.7300, 40.1122] },
+      { n: 'Гегард', note: 'В связке с Гарни, полдня', ll: [44.8181, 40.1408] },
+      { n: 'Севан', note: 'Ветрено даже летом', ll: [45.0072, 40.5590] } ] }
+  ] }
+];
+
+const mapEl = document.getElementById('map');
+const plabel = document.getElementById('plabel');
+let W = mapEl.clientWidth || window.innerWidth;
+let H = mapEl.clientHeight || window.innerHeight;
+let lastRender = { items: [], kind: 'overview' };
+
+const svg = d3.select('#map').append('svg').attr('viewBox', [0, 0, W, H]);
+svg.append('rect').attr('class', 'water').attr('width', W).attr('height', H);
+const g = svg.append('g');
+const gLand = g.append('g');
+const gTrack = g.append('g');
+const gPins = g.append('g');
+
+const projection = d3.geoMercator().scale(W / (2 * Math.PI)).translate([W / 2, H / 2 + H * 0.12]);
+const path = d3.geoPath(projection);
+
+let k = 1;
+const zoom = d3.zoom().scaleExtent([1, 140]).on('zoom', ev => {
+  k = ev.transform.k;
+  g.attr('transform', ev.transform);
+  placePins();
+  hideLabel();
+});
+svg.call(zoom).on('dblclick.zoom', null);
+mapEl.addEventListener('pointerdown', () => mapEl.classList.add('dragging'));
+window.addEventListener('pointerup', () => mapEl.classList.remove('dragging'));
+
+function sizeMap(refit) {
+  W = mapEl.clientWidth || window.innerWidth;
+  H = mapEl.clientHeight || window.innerHeight;
+  svg.attr('viewBox', [0, 0, W, H]);
+  svg.select('.water').attr('width', W).attr('height', H);
+  projection.scale(W / (2 * Math.PI)).translate([W / 2, H / 2 + H * 0.12]);
+  gLand.selectAll('path').attr('d', path);
+  if (lastRender.items.length) {
+    renderPins(lastRender.items, lastRender.kind);
+    if (refit) flyTo(lastRender.items.map(p => p.ll), lastRender.kind === 'overview' ? 3.2 : 55);
+  }
+}
+
+d3.json('https://cdn.jsdelivr.net/npm/world-atlas@2.0.2/countries-50m.json').then(topo => {
+  const countries = topojson.feature(topo, topo.objects.countries);
+  gLand.selectAll('path').data(countries.features).join('path').attr('class', 'land').attr('d', path);
+  sizeMap(false); drawOverview();
+  setTimeout(() => { sizeMap(false); drawOverview(); }, 0);
+});
+
+if (window.ResizeObserver) new ResizeObserver(() => sizeMap(true)).observe(mapEl);
+
+function panelPad() { return window.innerWidth > 820 && state.open ? 420 : 0; }
+
+let flyTimer = null;
+function applyTransform(target, animate) {
+  if (flyTimer) { clearInterval(flyTimer); flyTimer = null; }
+  const from = d3.zoomTransform(svg.node());
+  if (!animate) { svg.call(zoom.transform, target); return; }
+  const i = d3.interpolateZoom(
+    [(W / 2 - from.x) / from.k, (H / 2 - from.y) / from.k, W / from.k],
+    [(W / 2 - target.x) / target.k, (H / 2 - target.y) / target.k, W / target.k]
+  );
+  const dur = 800, t0 = Date.now();
+  flyTimer = setInterval(() => {
+    const p = Math.min(1, (Date.now() - t0) / dur);
+    const v = i(p);
+    const kk = W / v[2];
+    svg.call(zoom.transform, d3.zoomIdentity.translate(W / 2 - v[0] * kk, H / 2 - v[1] * kk).scale(kk));
+    if (p === 1) { clearInterval(flyTimer); flyTimer = null; }
+  }, 16);
+}
+
+function flyTo(points, maxK) {
+  const pts = points.map(p => projection(p));
+  const xs = pts.map(p => p[0]), ys = pts.map(p => p[1]);
+  const x0 = Math.min.apply(null, xs), x1 = Math.max.apply(null, xs);
+  const y0 = Math.min.apply(null, ys), y1 = Math.max.apply(null, ys);
+  const dx = Math.max(x1 - x0, 0.0008), dy = Math.max(y1 - y0, 0.0008);
+  const availW = W - panelPad() - 120, availH = H - 180;
+  let kk = Math.min(availW / dx, availH / dy);
+  kk = Math.max(1, Math.min(maxK || 60, kk));
+  const cx = (x0 + x1) / 2, cy = (y0 + y1) / 2;
+  const tx = (W - panelPad()) / 2 - kk * cx;
+  const ty = H / 2 - kk * cy;
+  applyTransform(d3.zoomIdentity.translate(tx, ty).scale(kk), true);
+}
+
+function flat(route) {
+  const out = [];
+  route.days.forEach(d => d.places.forEach(p => out.push(Object.assign({ day: d.label }, p))));
+  return out;
+}
+
+function showLabel(d) {
+  const t = d3.zoomTransform(svg.node());
+  const p = projection(d.ll);
+  const x = t.applyX(p[0]) * (mapEl.clientWidth / W);
+  const y = t.applyY(p[1]) * (mapEl.clientHeight / H);
+  plabel.innerHTML = '<b>' + d.n + '</b><span>' + d.note + '</span>';
+  plabel.style.left = x + 'px';
+  plabel.style.top = y + 'px';
+  plabel.style.display = 'block';
+}
+function hideLabel() { plabel.style.display = 'none'; }
+
+let pinData = [];
+
+function layout() {
+  const base = pinData.map(d => projection(d.ll).map(v => v * k));
+  const off = pinData.map(() => [0, 0]);
+  const MIN = 34;
+  for (let it = 0; it < 90; it++) {
+    let moved = false;
+    for (let i = 0; i < base.length; i++) {
+      for (let j = i + 1; j < base.length; j++) {
+        const ax = base[i][0] + off[i][0], ay = base[i][1] + off[i][1];
+        const bx = base[j][0] + off[j][0], by = base[j][1] + off[j][1];
+        let dx = bx - ax, dy = by - ay;
+        let dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist > MIN) continue;
+        if (dist < 0.001) { dx = Math.cos(i * 1.7); dy = Math.sin(i * 1.7); dist = 1; }
+        const push = (MIN - dist) / 2;
+        const ux = dx / dist * push, uy = dy / dist * push;
+        off[i][0] -= ux; off[i][1] -= uy;
+        off[j][0] += ux; off[j][1] += uy;
+        moved = true;
+      }
+    }
+    if (!moved) break;
+  }
+  pinData.forEach((d, i) => { d._o = off[i]; });
+}
+
+function placePins() {
+  layout();
+  gPins.selectAll('.pin')
+    .attr('transform', d => 'translate(' + projection(d.ll) + ') scale(' + 1 / k + ')')
+    .each(function (d) {
+      const o = d._o || [0, 0];
+      const el = d3.select(this);
+      el.select('.leader').attr('x2', o[0]).attr('y2', o[1]).attr('opacity', Math.hypot(o[0], o[1]) > 6 ? 1 : 0);
+      el.select('.anchor').attr('opacity', Math.hypot(o[0], o[1]) > 6 ? 1 : 0);
+      el.select('.bubble').attr('cx', o[0]).attr('cy', o[1]);
+      el.select('text').attr('x', o[0]).attr('y', o[1]);
+    });
+}
+
+function renderPins(items, kind) {
+  lastRender = { items: items, kind: kind };
+  pinData = items.map(d => Object.assign({}, d));
+  gTrack.selectAll('*').remove();
+  if (pinData.length > 1 && kind !== 'overview') {
+    const line = d3.line().x(d => projection(d.ll)[0]).y(d => projection(d.ll)[1]);
+    gTrack.append('path').attr('class', 'track' + (kind === 'feed' ? ' feed' : '')).attr('d', line(pinData));
+  }
+  const cls = 'pin' + (kind === 'feed' ? ' feed' : kind === 'overview' ? ' ghost' : '');
+  gPins.selectAll('.pin').remove();
+  const gsel = gPins.selectAll('.pin').data(pinData).enter().append('g').attr('class', cls);
+  gsel.append('line').attr('class', 'leader').attr('x1', 0).attr('y1', 0);
+  gsel.append('circle').attr('class', 'anchor').attr('r', 2.5);
+  gsel.append('circle').attr('class', 'bubble').attr('r', 14);
+  gsel.append('text').text((d, i) => d.label || (i + 1));
+  gsel.on('mouseenter', (ev, d) => showLabel(d))
+    .on('mouseleave', hideLabel)
+    .on('click', (ev, d) => { flyTo([d.ll], 90); showLabel(d); });
+  placePins();
+}
+
+let state = { tab: 'mine', open: false, route: null };
+const panel = document.getElementById('panel');
+const toggle = document.getElementById('toggle');
+const listView = document.getElementById('listView');
+const detailView = document.getElementById('detailView');
+const listEl = document.getElementById('list');
+
+function drawRoute(route, kind) {
+  const pts = flat(route);
+  renderPins(pts, kind);
+  flyTo(pts.map(p => p.ll), 55);
+}
+
+function drawOverview() {
+  const src = state.tab === 'mine' ? mine : feed;
+  const starts = src.map(r => {
+    const f = flat(r)[0];
+    return { n: r.title, note: flat(r).length + ' мест · ' + (r.author ? r.author + ' · ' : '') + r.city, ll: f.ll, label: r.title.charAt(0) };
+  });
+  renderPins(starts, state.tab === 'mine' ? 'overview' : 'feed');
+  flyTo(starts.map(s => s.ll), 3.2);
+}
+
+function plural(n, a, b, c) {
+  const m = n % 10, h = n % 100;
+  if (m === 1 && h !== 11) return a;
+  if (m >= 2 && m <= 4 && (h < 10 || h >= 20)) return b;
+  return c;
+}
+
+function renderList() {
+  const data = state.tab === 'mine' ? mine : feed;
+  listEl.innerHTML = data.map(r => {
+    const count = flat(r).length;
+    const strips = r.days.map(() => '<span></span>').join('');
+    const right = state.tab === 'mine'
+      ? '<span class="chip ' + (r.shared ? 'pub' : '') + '">' + (r.shared ? 'в ленте' : 'только мой') + '</span>'
+      : '<span class="rate"><b>' + r.rating.toFixed(1) + '</b> ★</span>';
+    const sub = state.tab === 'mine'
+      ? r.city + ' · ' + r.days.length + ' ' + plural(r.days.length, 'день', 'дня', 'дней') + ' · ' + count + ' ' + plural(count, 'место', 'места', 'мест')
+      : r.author + ' · ' + r.city + ' · ' + r.saves + ' сохранений';
+    return '<div class="card" data-id="' + r.id + '"><div class="row"><h3>' + r.title + '</h3>' + right + '</div>' +
+      '<div class="meta">' + sub + '</div><div class="strip">' + strips + '</div></div>';
+  }).join('');
+  listEl.querySelectorAll('.card').forEach(c => c.addEventListener('click', () => { results.classList.remove('open'); openRoute(c.dataset.id); }));
+}
+
+function openRoute(id) {
+  const kind = state.tab;
+  const data = kind === 'mine' ? mine : feed;
+  const r = data.find(x => x.id === id);
+  state.route = r;
+  listView.style.display = 'none';
+  detailView.classList.add('on');
+
+  const count = flat(r).length;
+  let head = '<div class="dhead"><button class="back" id="back">← ' + (kind === 'mine' ? 'Мои маршруты' : 'Лента') + '</button>' +
+    '<h2>' + r.title + '</h2><div class="meta">' + r.city + ' · ' + count + ' ' + plural(count, 'место', 'места', 'мест') + '</div>';
+  if (kind === 'mine') {
+    head += '<div class="share"><div><div class="t">Показывать в ленте</div><div class="s">' +
+      (r.shared ? 'Маршрут виден другим и его можно сохранить' : 'Сейчас маршрут видите только вы') +
+      '</div></div><button class="sw ' + (r.shared ? 'on' : '') + '" id="sw"><i></i></button></div>';
+  } else {
+    head += '<div class="author"><div class="ava">' + r.author.charAt(0) + '</div><div><div style="font-size:14px">' + r.author + '</div>' +
+      '<div class="rate"><b>' + r.rating.toFixed(1) + '</b> ★ · ' + r.saves + ' сохранений</div></div></div>';
+  }
+  head += '</div>';
+
+  let body = '<div class="scroll">';
+  let n = 0;
+  r.days.forEach(d => {
+    body += '<div class="day">' + d.label + '</div>';
+    d.places.forEach(p => {
+      n++;
+      body += '<div class="place" data-lng="' + p.ll[0] + '" data-lat="' + p.ll[1] + '" data-n="' + p.n + '" data-note="' + p.note + '">' +
+        '<div class="n">' + n + '</div><div><div class="t">' + p.n + '</div><div class="s">' + p.note + '</div></div></div>';
+    });
+  });
+  body += '<div class="note">Прототип: маршруты придуманы, геометрия карты настоящая.</div></div>';
+
+  const foot = kind === 'mine'
+    ? '<div class="foot"><button class="btn pri">Редактировать маршрут</button><button class="btn sec">Поделиться</button></div>'
+    : '<div class="foot"><button class="btn pri">Сохранить себе</button><button class="btn sec">Открыть автора</button></div>';
+
+  detailView.innerHTML = head + body + foot;
+  detailView.querySelector('#back').addEventListener('click', closeRoute);
+  const sw = detailView.querySelector('#sw');
+  if (sw) sw.addEventListener('click', () => { r.shared = !r.shared; openRoute(id); });
+  detailView.querySelectorAll('.place').forEach(el => {
+    el.addEventListener('click', () => {
+      const d = { n: el.dataset.n, note: el.dataset.note, ll: [+el.dataset.lng, +el.dataset.lat] };
+      flyTo([d.ll], 90);
+      setTimeout(() => showLabel(d), 920);
+    });
+  });
+  drawRoute(r, kind);
+}
+
+function closeRoute() {
+  state.route = null;
+  detailView.classList.remove('on');
+  detailView.innerHTML = '';
+  listView.style.display = '';
+  hideLabel();
+  drawOverview();
+}
+
+function setPanel(open) {
+  state.open = open;
+  document.body.classList.toggle('panel-open', open);
+  panel.classList.toggle('closed', !open);
+  toggle.style.display = open ? 'none' : 'flex';
+  results.classList.remove('open');
+}
+
+toggle.addEventListener('click', () => setPanel(true));
+document.getElementById('close').addEventListener('click', () => setPanel(false));
+document.querySelectorAll('.tab').forEach(t => {
+  t.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(x => x.classList.remove('on'));
+    t.classList.add('on');
+    state.tab = t.dataset.tab;
+    results.classList.remove('open');
+    closeRoute();
+    renderList();
+  });
+});
+function zoomBy(f) {
+  const t = d3.zoomTransform(svg.node());
+  const cx = (W - panelPad()) / 2, cy = H / 2;
+  const kk = Math.max(1, Math.min(140, t.k * f));
+  const px = (cx - t.x) / t.k, py = (cy - t.y) / t.k;
+  applyTransform(d3.zoomIdentity.translate(cx - px * kk, cy - py * kk).scale(kk), false);
+}
+document.getElementById('zin').addEventListener('click', () => zoomBy(1.8));
+document.getElementById('zout').addEventListener('click', () => zoomBy(1 / 1.8));
+
+const index = [];
+mine.forEach(r => flat(r).forEach(p => index.push({ n: p.n, note: r.title + ' · ' + p.day, ll: p.ll })));
+feed.forEach(r => flat(r).forEach(p => index.push({ n: p.n, note: r.title + ' · ' + r.author, ll: p.ll })));
+
+const search = document.getElementById('search');
+const results = document.getElementById('results');
+search.addEventListener('input', () => {
+  const q = search.value.trim().toLowerCase();
+  if (!q) { results.classList.remove('open'); return; }
+  const hits = index.filter(p => p.n.toLowerCase().includes(q) || p.note.toLowerCase().includes(q)).slice(0, 6);
+  results.innerHTML = hits.length
+    ? hits.map((h, i) => '<div class="res" data-i="' + i + '"><div class="t">' + h.n + '</div><div class="s">' + h.note + '</div></div>').join('')
+    : '<div class="res"><div class="empty">Ничего не нашли на карте</div></div>';
+  results.classList.add('open');
+  results.querySelectorAll('.res[data-i]').forEach(el => {
+    el.addEventListener('click', () => {
+      const h = hits[+el.dataset.i];
+      renderPins([h], 'mine');
+      flyTo([h.ll], 90);
+      setTimeout(() => showLabel(h), 920);
+      results.classList.remove('open');
+      search.value = h.n;
+    });
+  });
+});
+search.addEventListener('blur', () => setTimeout(() => results.classList.remove('open'), 160));
+
+window.addEventListener('resize', () => sizeMap(true));
+
+renderList();
+setTimeout(() => { setPanel(true); if (!state.route) drawOverview(); }, 600);
+</script>
+</body>
+</html>

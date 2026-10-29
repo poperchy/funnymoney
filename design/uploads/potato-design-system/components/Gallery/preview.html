@@ -1,0 +1,12 @@
+<!-- @dsCard group="Blocks" height=554 width=1200 -->
+<!doctype html>
+<html>
+<head><meta charset="utf-8"><title>Gallery — preview</title></head>
+<body>
+<div id="root" class="pt-root"></div>
+<script>
+  var P = window.Potato, h = React.createElement;
+  ReactDOM.createRoot(document.getElementById("root")).render(h(P.Gallery,{inlineLightbox:true,hint:"Click a tile to open it. Placeholders — drop real screenshots in the CMS.",items:[{label:"feed · desktop",caption:"Change feed, desktop",span:"big"},{label:"alert · slack",caption:"Budget alert in Slack"},{label:"digest · email",caption:"Weekly digest"},{label:"pages table",caption:"Pages table",span:"tall"},{label:"third parties",caption:"Third-party inventory"},{label:"free check",caption:"Free one-page check",span:"wide"},{label:"mobile",caption:"Feed on mobile"}]}));
+</script>
+</body>
+</html>

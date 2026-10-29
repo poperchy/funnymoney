@@ -1,0 +1,65 @@
+<!-- @dsCard height=288 -->
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>potato</title>
+<style>
+  html, body { margin:0; height:100%; }
+  body { background:var(--surface); color:var(--ink); font-family:var(--font-sans); overflow:hidden; }
+  .cover { position:relative; height:288px; overflow:hidden; }
+  .art { position:absolute; top:0; left:480px; width:480px; height:288px; overflow:hidden; }
+  .art svg { display:block; width:480px; height:288px; }
+  .brand { fill:var(--accent); }
+  .tint { fill:var(--tint-violet); }
+  .deep { fill:var(--surface-inverse); }
+  .pink { fill:var(--pink); }
+  .orchid { fill:var(--orchid); }
+  .dot { fill:var(--accent); }
+  .blk { rx:var(--radius-hero); }
+  .words { position:absolute; left:var(--space-28); bottom:var(--space-24); max-width:440px; }
+  .name { margin:0; font-size:120px; line-height:.92; font-weight:600; letter-spacing:-0.045em; color:var(--ink); }
+  .tag { margin:var(--space-10) 0 0 4px; font-size:14px; line-height:20px; color:var(--ink-secondary); }
+</style>
+</head>
+<body>
+<div class="cover">
+<div class="art" aria-hidden="true">
+<svg viewBox="0 0 480 288" width="480" height="288">
+<!--
+  blocks      accent 160x288 slab bled off the top (the brand) · tint-violet 120x224 (relief) · surface-inverse 168x144 bled off top and right (the code/ink) · pink 152x128 bled off the right · orchid, pink, accent 12px-radius discs on the ink: the grad-dot order — about 40% of 960x288
+  arrangement one tall violet slab with satellites, bottoms on one line space-24 above the edge, space-16 gutters
+  pattern     discs, from "everything interactive is a pill" and the gradient dots that mark features and steps: 6px-radius accent discs at a space-28 pitch thinning upward over the tint
+  scales      corners radius-hero (24); gutters space-16; pitch space-28; baseline inset space-24; discs radius-pill
+-->
+<rect class="brand blk" x="16" y="-24" width="160" height="288" rx="24"/>
+<rect class="tint blk" x="192" y="40" width="120" height="224" rx="24"/>
+<rect class="deep blk" x="328" y="-24" width="176" height="144" rx="24"/>
+<rect class="pink blk" x="328" y="136" width="176" height="128" rx="24"/>
+<circle class="orchid" cx="364" cy="84" r="12"/>
+<circle class="pink" cx="396" cy="84" r="12"/>
+<circle class="brand" cx="428" cy="84" r="12"/>
+<circle class="dot" cx="224" cy="236" r="6"/>
+<circle class="dot" cx="252" cy="236" r="6"/>
+<circle class="dot" cx="280" cy="236" r="6"/>
+<circle class="dot" cx="224" cy="208" r="6"/>
+<circle class="dot" cx="252" cy="208" r="6"/>
+<circle class="dot" cx="280" cy="208" r="6"/>
+<circle class="dot" cx="224" cy="180" r="6"/>
+<circle class="dot" cx="252" cy="180" r="6"/>
+<circle class="dot" cx="280" cy="180" r="6"/>
+<circle class="dot" cx="224" cy="152" r="6"/>
+<circle class="dot" cx="252" cy="152" r="6"/>
+<circle class="dot" cx="252" cy="124" r="6"/>
+<circle class="dot" cx="280" cy="124" r="6"/>
+<circle class="dot" cx="252" cy="96" r="6"/>
+<circle class="dot" cx="252" cy="68" r="6"/>
+</svg>
+</div>
+<div class="words">
+<h1 class="name">potato</h1>
+<p class="tag">A daily change feed for production sites.</p>
+</div>
+</div>
+</body>
+</html>

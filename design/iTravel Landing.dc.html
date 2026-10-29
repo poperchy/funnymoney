@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<title>iTravel — карта твоих поездок</title>
+<meta name="description" content="Отмечай места на карте, пиши пару строк о каждом и собирай маршруты поездок. Бесплатно. Приватно по умолчанию." />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="" />
+<link href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700&family=Lora:ital,wght@0,500;1,400;1,500&display=swap" rel="stylesheet" />
+<script src="https://unpkg.com/d3@7.9.0/dist/d3.min.js"></script>
+<script src="https://unpkg.com/topojson-client@3.1.0/dist/topojson-client.min.js"></script>
+<style>
+  body { margin:0; background:#fefdfb; -webkit-font-smoothing:antialiased; }
+  * { box-sizing:border-box; }
+  a { color:#d8502f; text-decoration:none; }
+  a:hover { color:#b43d20; }
+  button { font-family:inherit; }
+  ::selection { background:#f6d5c9; }
+  @keyframes pinPulse { 0% { transform:scale(1); opacity:0.55; } 100% { transform:scale(2.6); opacity:0; } }
+  @keyframes glowA { 0%,100% { transform:translate3d(0,0,0) scale(1); } 50% { transform:translate3d(60px,-30px,0) scale(1.15); } }
+  @keyframes glowB { 0%,100% { transform:translate3d(0,0,0) scale(1); } 50% { transform:translate3d(-50px,30px,0) scale(0.9); } }
+  @keyframes cardIn { from { opacity:0; transform:translate3d(0,8px,0); } to { opacity:1; transform:none; } }
+</style>
+</helmet>
+<div style="font-family:'Onest',system-ui,sans-serif; color:#17161a; background:#fefdfb; min-height:100vh; overflow-x:hidden;">
+
+  <header style="position:sticky; top:0; z-index:40; background:rgba(254,253,251,0.82); backdrop-filter:blur(14px); border-bottom:1px solid rgba(23,22,26,0.06);">
+    <div style="max-width:1240px; margin:0 auto; padding:14px 28px; display:flex; align-items:center; justify-content:space-between; gap:20px;">
+      <a href="/" style="display:flex; align-items:center; gap:9px; color:#17161a;">
+        <span style="width:10px; height:10px; border-radius:999px; background:#d8502f; display:block;"></span>
+        <span style="font-family:'Lora',Georgia,serif; font-style:italic; font-weight:500; font-size:22px; letter-spacing:-0.01em;">iTravel</span>
+      </a>
+      <nav style="display:flex; align-items:center; gap:22px; font-size:15px;">
+        <a href="/login" style="color:#6f6b74;" style-hover="color:#17161a;">Войти</a>
+        <a href="/register" style="padding:10px 18px; border-radius:999px; background:#17161a; color:#fefdfb; font-weight:500;" style-hover="background:#2c2a31; color:#fefdfb;">Создать карту</a>
+      </nav>
+    </div>
+  </header>
+
+  <section style="max-width:1240px; margin:0 auto; padding:40px 28px 0; display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr)); gap:40px; align-items:center;">
+    <div style="max-width:520px; padding:24px 0;">
+      <h1 data-reveal="" style="margin:0; font-size:60px; line-height:1.02; letter-spacing:-0.04em; font-weight:600; text-wrap:balance;">Все твои поездки на <span style="font-family:'Lora',Georgia,serif; font-style:italic; font-weight:500; letter-spacing:-0.02em; color:#d8502f;">одной карте</span></h1>
+      <p data-reveal="" style="margin:24px 0 0; font-size:19px; line-height:1.6; color:#55525b; text-wrap:pretty;">Отмечай места и пиши пару строк о каждом. Через год откроешь не папку с фото, а маршрут, который помнишь по дням.</p>
+      <div data-reveal="" style="margin-top:32px; display:flex; gap:12px; flex-wrap:wrap; align-items:center;">
+        <a href="/register" style="padding:15px 26px; border-radius:999px; background:#d8502f; color:#fff; font-size:16px; font-weight:500; box-shadow:0 14px 30px -16px rgba(216,80,47,0.8);" style-hover="background:#c4462a; color:#fff;">Создать карту бесплатно</a>
+        <a href="#how" style="padding:15px 22px; border-radius:999px; border:1px solid rgba(23,22,26,0.14); color:#17161a; font-size:16px; font-weight:500;" style-hover="background:#fff; color:#17161a;">Как это работает</a>
+      </div>
+      <div data-reveal="" style="margin-top:18px; font-size:14px; color:#8a8690;">Маршруты видишь только ты, пока сам не решишь поделиться.</div>
+    </div>
+
+    <div data-reveal="zoom" data-reveal-delay="200" style="position:relative; height:620px; border-radius:28px; overflow:hidden; background:#dde5e7; box-shadow:0 40px 80px -50px rgba(40,36,30,0.55); border:1px solid rgba(23,22,26,0.06);">
+      <div ref="{{ mapRef }}" style="position:absolute; inset:0;"></div>
+
+      <div style="position:absolute; top:16px; left:16px; right:16px; display:flex; gap:6px; flex-wrap:wrap;">
+        <sc-for list="{{ routeTabs }}" as="r" hint-placeholder-count="3">
+          <button onClick="{{ r.pick }}" style="border:none; cursor:pointer; padding:8px 14px; border-radius:999px; font-size:13px; font-weight:500; background:{{ r.bg }}; color:{{ r.fg }}; box-shadow:0 6px 18px -10px rgba(23,22,26,0.4); backdrop-filter:blur(8px);">{{ r.title }}</button>
+        </sc-for>
+      </div>
+
+      <div style="position:absolute; left:16px; right:16px; bottom:16px; max-width:440px; border-radius:20px; background:rgba(255,255,255,0.94); backdrop-filter:blur(12px); box-shadow:0 24px 50px -24px rgba(23,22,26,0.45); padding:18px 18px 16px;">
+        <div key="{{ cardKey }}" style="display:grid; grid-template-columns:76px minmax(0,1fr); gap:14px; animation:cardIn 0.4s ease both;">
+          <div style="width:76px; height:76px; border-radius:14px; border:1px dashed rgba(23,22,26,0.2); background:linear-gradient(140deg,#f6e9e2,#eef2f3); display:flex; align-items:center; justify-content:center; text-align:center; font-size:11px; line-height:1.3; color:#8a8690; padding:6px;">фото места</div>
+          <div style="min-width:0;">
+            <div style="display:flex; align-items:baseline; justify-content:space-between; gap:10px;">
+              <span style="font-size:17px; font-weight:600; letter-spacing:-0.02em;">{{ stopName }}</span>
+              <span style="font-size:13px; color:#8a8690; white-space:nowrap;">{{ stopDay }}</span>
+            </div>
+            <p style="margin:6px 0 0; font-family:'Lora',Georgia,serif; font-style:italic; font-size:16px; line-height:1.45; color:#2f2d34; text-wrap:pretty;">{{ stopNote }}</p>
+          </div>
+        </div>
+        <div style="margin-top:14px; padding-top:12px; border-top:1px solid rgba(23,22,26,0.08); display:flex; align-items:center; justify-content:space-between; gap:12px;">
+          <div style="display:flex; align-items:center; gap:9px; min-width:0;">
+            <span style="width:26px; height:26px; border-radius:999px; background:#f1dcd3; color:#b43d20; font-size:12px; font-weight:600; display:flex; align-items:center; justify-content:center; flex:none;">{{ authorInitial }}</span>
+            <span style="font-size:13px; color:#55525b; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ routeMeta }}</span>
+          </div>
+          <div style="display:flex; gap:5px; flex:none;">
+            <sc-for list="{{ stopDots }}" as="d" hint-placeholder-count="4">
+              <button onClick="{{ d.pick }}" aria-label="{{ d.label }}" style="border:none; cursor:pointer; padding:0; height:6px; width:{{ d.w }}; border-radius:999px; background:{{ d.bg }}; transition:width 0.3s ease, background 0.3s ease;"></button>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="how" style="max-width:1240px; margin:0 auto; padding:120px 28px 0;">
+    <h2 data-reveal="" style="margin:0; max-width:640px; font-size:40px; line-height:1.1; letter-spacing:-0.035em; font-weight:600; text-wrap:balance;">Три шага — и поездка не забудется</h2>
+    <div style="margin-top:36px; display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr)); gap:20px;">
+      <sc-for list="{{ steps }}" as="s" hint-placeholder-count="3">
+        <div data-reveal="" style="padding:28px; border-radius:22px; background:#fff; border:1px solid rgba(23,22,26,0.07); display:flex; flex-direction:column; gap:12px;">
+          <span style="font-family:'Lora',Georgia,serif; font-style:italic; font-size:34px; line-height:1; color:#d8502f;">{{ s.n }}</span>
+          <span style="font-size:20px; font-weight:600; letter-spacing:-0.02em;">{{ s.t }}</span>
+          <span style="font-size:16px; line-height:1.55; color:#55525b; text-wrap:pretty;">{{ s.d }}</span>
+        </div>
+      </sc-for>
+    </div>
+  </section>
+
+  <section id="privacy" style="max-width:1240px; margin:0 auto; padding:120px 28px 0; display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,400px),1fr)); gap:48px; align-items:center;">
+    <div data-reveal="" style="max-width:500px;">
+      <h2 style="margin:0; font-size:40px; line-height:1.1; letter-spacing:-0.035em; font-weight:600; text-wrap:balance;">Приватно по умолчанию</h2>
+      <p style="margin:18px 0 0; font-size:18px; line-height:1.6; color:#55525b; text-wrap:pretty;">Каждый маршрут сначала виден только тебе. В общую ленту он попадает, только когда ты сам включишь это для конкретной поездки. Выключить можно в любой момент.</p>
+    </div>
+    <div data-reveal="" data-reveal-delay="120" data-priv-demo="" style="border-radius:24px; background:#fff; border:1px solid rgba(23,22,26,0.07); box-shadow:0 30px 60px -44px rgba(40,36,30,0.5); padding:24px; max-width:520px; width:100%;">
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:16px;">
+        <div>
+          <div style="font-size:18px; font-weight:600; letter-spacing:-0.02em;">Балтия за неделю</div>
+          <div style="margin-top:3px; font-size:14px; color:#8a8690;">4 места · 7 дней</div>
+        </div>
+        <span style="padding:6px 12px; border-radius:999px; font-size:13px; font-weight:500; background:{{ privBadgeBg }}; color:{{ privBadgeFg }};">{{ privBadge }}</span>
+      </div>
+      <button onClick="{{ togglePriv }}" style="margin-top:20px; width:100%; border:none; cursor:pointer; text-align:left; padding:16px 18px; border-radius:16px; background:#f6f3ef; display:flex; align-items:center; justify-content:space-between; gap:16px;">
+        <span style="font-size:16px; font-weight:500; color:#17161a;">Показывать в ленте</span>
+        <span style="width:46px; height:28px; border-radius:999px; background:{{ privTrack }}; position:relative; display:block; flex:none; transition:background 0.25s ease;">
+          <span style="position:absolute; top:3px; left:{{ privKnob }}; width:22px; height:22px; border-radius:999px; background:#fff; box-shadow:0 2px 6px rgba(0,0,0,0.2); display:block; transition:left 0.25s ease;"></span>
+        </span>
+      </button>
+      <div style="margin-top:14px; font-size:14px; line-height:1.5; color:#55525b;">{{ privNote }}</div>
+    </div>
+  </section>
+
+  <section id="feed" style="max-width:1240px; margin:0 auto; padding:120px 28px 0;">
+    <div data-reveal="" style="display:flex; align-items:baseline; justify-content:space-between; gap:16px; flex-wrap:wrap;">
+      <h2 style="margin:0; font-size:40px; line-height:1.1; letter-spacing:-0.035em; font-weight:600;">Из ленты</h2>
+      <span style="font-size:15px; color:#8a8690;">Только маршруты, которыми поделились сами авторы</span>
+    </div>
+    <div style="margin-top:32px; display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr)); gap:20px;">
+      <sc-for list="{{ feed }}" as="f" hint-placeholder-count="3">
+        <button data-reveal="" onClick="{{ f.pick }}" style="border:1px solid rgba(23,22,26,0.07); background:#fff; cursor:pointer; text-align:left; padding:0; border-radius:22px; overflow:hidden; display:flex; flex-direction:column; color:#17161a; transition:transform 0.2s ease;" style-hover="transform:translateY(-3px);">
+          <svg viewBox="0 0 300 120" style="display:block; width:100%; height:auto; background:#eef2f3;">
+            <path d="{{ f.d }}" fill="none" stroke="#d8502f" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="1 7"></path>
+            <path d="{{ f.d }}" fill="none" stroke="#d8502f" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" opacity="0.35" pathLength="1" stroke-dasharray="1" data-draw=""></path>
+            <sc-for list="{{ f.pts }}" as="p" hint-placeholder-count="4">
+              <circle cx="{{ p.x }}" cy="{{ p.y }}" r="5" fill="#fff" stroke="#d8502f" stroke-width="2"></circle>
+            </sc-for>
+          </svg>
+          <div style="padding:18px 20px 20px; display:flex; flex-direction:column; gap:8px;">
+            <span style="font-size:18px; font-weight:600; letter-spacing:-0.02em;">{{ f.title }}</span>
+            <span style="font-family:'Lora',Georgia,serif; font-style:italic; font-size:15px; line-height:1.45; color:#2f2d34;">«{{ f.quote }}»</span>
+            <span style="margin-top:4px; font-size:13px; color:#8a8690;">{{ f.meta }}</span>
+          </div>
+        </button>
+      </sc-for>
+    </div>
+  </section>
+
+  <section style="max-width:1240px; margin:0 auto; padding:120px 28px 0;">
+    <div data-reveal="zoom" style="border-radius:32px; padding:72px 32px; background:#17161a; color:#fefdfb; text-align:center; position:relative; overflow:hidden;">
+      <div style="position:absolute; inset:0; pointer-events:none;">{{ ctaGlow }}</div>
+      <h2 style="position:relative; margin:0 auto; max-width:620px; font-size:44px; line-height:1.08; letter-spacing:-0.035em; font-weight:600; text-wrap:balance;">Первая поездка уже на карте — <span style="font-family:'Lora',Georgia,serif; font-style:italic; font-weight:500; color:#f08a6c;">осталось отметить</span></h2>
+      <p style="position:relative; margin:16px auto 0; max-width:460px; font-size:17px; line-height:1.6; color:#bdb9c2;">Регистрация занимает минуту. Начни с последнего путешествия, пока помнишь детали.</p>
+      <a href="/register" style="position:relative; margin-top:32px; display:inline-flex; padding:15px 28px; border-radius:999px; background:#d8502f; color:#fff; font-size:16px; font-weight:500;" style-hover="background:#e25c3a; color:#fff;">Создать карту бесплатно</a>
+    </div>
+  </section>
+
+  <footer style="max-width:1240px; margin:0 auto; padding:56px 28px 48px; display:flex; justify-content:space-between; align-items:center; gap:24px; flex-wrap:wrap; font-size:14px; color:#8a8690;">
+    <div style="display:flex; align-items:center; gap:8px;">
+      <span style="width:8px; height:8px; border-radius:999px; background:#d8502f; display:block;"></span>
+      <span>iTravel © 2026</span>
+    </div>
+    <nav style="display:flex; gap:22px; flex-wrap:wrap;">
+      <a href="#how" style="color:#8a8690;" style-hover="color:#17161a;">Как это работает</a>
+      <a href="#privacy" style="color:#8a8690;" style-hover="color:#17161a;">Приватность</a>
+      <a href="#feed" style="color:#8a8690;" style-hover="color:#17161a;">Лента</a>
+      <a href="/login" style="color:#8a8690;" style-hover="color:#17161a;">Войти</a>
+    </nav>
+  </footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;autoplay&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;},&quot;showOtherRoutes&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;}}">
+const ROUTES = [
+  { title: 'Балтия за неделю', author: 'Аня К.', days: '7 дней', km: '≈ 600 км', stops: [
+    { name: 'Минск', ll: [27.56, 53.9], day: 'день 1', note: 'Старт с вокзала в 6:40. Кофе из автомата, но настроение отличное.' },
+    { name: 'Вильнюс', ll: [25.28, 54.69], day: 'день 2', note: 'Ужупис: прочитали конституцию республики на стене и остались на обед.' },
+    { name: 'Рига', ll: [24.1, 56.95], day: 'день 4', note: 'Центральный рынок в бывших ангарах для дирижаблей. Копчёная рыба обязательна.' },
+    { name: 'Таллин', ll: [24.75, 59.44], day: 'день 6', note: 'Поднялись на Тоомпеа к закату. Старый город сверху как макет.' }
+  ] },
+  { title: 'Грузия на машине', author: 'Илья М.', days: '10 дней', km: '≈ 750 км', stops: [
+    { name: 'Тбилиси', ll: [44.79, 41.72], day: 'день 1', note: 'Серные бани в Абанотубани, потом хинкали до полуночи.' },
+    { name: 'Степанцминда', ll: [44.64, 42.66], day: 'день 3', note: 'Два часа пешком к Гергети. Казбек вышел из облаков ровно на пять минут.' },
+    { name: 'Кутаиси', ll: [42.7, 42.27], day: 'день 6', note: 'Пещера Прометея и лучший хачапури поездки — в столовой без вывески.' },
+    { name: 'Батуми', ll: [41.64, 41.64], day: 'день 9', note: 'Финал у моря. Ботанический сад стоит отдельного дня.' }
+  ] },
+  { title: 'Италия поездом', author: 'Катя и Олег', days: '9 дней', km: '≈ 800 км', stops: [
+    { name: 'Милан', ll: [9.19, 45.46], day: 'день 1', note: 'Билеты на «Тайную вечерю» взяли за месяц — и не зря.' },
+    { name: 'Флоренция', ll: [11.25, 43.77], day: 'день 3', note: 'Площадь Микеланджело стоит подъёма. Лучше идти к восьми вечера.' },
+    { name: 'Рим', ll: [12.5, 41.9], day: 'день 5', note: 'Пять часов пешком без плана. Лучшая часть — Трастевере.' },
+    { name: 'Неаполь', ll: [14.27, 40.85], day: 'день 8', note: 'Пицца здесь дешевле кофе в Милане. Проверено.' }
+  ] }
+];
+const ACCENT = '#d8502f';
+
+class Component extends DCLogic {
+  state = { route: 0, stop: 0, priv: false };
+  mapRef = React.createRef();
+
+  componentDidMount() {
+    const wait = () => (window.d3 && window.topojson) ? this.initMap() : (this.waitT = setTimeout(wait, 80));
+    wait();
+    this.startAuto();
+    this.revealT = setTimeout(() => this.setupReveal(), 60);
+  }
+  setupReveal() {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches || !Element.prototype.animate) return;
+    const ease = 'cubic-bezier(.22,.8,.3,1)';
+    const seen = this._seen || (this._seen = new WeakSet());
+    const els = [...document.querySelectorAll('[data-reveal]')].filter(el => !seen.has(el));
+    const anims = new Map();
+    els.forEach(el => {
+      seen.add(el);
+      const sibs = [...el.parentElement.children].filter(c => c.hasAttribute('data-reveal'));
+      const delay = (+el.getAttribute('data-reveal-delay') || 0) + Math.max(0, sibs.indexOf(el)) * 90;
+      const zoom = el.getAttribute('data-reveal') === 'zoom';
+      const a = el.animate([
+        { opacity: 0, transform: zoom ? 'scale(0.96)' : 'translate3d(0,28px,0)' },
+        { opacity: 1, transform: 'none' }
+      ], { duration: zoom ? 900 : 750, delay, easing: ease, fill: 'backwards' });
+      a.pause(); a.currentTime = 0;
+      const draws = [...el.querySelectorAll('[data-draw]')].map(p => {
+        const d = p.animate([{ strokeDashoffset: 1 }, { strokeDashoffset: 0 }], { duration: 1400, delay: delay + 300, easing: 'ease-in-out', fill: 'backwards' });
+        d.pause(); d.currentTime = 0; return d;
+      });
+      anims.set(el, [a, ...draws]);
+    });
+    this.io = new IntersectionObserver(entries => entries.forEach(e => {
+      if (!e.isIntersecting) return;
+      (anims.get(e.target) || []).forEach(a => a.play());
+      this.io.unobserve(e.target);
+      if (e.target.hasAttribute('data-priv-demo') && !this._privDemo) {
+        this._privDemo = true;
+        this.privT = setTimeout(() => this.setState({ priv: true }), 1300);
+      }
+    }), { threshold: 0.15, rootMargin: '0px 0px -40px 0px' });
+    els.forEach(el => this.io.observe(el));
+  }
+  componentWillUnmount() {
+    clearTimeout(this.waitT); clearInterval(this.autoT); clearTimeout(this.revealT); clearTimeout(this.privT);
+    if (this.io) this.io.disconnect();
+    if (this.ro) this.ro.disconnect();
+  }
+  syncMap() {
+    if (!this.ready) return;
+    const { route, stop } = this.state;
+    if (this._lr === route && this._ls === stop) return;
+    const routeChanged = this._lr !== undefined && this._lr !== route;
+    this._lr = route; this._ls = stop;
+    if (routeChanged) this.fly(); else this.draw(this.view);
+  }
+  startAuto() {
+    clearInterval(this.autoT);
+    if (this.props.autoplay === false) return;
+    this.autoT = setInterval(() => {
+      this.setState(s => s.stop < ROUTES[s.route].stops.length - 1
+        ? { stop: s.stop + 1 }
+        : { route: (s.route + 1) % ROUTES.length, stop: 0 });
+    }, 4200);
+  }
+
+  initMap() {
+    const d3 = window.d3, el = this.mapRef.current;
+    if (!el) return;
+    this.svg = d3.select(el).append('svg').attr('width', '100%').attr('height', '100%').style('display', 'block');
+    this.gLand = this.svg.append('g');
+    this.gOther = this.svg.append('g');
+    this.gRoute = this.svg.append('g');
+    this.gPins = this.svg.append('g');
+    this.measure();
+    this.ro = new ResizeObserver(() => { this.measure(); this.view = this.viewFor(this.state.route); this.redrawLand(); this.draw(this.view); });
+    this.ro.observe(el);
+    d3.json('https://cdn.jsdelivr.net/npm/world-atlas@2.0.2/countries-50m.json').then(topo => {
+      this.land = topojson.feature(topo, topo.objects.countries).features;
+      this.redrawLand();
+      this.ready = true;
+      this.view = this.viewFor(this.state.route);
+      this._lr = this.state.route; this._ls = this.state.stop;
+      this.draw(this.view);
+    });
+  }
+  measure() {
+    const el = this.mapRef.current;
+    this.W = el.clientWidth || 600; this.H = el.clientHeight || 600;
+    this.svg.attr('viewBox', [0, 0, this.W, this.H]);
+    this.proj = window.d3.geoMercator().fitExtent([[0, 0], [this.W, this.H]], { type: 'MultiPoint', coordinates: [[2, 37], [48, 62]] });
+    this.path = window.d3.geoPath(this.proj);
+  }
+  redrawLand() {
+    if (!this.land) return;
+    this.gLand.selectAll('path').data(this.land).join('path')
+      .attr('d', this.path).attr('fill', '#f4f0e9').attr('stroke', '#ffffff').attr('stroke-width', 0.8)
+      .attr('vector-effect', 'non-scaling-stroke');
+  }
+  viewFor(ri) {
+    const pts = ROUTES[ri].stops.map(s => this.proj(s.ll));
+    const xs = pts.map(p => p[0]), ys = pts.map(p => p[1]);
+    const x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys);
+    const padL = 70, padR = 70, padT = 90, padB = 250;
+    const aw = Math.max(80, this.W - padL - padR), ah = Math.max(80, this.H - padT - padB);
+    const k = Math.min(aw / Math.max(x1 - x0, 1), ah / Math.max(y1 - y0, 1), 7);
+    const cx = (x0 + x1) / 2, cy = (y0 + y1) / 2;
+    return { k, tx: padL + aw / 2 - cx * k, ty: padT + ah / 2 - cy * k };
+  }
+  fly() {
+    const d3 = window.d3, from = this.view, to = this.viewFor(this.state.route);
+    const mid = { k: Math.min(from.k, to.k) * 0.55 };
+    const i = d3.interpolateObject(from, to);
+    this.svg.interrupt().transition().duration(1500).ease(d3.easeCubicInOut).tween('fly', () => t => {
+      const v = i(t);
+      const dip = 1 - Math.sin(Math.PI * t) * (1 - mid.k / Math.max(v.k, 0.01)) * 0.6;
+      const k = v.k * dip, cxF = (this.W / 2 - v.tx) / v.k, cyF = (this.H / 2 - v.ty) / v.k;
+      this.view = { k, tx: this.W / 2 - cxF * k, ty: this.H / 2 - cyF * k };
+      this.draw(this.view);
+    }).on('end', () => { this.view = to; this.draw(to); });
+  }
+  draw(v) {
+    if (!v) return;
+    const d3 = window.d3, { route, stop } = this.state;
+    const S = ll => { const p = this.proj(ll); return [p[0] * v.k + v.tx, p[1] * v.k + v.ty]; };
+    this.gLand.attr('transform', `translate(${v.tx},${v.ty}) scale(${v.k})`);
+    const line = d3.line().curve(d3.curveCatmullRom.alpha(0.5));
+    const showOthers = this.props.showOtherRoutes ?? true;
+    const others = showOthers ? ROUTES.map((r, i) => ({ i, pts: r.stops.map(s => S(s.ll)) })).filter(o => o.i !== route) : [];
+    this.gOther.selectAll('path').data(others, d => d.i).join('path')
+      .attr('d', d => line(d.pts)).attr('fill', 'none').attr('stroke', '#17161a').attr('stroke-opacity', 0.16)
+      .attr('stroke-width', 1.5).attr('stroke-dasharray', '2 5').attr('stroke-linecap', 'round');
+    const pts = ROUTES[route].stops.map(s => S(s.ll));
+    const done = pts.slice(0, stop + 1);
+    const lines = [
+      { k: 'all', d: line(pts), w: 2.5, o: 0.35, dash: '2 6' },
+      { k: 'done', d: done.length > 1 ? line(done) : '', w: 3.5, o: 1, dash: null }
+    ];
+    this.gRoute.selectAll('path').data(lines, d => d.k).join('path')
+      .attr('d', d => d.d).attr('fill', 'none').attr('stroke', ACCENT).attr('stroke-opacity', d => d.o)
+      .attr('stroke-width', d => d.w).attr('stroke-linecap', 'round').attr('stroke-dasharray', d => d.dash);
+    const pins = ROUTES[route].stops.map((s, i) => ({ i, p: pts[i], name: s.name, active: i === stop, past: i < stop, key: route + '-' + i }));
+    const g = this.gPins.selectAll('g.pin').data(pins, d => d.key).join(enter => {
+      const e = enter.append('g').attr('class', 'pin').style('cursor', 'pointer').on('click', (_, d) => { this.setState({ stop: d.i }); this.startAuto(); });
+      e.append('circle').attr('class', 'pulse').attr('r', 12).attr('fill', ACCENT).style('transform-box', 'fill-box').style('transform-origin', 'center');
+      e.append('circle').attr('class', 'dot');
+      e.append('text').attr('class', 'num').attr('text-anchor', 'middle').attr('dy', '0.35em').style('font', '600 11px Onest, sans-serif');
+      e.append('text').attr('class', 'lbl').attr('x', 20).attr('dy', '0.35em').style('font', '600 14px Onest, sans-serif')
+        .attr('fill', '#17161a').attr('stroke', '#fff').attr('stroke-width', 4).attr('paint-order', 'stroke').attr('stroke-linejoin', 'round');
+      return e;
+    });
+    g.attr('transform', d => `translate(${d.p[0]},${d.p[1]})`);
+    g.select('.pulse').style('display', d => d.active ? null : 'none').style('animation', d => d.active ? 'pinPulse 1.8s ease-out infinite' : 'none');
+    g.select('.dot').attr('r', d => d.active ? 13 : 10).attr('fill', d => (d.active || d.past) ? ACCENT : '#fff')
+      .attr('stroke', d => (d.active || d.past) ? '#fff' : ACCENT).attr('stroke-width', 2.5);
+    g.select('.num').text(d => d.i + 1).attr('fill', d => (d.active || d.past) ? '#fff' : ACCENT);
+    g.select('.lbl').text(d => d.active ? d.name : '');
+    g.filter(d => d.active).raise();
+  }
+
+  renderVals() {
+    const { route, stop, priv } = this.state;
+    const r = ROUTES[route], s = r.stops[stop];
+    cancelAnimationFrame(this._raf);
+    this._raf = requestAnimationFrame(() => this.syncMap());
+    const pickRoute = i => () => { this.setState({ route: i, stop: 0 }); this.startAuto(); };
+    const sketch = rt => {
+      const xs = rt.stops.map(p => p.ll[0]), ys = rt.stops.map(p => -Math.log(Math.tan(Math.PI / 4 + p.ll[1] * Math.PI / 360)) * 180 / Math.PI);
+      const x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys);
+      const k = Math.min(240 / Math.max(x1 - x0, 0.01), 76 / Math.max(y1 - y0, 0.0001));
+      const ox = 150 - (x0 + x1) / 2 * k, oy = 60 - (y0 + y1) / 2 * k;
+      const pts = rt.stops.map((p, i) => ({ x: +(xs[i] * k + ox).toFixed(1), y: +(ys[i] * k + oy).toFixed(1) }));
+      return { pts, d: 'M' + pts.map(p => p.x + ',' + p.y).join(' L') };
+    };
+    const h = React.createElement;
+    const glow = (k, st) => h('div', { key: k, style: { position: 'absolute', borderRadius: '999px', filter: 'blur(80px)', ...st } });
+    return {
+      mapRef: this.mapRef,
+      ctaGlow: [
+        glow('a', { width: 420, height: 420, left: '-8%', top: '-40%', background: 'radial-gradient(circle,rgba(216,80,47,0.55),transparent 70%)', animation: 'glowA 16s ease-in-out infinite' }),
+        glow('b', { width: 380, height: 380, right: '-6%', bottom: '-50%', background: 'radial-gradient(circle,rgba(240,138,108,0.4),transparent 70%)', animation: 'glowB 20s ease-in-out infinite' })
+      ],
+      routeTabs: ROUTES.map((x, i) => ({ title: x.title, pick: pickRoute(i),
+        bg: i === route ? '#17161a' : 'rgba(255,255,255,0.88)', fg: i === route ? '#fff' : '#17161a' })),
+      cardKey: route + '-' + stop,
+      stopName: s.name, stopDay: s.day, stopNote: s.note,
+      authorInitial: r.author[0],
+      routeMeta: r.author + ' · ' + r.title + ' · ' + r.km,
+      stopDots: r.stops.map((x, i) => ({ label: x.name, pick: () => { this.setState({ stop: i }); this.startAuto(); },
+        w: i === stop ? '20px' : '6px', bg: i <= stop ? ACCENT : 'rgba(23,22,26,0.16)' })),
+      steps: [
+        { n: '01', t: 'Отметь места', d: 'Найди город, отель или кафе через поиск и поставь точку. Порядок мест — это и есть маршрут.' },
+        { n: '02', t: 'Добавь пару строк', d: 'Короткая заметка и фото к каждой точке. Не дневник, а то, что захочется вспомнить через год.' },
+        { n: '03', t: 'Поделись, если хочешь', d: 'Отправь ссылку друзьям или включи показ в ленте. Не хочешь — маршрут останется только твоим.' }
+      ],
+      togglePriv: () => this.setState({ priv: !priv }),
+      privTrack: priv ? ACCENT : '#d6d2cc', privKnob: priv ? '21px' : '3px',
+      privBadge: priv ? 'В ленте' : 'Только я',
+      privBadgeBg: priv ? '#fbe5dd' : 'rgba(23,22,26,0.06)', privBadgeFg: priv ? '#b43d20' : '#55525b',
+      privNote: priv ? 'Маршрут виден в ленте всем. Точные адреса отелей и квартир скрыты.' : 'Маршрут видишь только ты. Ссылка для друзей — по желанию.',
+      feed: ROUTES.map((x, i) => {
+        const sk = sketch(x);
+        return { title: x.title, quote: x.stops[1].note, meta: x.author + ' · ' + x.stops.length + ' места · ' + x.days, d: sk.d, pts: sk.pts,
+          pick: () => { this.setState({ route: i, stop: 0 }); this.startAuto(); window.scrollTo({ top: 0, behavior: 'smooth' }); } };
+      })
+    };
+  }
+}
+</script>
+</body>
+</html>

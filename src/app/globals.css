@@ -1,0 +1,196 @@
+@import "tailwindcss";
+
+/* Colours from the Money Wall design. Scene colours live in src/scene/palette.ts. */
+:root {
+  --page: #f1ece3;
+  --spot: rgba(255, 236, 200, 0.9);
+  --ink: #2a231b;
+  --ink2: #776b5c;
+  --line: rgba(42, 35, 27, 0.14);
+  --wood: #9c6b40;
+  --tag: #fffaf0;
+  --tag-ink: #2a231b;
+  --dash: rgba(255, 248, 235, 0.85);
+  --dash-ink: #fff8ec;
+  --panel: #e8e1d5;
+  --modal: #fbf8f2;
+  --field: #f1ece3;
+  --accent: #2e6b4c;
+  --accent-ink: #fffaf0;
+  --accent-wash: rgba(46, 107, 76, 0.1);
+  --btn2: rgba(42, 35, 27, 0.07);
+  --till: linear-gradient(160deg, #3b3129, #231c16);
+  --toast: #2a231b;
+  --toast-ink: #fbf8f2;
+  --paper: #fffdf8;
+  --skin: #f2c7a2;
+  --skin-shade: #c98f66;
+  --sleeve: #3f5f8a;
+  --cuff: #f4efe6;
+  --danger: #c0452f;
+  color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+  --page: #17130f;
+  --spot: rgba(255, 190, 110, 0.16);
+  --ink: #f2e9db;
+  --ink2: #a3957f;
+  --line: rgba(242, 233, 219, 0.13);
+  --wood: #55391f;
+  --tag: #efe5d2;
+  --tag-ink: #2a231b;
+  --dash: rgba(255, 240, 215, 0.5);
+  --dash-ink: #f2e2c6;
+  --panel: #211b16;
+  --modal: #26201a;
+  --field: #1c1712;
+  --accent: #6fb48d;
+  --accent-ink: #10241a;
+  --accent-wash: rgba(111, 180, 141, 0.14);
+  --btn2: rgba(242, 233, 219, 0.08);
+  --till: linear-gradient(160deg, #0f0c09, #060504);
+  --toast: #f2e9db;
+  --toast-ink: #17130f;
+  --paper: #ebe3d3;
+  --skin: #d9ab86;
+  --skin-shade: #a8734f;
+  --sleeve: #2f4767;
+  --cuff: #d9d2c4;
+  --danger: #e0735e;
+  color-scheme: dark;
+}
+
+@theme inline {
+  --color-page: var(--page);
+  --color-ink: var(--ink);
+  --color-ink2: var(--ink2);
+  --color-line: var(--line);
+  --color-panel: var(--panel);
+  --color-modal: var(--modal);
+  --color-field: var(--field);
+  --color-accent: var(--accent);
+  --color-accent-ink: var(--accent-ink);
+  --color-accent-wash: var(--accent-wash);
+  --color-btn2: var(--btn2);
+  --color-tag: var(--tag);
+  --color-tag-ink: var(--tag-ink);
+  --color-toast: var(--toast);
+  --color-toast-ink: var(--toast-ink);
+  --color-paper: var(--paper);
+  --color-danger: var(--danger);
+  --font-sans: var(--font-golos), system-ui, sans-serif;
+  --font-mono: var(--font-plex-mono), ui-monospace, monospace;
+}
+
+/* The app is laid out at exactly the window width; the vertical scrollbar must not cause a horizontal one. */
+html {
+  overflow-x: clip;
+}
+
+body {
+  margin: 0;
+  background: var(--page);
+  color: var(--ink);
+  font-family: var(--font-golos), system-ui, sans-serif;
+  font-variant-numeric: tabular-nums;
+  -webkit-font-smoothing: antialiased;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Thin scrollbars everywhere: page, receipts, dialogs.
+   Chrome/Safari get the ::-webkit-scrollbar version (rounded thumb); setting the standard
+   scrollbar-* properties would switch Chrome to its plain native bar, so those are Firefox-only. */
+:root {
+  --scroll-thumb: rgba(42, 35, 27, 0.22);
+  --scroll-thumb-hover: rgba(42, 35, 27, 0.4);
+}
+:root[data-theme="dark"] {
+  --scroll-thumb: rgba(242, 233, 219, 0.18);
+  --scroll-thumb-hover: rgba(242, 233, 219, 0.34);
+}
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--scroll-thumb);
+  border-radius: 999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--scroll-thumb-hover);
+}
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+@supports (-moz-appearance: none) {
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--scroll-thumb) transparent;
+  }
+}
+
+/* Thin volume slider: accent-filled track up to the thumb (--fill), small round thumb. */
+input.volume {
+  appearance: none;
+  background: linear-gradient(to right, var(--accent) var(--fill, 0%), var(--line) var(--fill, 0%));
+  border-radius: 999px;
+}
+input.volume::-webkit-slider-thumb {
+  appearance: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 999px;
+  background: var(--ink);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  transition: transform 0.15s ease;
+}
+input.volume::-webkit-slider-thumb:hover {
+  transform: scale(1.2);
+}
+input.volume::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  border: none;
+  border-radius: 999px;
+  background: var(--ink);
+}
+
+button {
+  cursor: pointer;
+}
+button:disabled {
+  cursor: default;
+}
+input:focus {
+  outline: none;
+}
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.wood {
+  background-color: var(--wood);
+  background-image: repeating-linear-gradient(91deg, rgba(0, 0, 0, 0.06) 0 1px, transparent 1px 7px, rgba(255, 255, 255, 0.04) 7px 8px, transparent 8px 15px),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.16), rgba(0, 0, 0, 0.25));
+}
+
+@keyframes receipt-in {
+  0% { clip-path: inset(0 0 100% 0); transform: translateY(-14px); }
+  100% { clip-path: inset(0 0 -20px 0); transform: none; }
+}
+@keyframes till-in {
+  from { transform: translate(-50%, -70px) rotate(-6deg); }
+  to { transform: translate(-50%, 0) rotate(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

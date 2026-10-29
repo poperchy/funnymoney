@@ -1,0 +1,12 @@
+<!-- @dsCard group="Blocks" height=376 width=1200 -->
+<!doctype html>
+<html>
+<head><meta charset="utf-8"><title>EventsGrid — preview</title></head>
+<body>
+<div id="root" class="pt-root"></div>
+<script>
+  var P = window.Potato, h = React.createElement;
+  ReactDOM.createRoot(document.getElementById("root")).render(h(P.EventsGrid,{events:[{month:"Oct",day:"08",kind:"Webinar",when:"Wed · 16:00 CET · 45 min",title:"Reading a performance diff",body:"Live walk through a week of real events, and which ones were worth fixing."},{month:"Oct",day:"22",kind:"Meetup · Berlin",when:"Wed · 19:00 · in person",title:"Tags vs. code: the benchmark, live",body:"The September numbers, then beers. Twenty seats."},{month:"Nov",day:"05",kind:"Workshop",when:"Wed · 15:00 CET · 90 min",title:"Budgets for agencies",body:"Setting thresholds you can defend in front of a client."}]}));
+</script>
+</body>
+</html>

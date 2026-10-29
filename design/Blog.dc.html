@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="" />
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  body { margin:0; background:#fcfcfd; -webkit-font-smoothing:antialiased; }
+  * { box-sizing:border-box; }
+  a { color:#5b52e0; text-decoration:none; }
+  a:hover { color:#4038c4; }
+  input:focus { outline:none; }
+  ::selection { background:#ddd9ff; }
+  @keyframes float1 { 0%,100% { transform:translate3d(0,0,0) scale(1); } 50% { transform:translate3d(24px,-30px,0) scale(1.06); } }
+  @keyframes float2 { 0%,100% { transform:translate3d(0,0,0) scale(1); } 50% { transform:translate3d(-28px,24px,0) scale(0.94); } }
+</style>
+</helmet>
+<div style="font-family:'Instrument Sans',system-ui,sans-serif; color:#16151c; background:#fcfcfd; min-height:100vh; overflow-x:clip;">
+
+  <header style="position:sticky; top:0; z-index:40; background:rgba(252,252,253,0.72); backdrop-filter:blur(14px); border-bottom:1px solid rgba(22,21,28,0.06);">
+    <div style="max-width:1140px; margin:0 auto; padding:14px 28px; display:flex; align-items:center; justify-content:space-between; gap:24px;">
+      <button onClick="{{ goIndex }}" style="display:flex; align-items:center; gap:10px; background:transparent; border:none; padding:0; cursor:pointer; font-family:'Instrument Sans',sans-serif;">
+        <span style="width:20px; height:20px; border-radius:999px; background:linear-gradient(135deg,#7b6cf6,#f2a0b8); display:block;"></span>
+        <span style="font-size:17px; font-weight:600; letter-spacing:-0.02em; color:#16151c;">potato</span>
+        <span style="font-family:'JetBrains Mono',monospace; font-size:12px; color:#8b8894;">/ writing</span>
+      </button>
+      <nav style="display:flex; align-items:center; gap:26px; font-size:14px;">
+        <a href="Landing v3.dc.html#feed" style="color:#6b6875;">Product</a>
+        <a href="Landing v3.dc.html#benchmark" style="color:#6b6875;">Benchmark</a>
+        <button onClick="{{ goIndex }}" style="background:transparent; border:none; padding:0; cursor:pointer; font-family:'Instrument Sans',sans-serif; font-size:14px; color:#16151c; font-weight:500;">Writing</button>
+        <a href="Landing v3.dc.html#pricing" style="color:#6b6875;">Pricing</a>
+        <a href="Landing v3.dc.html#check" style="padding:9px 18px; border-radius:999px; background:#16151c; color:#fcfcfd; font-weight:500;">Check a site</a>
+      </nav>
+    </div>
+  </header>
+
+  <sc-if value="{{ isIndex }}" hint-placeholder-val="{{ true }}">
+    <div>
+      <section style="position:relative;">
+        <div style="position:absolute; inset:-80px 0 0; pointer-events:none; overflow:hidden;">
+          <div style="{{ blobA }}"></div>
+          <div style="{{ blobB }}"></div>
+        </div>
+        <div style="position:relative; max-width:1140px; margin:0 auto; padding:84px 28px 0;">
+          <div style="font-family:'JetBrains Mono',monospace; font-size:12px; letter-spacing:0.12em; color:#8b8894;">WRITING</div>
+          <h1 style="margin:16px 0 0; max-width:760px; font-size:58px; line-height:1.04; letter-spacing:-0.045em; font-weight:600; text-wrap:balance;">Notes from watching <span style="background:linear-gradient(100deg,#6b5ef0,#c17be0 55%,#f2a0b8); -webkit-background-clip:text; background-clip:text; color:transparent;">real sites get slower</span></h1>
+          <p style="margin:22px 0 0; max-width:560px; font-size:18px; line-height:1.6; color:#5d5a68;">Benchmarks from our public sample, honest comparisons, and the boring engineering behind a feed you can trust. No listicles.</p>
+
+          <div style="margin-top:36px; display:flex; gap:6px; flex-wrap:wrap;">
+            <sc-for list="{{ cats }}" as="c" hint-placeholder-count="5">
+              <button onClick="{{ c.onClick }}" style="{{ c.style }}">{{ c.label }} <span style="opacity:0.5;">{{ c.count }}</span></button>
+            </sc-for>
+          </div>
+        </div>
+      </section>
+
+      <section style="max-width:1140px; margin:0 auto; padding:28px 28px 0;">
+        <sc-if value="{{ showFeatured }}" hint-placeholder-val="{{ true }}">
+          <button onClick="{{ openFeatured }}" style="width:100%; text-align:left; cursor:pointer; font-family:'Instrument Sans',sans-serif; color:#16151c; border:1px solid rgba(22,21,28,0.08); border-radius:24px; overflow:hidden; background:#fff; padding:0; display:grid; grid-template-columns:minmax(0,1fr) minmax(0,0.9fr); box-shadow:0 30px 70px -50px rgba(70,56,180,0.55);">
+            <div style="padding:40px 40px 36px; display:flex; flex-direction:column;">
+              <div style="display:flex; align-items:center; gap:10px;">
+                <span style="font-family:'JetBrains Mono',monospace; font-size:11px; letter-spacing:0.1em; padding:4px 10px; border-radius:999px; background:rgba(107,94,240,0.1); color:#6b5ef0;">BENCHMARK</span>
+                <span style="font-family:'JetBrains Mono',monospace; font-size:12px; color:#8b8894;">Sep 22, 2026 · 9 min</span>
+              </div>
+              <div style="margin-top:20px; font-size:34px; line-height:1.12; letter-spacing:-0.035em; font-weight:600; text-wrap:balance;">Four out of five regressions came from a tag, not code</div>
+              <p style="margin:14px 0 0; font-size:16px; line-height:1.6; color:#5d5a68;">We traced every confirmed regression across 500 storefronts for 30 days. Most of them were never in a pull request.</p>
+              <div style="margin-top:auto; padding-top:28px; display:flex; align-items:center; gap:10px; font-size:14px; color:#6b6875;">
+                <span style="width:28px; height:28px; border-radius:999px; background:linear-gradient(135deg,#6b5ef0,#c17be0); color:#fff; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:600;">V</span>
+                <span>Vadim P · engineering</span>
+                <span style="margin-left:auto; color:#5b52e0; font-weight:500;">Read →</span>
+              </div>
+            </div>
+            <div style="position:relative; overflow:hidden; background:linear-gradient(140deg,#f2efff,#fdf2f6 60%,#eef6ff); padding:40px; display:flex; flex-direction:column; justify-content:center;">
+              <div style="position:absolute; top:-70px; right:-50px; width:260px; height:260px; border-radius:999px; background:radial-gradient(circle,rgba(123,108,246,0.35),transparent 70%); filter:blur(40px);"></div>
+              <div style="position:relative; font-family:'JetBrains Mono',monospace; font-size:11px; letter-spacing:0.1em; color:#8b8894;">CONFIRMED REGRESSIONS · BY SOURCE</div>
+              <div style="position:relative; margin-top:18px; display:flex; flex-direction:column; gap:12px;">
+                <sc-for list="{{ sources }}" as="s" hint-placeholder-count="4">
+                  <div>
+                    <div style="display:flex; justify-content:space-between; gap:12px; font-size:14px;"><span>{{ s.label }}</span><span style="font-family:'JetBrains Mono',monospace; color:#5d5a68;">{{ s.pct }}</span></div>
+                    <div style="margin-top:6px; height:8px; border-radius:999px; background:rgba(255,255,255,0.8); overflow:hidden;"><div style="{{ s.bar }}"></div></div>
+                  </div>
+                </sc-for>
+              </div>
+              <div style="position:relative; margin-top:16px; font-family:'JetBrains Mono',monospace; font-size:11px; color:#a19ead;">mock data · n = 1,412 events</div>
+            </div>
+          </button>
+        </sc-if>
+
+        <div style="margin-top:22px; display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:22px;">
+          <sc-for list="{{ posts }}" as="p" hint-placeholder-count="6">
+            <button onClick="{{ p.onClick }}" style="text-align:left; cursor:pointer; font-family:'Instrument Sans',sans-serif; color:#16151c; border:1px solid rgba(22,21,28,0.08); border-radius:20px; background:#fff; padding:0; overflow:hidden; display:flex; flex-direction:column;">
+              <div style="{{ p.headStyle }}">
+                <div style="font-size:30px; font-weight:600; letter-spacing:-0.035em;">{{ p.stat }}</div>
+                <div style="margin-top:2px; font-size:13px; color:#5d5a68;">{{ p.statNote }}</div>
+              </div>
+              <div style="padding:20px 22px 22px; display:flex; flex-direction:column; flex:1;">
+                <div style="display:flex; align-items:center; gap:9px;">
+                  <span style="{{ p.chip }}">{{ p.cat }}</span>
+                  <span style="font-family:'JetBrains Mono',monospace; font-size:12px; color:#8b8894;">{{ p.read }}</span>
+                </div>
+                <div style="margin-top:12px; font-size:19px; line-height:1.28; letter-spacing:-0.02em; font-weight:600; text-wrap:pretty;">{{ p.title }}</div>
+                <p style="margin:8px 0 0; font-size:14px; line-height:1.55; color:#5d5a68;">{{ p.dek }}</p>
+                <div style="margin-top:auto; padding-top:16px; font-family:'JetBrains Mono',monospace; font-size:12px; color:#a19ead;">{{ p.date }}</div>
+              </div>
+            </button>
+          </sc-for>
+        </div>
+        <sc-if value="{{ empty }}" hint-placeholder-val="{{ false }}">
+          <div style="padding:48px 0; text-align:center; font-size:15px; color:#8b8894;">Nothing here yet — this category fills up next month.</div>
+        </sc-if>
+      </section>
+
+      <section style="max-width:1140px; margin:0 auto; padding:96px 28px 0;">
+        <div style="position:relative; border-radius:24px; padding:44px 48px; overflow:hidden; background:linear-gradient(130deg,#eeebff,#fdf2f5 70%); display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:40px; align-items:center;">
+          <div style="position:absolute; top:-100px; right:120px; width:280px; height:280px; border-radius:999px; background:radial-gradient(circle,rgba(107,94,240,0.3),transparent 70%); filter:blur(40px); pointer-events:none;"></div>
+          <div style="position:relative;">
+            <div style="font-family:'JetBrains Mono',monospace; font-size:12px; letter-spacing:0.12em; color:#8b8894;">ONCE A MONTH</div>
+            <div style="margin-top:12px; font-size:30px; line-height:1.15; letter-spacing:-0.035em; font-weight:600;">The benchmark, in your inbox</div>
+            <p style="margin:10px 0 0; font-size:15px; line-height:1.6; color:#4c4956;">New numbers from the 500-site sample and one article. Nothing else, unsubscribe in one click.</p>
+          </div>
+          <div style="position:relative;">
+            <div style="display:flex; gap:8px; padding:7px; border-radius:999px; background:rgba(255,255,255,0.9); border:1px solid rgba(22,21,28,0.08);">
+              <input value="{{ email }}" onChange="{{ onEmail }}" placeholder="you@company.com" style="flex:1; min-width:0; border:none; background:transparent; font-family:'JetBrains Mono',monospace; font-size:14px; color:#16151c; padding:11px 16px;" />
+              <button onClick="{{ subscribe }}" style="flex:none; border:none; cursor:pointer; border-radius:999px; background:#16151c; color:#fcfcfd; font-family:'Instrument Sans',sans-serif; font-size:14px; font-weight:500; padding:11px 22px;">{{ subLabel }}</button>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ isArticle }}" hint-placeholder-val="{{ false }}">
+    <div>
+      <div style="position:fixed; top:0; left:0; height:3px; z-index:50; background:linear-gradient(90deg,#6b5ef0,#c17be0,#f2a0b8); width:{{ progress }};"></div>
+
+      <section style="position:relative;">
+        <div style="position:absolute; inset:-80px 0 0; pointer-events:none; overflow:hidden;">
+          <div style="{{ blobA }}"></div>
+          <div style="{{ blobB }}"></div>
+        </div>
+        <div style="position:relative; max-width:1140px; margin:0 auto; padding:56px 28px 0; display:grid; grid-template-columns:minmax(0,1fr) minmax(0,720px) minmax(0,1fr); gap:40px;">
+          <div></div>
+          <div>
+          <nav aria-label="Breadcrumb" style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; font-size:14px; line-height:1.4;">
+            <a href="Landing v3.dc.html" style="color:#6b6875;">Home</a>
+            <span style="color:#c4c1cc;">/</span>
+            <button onClick="{{ goIndex }}" style="background:transparent; border:none; padding:0; cursor:pointer; font-family:'Instrument Sans',sans-serif; font-size:14px; color:#6b6875;">Blog</button>
+            <span style="color:#c4c1cc;">/</span>
+            <button onClick="{{ goCategory }}" style="background:transparent; border:none; padding:0; cursor:pointer; font-family:'Instrument Sans',sans-serif; font-size:14px; color:#6b6875;">Benchmark</button>
+            <span style="color:#c4c1cc;">/</span>
+            <span aria-current="page" style="color:#16151c; min-width:0; max-width:340px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">Four out of five regressions came from a tag, not code</span>
+          </nav>
+          <h1 style="margin:26px 0 0; font-size:52px; line-height:1.06; letter-spacing:-0.045em; font-weight:600; text-wrap:balance;">Four out of five regressions came from a tag, not code</h1>
+          <p style="margin:20px 0 0; font-size:20px; line-height:1.55; color:#5d5a68; text-wrap:pretty;">We traced every confirmed regression across 500 storefronts for 30 days. Most of them never went through a pull request, a code review, or a CI budget.</p>
+          <div style="margin-top:28px; padding-bottom:32px; border-bottom:1px solid rgba(22,21,28,0.08); display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap;">
+            <div style="display:flex; align-items:center; gap:12px;">
+              <span style="width:38px; height:38px; border-radius:999px; background:linear-gradient(135deg,#6b5ef0,#c17be0); color:#fff; display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:600;">V</span>
+              <div>
+                <div style="font-size:15px; font-weight:500;">Vadim P</div>
+                <div style="font-size:13px; color:#8b8894;">Engineering, noise suppression</div>
+              </div>
+            </div>
+            <div style="display:flex; align-items:center; gap:10px; font-family:'JetBrains Mono',monospace; font-size:12px; color:#8b8894;">
+              <time datetime="2026-09-22">Sep 22, 2026</time><span style="color:#c4c1cc;">·</span><span>9 min read</span>
+            </div>
+          </div>
+          </div>
+          <div></div>
+        </div>
+      </section>
+
+      <div style="max-width:1140px; margin:0 auto; padding:0 28px; display:grid; grid-template-columns:minmax(0,1fr) minmax(0,720px) minmax(0,1fr); gap:40px;">
+        <aside style="{{ tocStyle }}">
+          <div style="position:sticky; top:96px;">
+            <div style="font-family:'JetBrains Mono',monospace; font-size:11px; letter-spacing:0.1em; color:#8b8894;">ON THIS PAGE</div>
+            <div style="margin-top:12px; display:flex; flex-direction:column; gap:2px;">
+              <a href="#method" style="font-size:14px; line-height:1.4; color:#5d5a68; padding:6px 0;">How we counted</a>
+              <a href="#numbers" style="font-size:14px; line-height:1.4; color:#5d5a68; padding:6px 0;">The numbers</a>
+              <a href="#why" style="font-size:14px; line-height:1.4; color:#5d5a68; padding:6px 0;">Why CI doesn’t see it</a>
+              <a href="#fix" style="font-size:14px; line-height:1.4; color:#5d5a68; padding:6px 0;">What actually helps</a>
+            </div>
+          </div>
+        </aside>
+
+        <article style="{{ articleStyle }}">
+          <sc-if value="{{ inlineToc }}" hint-placeholder-val="{{ false }}">
+            <div style="margin:0 0 32px; padding:16px 20px; border-radius:16px; background:#f7f6fb; border:1px solid rgba(22,21,28,0.06);">
+              <div style="font-family:'JetBrains Mono',monospace; font-size:11px; letter-spacing:0.1em; color:#8b8894;">ON THIS PAGE</div>
+              <div style="margin-top:8px; display:flex; flex-wrap:wrap; gap:4px 18px;">
+                <a href="#method" style="font-size:15px; line-height:1.5; color:#5d5a68;">How we counted</a>
+                <a href="#numbers" style="font-size:15px; line-height:1.5; color:#5d5a68;">The numbers</a>
+                <a href="#why" style="font-size:15px; line-height:1.5; color:#5d5a68;">Why CI doesn’t see it</a>
+                <a href="#fix" style="font-size:15px; line-height:1.5; color:#5d5a68;">What actually helps</a>
+              </div>
+            </div>
+          </sc-if>
+          <p style="margin:0;">Every performance talk ends with the same advice: set a budget, fail the build. It’s good advice. It also assumes the thing making your site slower is in your repository.</p>
+          <p style="margin:22px 0 0;">For a month we watched a public sample of 500 storefronts with the same engine the product uses — one run per page per day, fixed conditions, every change confirmed by a second run. Then we asked a boring question of every confirmed regression: <em>where did the bytes come from?</em></p>
+
+          <h2 id="method" style="margin:52px 0 0; font-size:28px; line-height:1.2; letter-spacing:-0.03em; font-weight:600; color:#16151c; scroll-margin-top:90px;">How we counted</h2>
+          <p style="margin:16px 0 0;">A regression here means an event our feed would write: a resource that got heavier, appeared, or lost its caching, held across two runs, with a measurable cost in LCP, TBT or CLS. Filename hashes and rotating ad creatives were suppressed first — otherwise the numbers are meaningless.</p>
+          <p style="margin:22px 0 0;">We then attributed each event by the origin of the resource and, for first-party files, whether the change lined up with a deploy.</p>
+
+          <div style="margin:28px 0 0; border-radius:16px; background:#16151c; color:#e9e7e2; padding:20px 22px; font-family:'JetBrains Mono',monospace; font-size:13px; line-height:1.75; overflow-x:auto;">
+            <div style="color:#8e8b96;">// one event, as stored</div>
+            <div>{</div>
+            <div>&nbsp;&nbsp;<span style="color:#b6b0ff;">"resource"</span>: <span style="color:#f2b5c6;">"static.hotjar.com/c/hotjar-3312.js"</span>,</div>
+            <div>&nbsp;&nbsp;<span style="color:#b6b0ff;">"origin"</span>: <span style="color:#f2b5c6;">"third-party"</span>,</div>
+            <div>&nbsp;&nbsp;<span style="color:#b6b0ff;">"change"</span>: <span style="color:#f2b5c6;">"appeared"</span>,</div>
+            <div>&nbsp;&nbsp;<span style="color:#b6b0ff;">"pages"</span>: <span style="color:#9fe3c1;">34</span>,</div>
+            <div>&nbsp;&nbsp;<span style="color:#b6b0ff;">"cost"</span>: { <span style="color:#b6b0ff;">"tbt_ms"</span>: <span style="color:#9fe3c1;">410</span> },</div>
+            <div>&nbsp;&nbsp;<span style="color:#b6b0ff;">"deploy_match"</span>: <span style="color:#9fe3c1;">false</span></div>
+            <div>}</div>
+          </div>
+
+          <h2 id="numbers" style="margin:52px 0 0; font-size:28px; line-height:1.2; letter-spacing:-0.03em; font-weight:600; color:#16151c; scroll-margin-top:90px;">The numbers</h2>
+          <p style="margin:16px 0 0;">1,412 confirmed regressions over 30 days. Here is where they came from:</p>
+
+          <div style="margin:24px 0 0; border-radius:18px; border:1px solid rgba(22,21,28,0.08); background:#fff; overflow:hidden; font-size:15px; line-height:1.4;">
+            <div style="display:grid; grid-template-columns:minmax(0,1.6fr) repeat(2,minmax(0,0.7fr)); padding:12px 20px; border-bottom:1px solid rgba(22,21,28,0.07); font-family:'JetBrains Mono',monospace; font-size:11px; letter-spacing:0.1em; color:#8b8894;">
+              <span>SOURCE</span><span>EVENTS</span><span>SHARE</span>
+            </div>
+            <sc-for list="{{ table }}" as="t" hint-placeholder-count="5">
+              <div style="display:grid; grid-template-columns:minmax(0,1.6fr) repeat(2,minmax(0,0.7fr)); padding:13px 20px; border-bottom:1px solid rgba(22,21,28,0.06);">
+                <span>{{ t.label }}</span>
+                <span style="font-family:'JetBrains Mono',monospace; font-size:14px; color:#5d5a68;">{{ t.n }}</span>
+                <span style="font-family:'JetBrains Mono',monospace; font-size:14px; color:{{ t.color }};">{{ t.pct }}</span>
+              </div>
+            </sc-for>
+            <div style="padding:11px 20px; font-family:'JetBrains Mono',monospace; font-size:11px; color:#a19ead;">mock data · 500 storefronts · Aug 20 – Sep 19, 2026</div>
+          </div>
+
+          <p style="margin:26px 0 0;">Tag-manager injections, chat and session-replay widgets, and ad or analytics pixels together account for 79% of events. First-party code that matched a deploy — the only category a CI budget can catch — is 16%.</p>
+
+          <div style="margin:36px 0 0; position:relative; border-radius:20px; padding:28px 30px; overflow:hidden; background:linear-gradient(130deg,#f4f2ff,#fdf3f6 70%);">
+            <div style="position:relative; font-size:24px; line-height:1.35; letter-spacing:-0.02em; color:#16151c;">The median site added its first new third-party script on day 6 — and nobody on the engineering side knew until day 17.</div>
+          </div>
+
+          <h2 id="why" style="margin:52px 0 0; font-size:28px; line-height:1.2; letter-spacing:-0.03em; font-weight:600; color:#16151c; scroll-margin-top:90px;">Why CI doesn’t see it</h2>
+          <p style="margin:16px 0 0;">Lighthouse CI runs against a build. A GTM container is edited in a browser tab by someone in marketing, published on a Thursday afternoon, and live everywhere in seconds. There is no build. The budget never runs.</p>
+          <p style="margin:22px 0 0;">Even when it does, CI measures one page in a clean environment. The tag that fires only on <code style="font-family:'JetBrains Mono',monospace; font-size:15px; background:rgba(107,94,240,0.08); color:#4038c4; padding:2px 7px; border-radius:6px;">/checkout</code> after a consent banner is accepted doesn’t exist there.</p>
+
+          <div style="margin:36px 0 0; border-radius:20px; border:1px solid rgba(22,21,28,0.08); background:#fff; padding:24px 26px; display:flex; align-items:center; justify-content:space-between; gap:20px; flex-wrap:wrap; box-shadow:0 30px 60px -50px rgba(70,56,180,0.6);">
+            <div style="max-width:380px;">
+              <div style="font-size:17px; font-weight:600; letter-spacing:-0.015em;">What’s on your site right now?</div>
+              <div style="margin-top:4px; font-size:14px; line-height:1.5; color:#5d5a68;">One free run lists every third party, what it weighs and whether it blocks render.</div>
+            </div>
+            <a href="Landing v3.dc.html#check" style="flex:none; padding:12px 22px; border-radius:999px; background:linear-gradient(135deg,#6b5ef0,#8f63e8); color:#fff; font-size:15px; font-weight:500;">Check a site free →</a>
+          </div>
+
+          <h2 id="fix" style="margin:52px 0 0; font-size:28px; line-height:1.2; letter-spacing:-0.03em; font-weight:600; color:#16151c; scroll-margin-top:90px;">What actually helps</h2>
+          <p style="margin:16px 0 0;">Nothing here is new. The difference in our sample was whether teams did it continuously, after deploy, against production:</p>
+          <div style="margin:18px 0 0; display:flex; flex-direction:column; gap:12px;">
+            <div style="display:grid; grid-template-columns:28px 1fr; gap:12px;"><span style="font-family:'JetBrains Mono',monospace; font-size:14px; color:#6b5ef0; padding-top:3px;">01</span><span><strong style="font-weight:600;">Inventory third parties daily.</strong> A new domain on 34 pages is an event, whether or not it breaks a budget.</span></div>
+            <div style="display:grid; grid-template-columns:28px 1fr; gap:12px;"><span style="font-family:'JetBrains Mono',monospace; font-size:14px; color:#6b5ef0; padding-top:3px;">02</span><span><strong style="font-weight:600;">Budget production, not builds.</strong> Same thresholds you’d put in CI, checked against what visitors actually load.</span></div>
+            <div style="display:grid; grid-template-columns:28px 1fr; gap:12px;"><span style="font-family:'JetBrains Mono',monospace; font-size:14px; color:#6b5ef0; padding-top:3px;">03</span><span><strong style="font-weight:600;">Send it to whoever published the tag.</strong> The weekly digest in our sample was forwarded to marketing more often than to engineering.</span></div>
+          </div>
+          <p style="margin:26px 0 0;">The full anonymised sample, including per-site event logs, is on the <a href="Landing v3.dc.html#benchmark">benchmark page</a>. It updates monthly.</p>
+
+          <div style="margin:44px 0 0; padding-top:24px; border-top:1px solid rgba(22,21,28,0.08); display:flex; gap:8px; flex-wrap:wrap;">
+            <span style="font-size:13px; padding:6px 13px; border-radius:999px; background:rgba(22,21,28,0.05); color:#5d5a68;">third parties</span>
+            <span style="font-size:13px; padding:6px 13px; border-radius:999px; background:rgba(22,21,28,0.05); color:#5d5a68;">GTM</span>
+            <span style="font-size:13px; padding:6px 13px; border-radius:999px; background:rgba(22,21,28,0.05); color:#5d5a68;">Lighthouse CI</span>
+            <span style="font-size:13px; padding:6px 13px; border-radius:999px; background:rgba(22,21,28,0.05); color:#5d5a68;">benchmark</span>
+          </div>
+        </article>
+        <div></div>
+      </div>
+
+      <section style="max-width:1140px; margin:0 auto; padding:88px 28px 0;">
+        <div style="display:flex; align-items:baseline; justify-content:space-between; gap:24px;">
+          <div style="font-size:24px; font-weight:600; letter-spacing:-0.025em;">Keep reading</div>
+          <button onClick="{{ goIndex }}" style="background:transparent; border:none; padding:0; cursor:pointer; font-family:'Instrument Sans',sans-serif; font-size:15px; color:#5b52e0;">All writing →</button>
+        </div>
+        <div style="margin-top:20px; display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:22px;">
+          <sc-for list="{{ related }}" as="p" hint-placeholder-count="3">
+            <button onClick="{{ p.onClick }}" style="text-align:left; cursor:pointer; font-family:'Instrument Sans',sans-serif; color:#16151c; border:1px solid rgba(22,21,28,0.08); border-radius:20px; background:#fff; padding:22px; display:flex; flex-direction:column; gap:10px;">
+              <div style="display:flex; align-items:center; gap:9px;"><span style="{{ p.chip }}">{{ p.cat }}</span><span style="font-family:'JetBrains Mono',monospace; font-size:12px; color:#8b8894;">{{ p.read }}</span></div>
+              <div style="font-size:18px; line-height:1.3; letter-spacing:-0.02em; font-weight:600;">{{ p.title }}</div>
+              <p style="margin:0; font-size:14px; line-height:1.55; color:#5d5a68;">{{ p.dek }}</p>
+              <div style="margin-top:auto; padding-top:6px; font-family:'JetBrains Mono',monospace; font-size:12px; color:#a19ead;">{{ p.date }}</div>
+            </button>
+          </sc-for>
+        </div>
+      </section>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ isType }}" hint-placeholder-val="{{ false }}">
+    <div>
+      <section style="position:relative;">
+        <div style="position:absolute; inset:-80px 0 0; pointer-events:none; overflow:hidden;">
+          <div style="{{ blobA }}"></div>
+          <div style="{{ blobB }}"></div>
+        </div>
+        <div style="position:relative; max-width:720px; margin:0 auto; padding:56px 28px 0;">
+          <nav aria-label="Breadcrumb" style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; font-size:14px;">
+            <a href="Landing v3.dc.html" style="color:#6b6875;">Home</a>
+            <span style="color:#c4c1cc;">/</span>
+            <button onClick="{{ goIndex }}" style="background:transparent; border:none; padding:0; cursor:pointer; font-family:'Instrument Sans',sans-serif; font-size:14px; color:#6b6875;">Blog</button>
+            <span style="color:#c4c1cc;">/</span>
+            <span aria-current="page" style="color:#16151c;">Typography</span>
+          </nav>
+          <div style="margin-top:26px; font-family:'JetBrains Mono',monospace; font-size:12px; letter-spacing:0.12em; color:#8b8894;">STYLE REFERENCE</div>
+          <h1 style="margin:12px 0 0; font-size:52px; line-height:1.06; letter-spacing:-0.045em; font-weight:600;">Typography</h1>
+          <p style="margin:18px 0 0; font-size:20px; line-height:1.55; color:#5d5a68;">Every element a post body can contain, in the order the CMS offers them. Specs next to each one map to the Tailwind prose config.</p>
+        </div>
+      </section>
+
+      <div style="max-width:720px; margin:0 auto; padding:24px 28px 0; font-size:18px; line-height:1.7; color:#2e2c35;">
+
+        <div style="margin-top:40px; padding-top:18px; border-top:1px solid rgba(22,21,28,0.08); display:flex; justify-content:space-between; gap:16px; font-family:'JetBrains Mono',monospace; font-size:11px; letter-spacing:0.1em; color:#8b8894;"><span>RESPONSIVE SCALE</span><span>breakpoint md · 768px</span></div>
+        <p style="margin:16px 0 0; font-size:16px; line-height:1.6; color:#5d5a68;">Two steps only: mobile below 768px, desktop above. Headings shrink the most; body text barely moves so line length stays readable at 375px.</p>
+        <div style="margin-top:20px; border-radius:18px; border:1px solid rgba(22,21,28,0.08); background:#fff; overflow:hidden; font-size:14px; line-height:1.4;">
+          <div style="display:grid; grid-template-columns:minmax(0,0.9fr) minmax(0,0.9fr) minmax(0,0.9fr) minmax(0,1.6fr); padding:11px 18px; border-bottom:1px solid rgba(22,21,28,0.07); font-family:'JetBrains Mono',monospace; font-size:10.5px; letter-spacing:0.1em; color:#8b8894;">
+            <span>STYLE</span><span>MOBILE</span><span>DESKTOP</span><span>TAILWIND</span>
+          </div>
+          <sc-for list="{{ typeScale }}" as="t" hint-placeholder-count="11">
+            <div style="display:grid; grid-template-columns:minmax(0,0.9fr) minmax(0,0.9fr) minmax(0,0.9fr) minmax(0,1.6fr); padding:11px 18px; border-bottom:1px solid rgba(22,21,28,0.06); align-items:center;">
+              <span style="font-weight:600; color:#16151c;">{{ t.name }}</span>
+              <span style="font-family:'JetBrains Mono',monospace; font-size:13px; color:#5d5a68;">{{ t.m }}</span>
+              <span style="font-family:'JetBrains Mono',monospace; font-size:13px; color:#5d5a68;">{{ t.d }}</span>
+              <code style="font-family:'JetBrains Mono',monospace; font-size:12px; color:#4038c4; overflow-wrap:anywhere;">{{ t.tw }}</code>
+            </div>
+          </sc-for>
+        </div>
+
+        <div style="margin-top:28px; display:grid; grid-template-columns:auto minmax(0,1fr); gap:28px; align-items:start;">
+          <div style="width:375px; max-width:100%; border-radius:32px; border:1px solid rgba(22,21,28,0.1); background:#fff; box-shadow:0 30px 60px -40px rgba(70,56,180,0.55); overflow:hidden;">
+            <div style="display:flex; justify-content:space-between; padding:10px 20px; font-family:'JetBrains Mono',monospace; font-size:11px; color:#8b8894; border-bottom:1px solid rgba(22,21,28,0.06);"><span>375 × 812</span><span>mobile</span></div>
+            <div style="padding:22px 20px 26px; color:#2e2c35;">
+              <sc-for list="{{ mobileSpecimen }}" as="m" hint-placeholder-count="9">
+                <div style="{{ m.style }}">{{ m.text }}</div>
+              </sc-for>
+            </div>
+          </div>
+          <div style="font-size:15px; line-height:1.6; color:#5d5a68; display:flex; flex-direction:column; gap:12px;">
+            <div><strong style="font-weight:600; color:#16151c;">Side padding</strong> 20px on mobile, 28px on desktop.</div>
+            <div><strong style="font-weight:600; color:#16151c;">Line length</strong> 34–40 characters at 375px, 65–75 at 720px.</div>
+            <div><strong style="font-weight:600; color:#16151c;">Headings</strong> use <code style="font-family:'JetBrains Mono',monospace; font-size:13px; background:rgba(107,94,240,0.08); color:#4038c4; padding:2px 6px; border-radius:5px;">text-wrap: balance</code>, paragraphs <code style="font-family:'JetBrains Mono',monospace; font-size:13px; background:rgba(107,94,240,0.08); color:#4038c4; padding:2px 6px; border-radius:5px;">pretty</code>.</div>
+            <div><strong style="font-weight:600; color:#16151c;">Tables and code</strong> scroll horizontally inside their box; the page never does.</div>
+            <div><strong style="font-weight:600; color:#16151c;">Tap targets</strong> — links in lists and the TOC get at least 44px row height.</div>
+          </div>
+        </div>
+
+        <div style="margin-top:56px; padding-top:18px; border-top:1px solid rgba(22,21,28,0.08); display:flex; justify-content:space-between; gap:16px; font-family:'JetBrains Mono',monospace; font-size:11px; letter-spacing:0.1em; color:#8b8894;"><span>HEADINGS</span><span>Instrument Sans · 600 · desktop sizes</span></div>
+        <div style="margin-top:20px; display:flex; flex-direction:column; gap:22px;">
+          <div><div style="font-family:'JetBrains Mono',monospace; font-size:11px; color:#a19ead;">H1 · 52 / 1.06 · −0.045em</div><div style="margin-top:6px; font-size:52px; line-height:1.06; letter-spacing:-0.045em; font-weight:600; color:#16151c;">Where the bytes came from</div></div>
+          <div><div style="font-family:'JetBrains Mono',monospace; font-size:11px; color:#a19ead;">H2 · 28 / 1.2 · −0.03em</div><div style="margin-top:6px; font-size:28px; line-height:1.2; letter-spacing:-0.03em; font-weight:600; color:#16151c;">Why CI doesn’t see it</div></div>
+          <div><div style="font-family:'JetBrains Mono',monospace; font-size:11px; color:#a19ead;">H3 · 22 / 1.3 · −0.02em</div><div style="margin-top:6px; font-size:22px; line-height:1.3; letter-spacing:-0.02em; font-weight:600; color:#16151c;">Tag-manager injections</div></div>
+          <div><div style="font-family:'JetBrains Mono',monospace; font-size:11px; color:#a19ead;">H4 · 19 / 1.35 · −0.015em</div><div style="margin-top:6px; font-size:19px; line-height:1.35; letter-spacing:-0.015em; font-weight:600; color:#16151c;">Consent-gated scripts</div></div>
+          <div><div style="font-family:'JetBrains Mono',monospace; font-size:11px; color:#a19ead;">H5 · 16 / 1.4</div><div style="margin-top:6px; font-size:16px; line-height:1.4; font-weight:600; color:#16151c;">Only on /checkout</div></div>
+          <div><div style="font-family:'JetBrains Mono',monospace; font-size:11px; color:#a19ead;">H6 · Mono 12 / 0.12em · uppercase</div><div style="margin-top:6px; font-family:'JetBrains Mono',monospace; font-size:12px; letter-spacing:0.12em; text-transform:uppercase; color:#8b8894;">Method notes</div></div>
+        </div>
+
+        <div style="margin-top:56px; padding-top:18px; border-top:1px solid rgba(22,21,28,0.08); display:flex; justify-content:space-between; gap:16px; font-family:'JetBrains Mono',monospace; font-size:11px; letter-spacing:0.1em; color:#8b8894;"><span>TEXT</span><span>body 18 / 1.7</span></div>
+        <p style="margin:20px 0 0; font-size:20px; line-height:1.55; color:#5d5a68;">Lead paragraph. Sits under the H1 and sets up the argument in one or two sentences — never more.</p>
+        <p style="margin:22px 0 0;">Body paragraph with <strong style="font-weight:600; color:#16151c;">bold</strong>, <em>italic</em>, a <a href="#">link to the benchmark</a>, inline <code style="font-family:'JetBrains Mono',monospace; font-size:15px; background:rgba(107,94,240,0.08); color:#4038c4; padding:2px 7px; border-radius:6px;">Cache-Control: no-store</code>, a key like <kbd style="font-family:'JetBrains Mono',monospace; font-size:13px; padding:2px 7px; border-radius:6px; background:#fff; border:1px solid rgba(22,21,28,0.15); border-bottom-width:2px; color:#16151c;">⌘ K</kbd>, <mark style="background:linear-gradient(120deg,rgba(242,160,184,0.35),rgba(123,108,246,0.25)); color:#16151c; padding:0 3px; border-radius:3px;">highlighted text</mark>, <s style="color:#8b8894;">removed text</s>, and a footnote reference<sup style="font-size:12px;"><a href="#fn1">1</a></sup>.</p>
+        <p style="margin:22px 0 0; font-size:15px; line-height:1.6; color:#8b8894;">Small print — captions, methodology caveats, “mock data” notes. 15 / 1.6.</p>
+
+        <div style="margin-top:56px; padding-top:18px; border-top:1px solid rgba(22,21,28,0.08); font-family:'JetBrains Mono',monospace; font-size:11px; letter-spacing:0.1em; color:#8b8894;">LISTS</div>
+        <ul style="margin:20px 0 0; padding-left:22px; display:flex; flex-direction:column; gap:8px;">
+          <li style="padding-left:4px;">Tag-manager injections: GTM, Segment, Tealium</li>
+          <li style="padding-left:4px;">Chat and session replay
+            <ul style="margin:8px 0 0; padding-left:22px; display:flex; flex-direction:column; gap:6px; color:#5d5a68;">
+              <li style="padding-left:4px;">static.hotjar.com</li>
+              <li style="padding-left:4px;">widget.intercom.io</li>
+            </ul>
+          </li>
+          <li style="padding-left:4px;">Ads and analytics pixels</li>
+        </ul>
+        <ol style="margin:24px 0 0; padding-left:24px; display:flex; flex-direction:column; gap:8px;">
+          <li style="padding-left:4px;">Load the page, record every request</li>
+          <li style="padding-left:4px;">Match resources to yesterday by identity and content hash</li>
+          <li style="padding-left:4px;">Confirm the candidate with a second run</li>
+        </ol>
+        <div style="margin:24px 0 0; display:flex; flex-direction:column; gap:12px;">
+          <div style="display:grid; grid-template-columns:28px 1fr; gap:12px;"><span style="font-family:'JetBrains Mono',monospace; font-size:14px; color:#6b5ef0; padding-top:3px;">01</span><span><strong style="font-weight:600;">Step list.</strong> For numbered recommendations with a bold lead-in.</span></div>
+          <div style="display:grid; grid-template-columns:28px 1fr; gap:12px;"><span style="font-family:'JetBrains Mono',monospace; font-size:14px; color:#6b5ef0; padding-top:3px;">02</span><span><strong style="font-weight:600;">Keep it short.</strong> Three to five items, one idea each.</span></div>
+        </div>
+
+        <div style="margin-top:56px; padding-top:18px; border-top:1px solid rgba(22,21,28,0.08); font-family:'JetBrains Mono',monospace; font-size:11px; letter-spacing:0.1em; color:#8b8894;">QUOTES</div>
+        <blockquote style="margin:20px 0 0; padding:2px 0 2px 22px; border-left:2px solid #c9c2fb; color:#4c4956;">
+          <p style="margin:0;">We used to argue with clients about whether the site got slower after their team touched it. Now I forward one email a week.</p>
+          <footer style="margin-top:8px; font-size:14px; color:#8b8894;">— Partner, web agency</footer>
+        </blockquote>
+        <div style="margin:28px 0 0; border-radius:20px; padding:28px 30px; background:linear-gradient(130deg,#f4f2ff,#fdf3f6 70%);">
+          <div style="font-size:24px; line-height:1.35; letter-spacing:-0.02em; color:#16151c;">Pull quote. One sentence from the article worth reading twice.</div>
+        </div>
+
+        <div style="margin-top:56px; padding-top:18px; border-top:1px solid rgba(22,21,28,0.08); font-family:'JetBrains Mono',monospace; font-size:11px; letter-spacing:0.1em; color:#8b8894;">CODE</div>
+        <div style="margin:20px 0 0; border-radius:16px; background:#16151c; color:#e9e7e2; overflow:hidden;">
+          <div style="display:flex; justify-content:space-between; gap:12px; padding:10px 18px; border-bottom:1px solid rgba(255,255,255,0.08); font-family:'JetBrains Mono',monospace; font-size:11px; color:#8e8b96;"><span>budget.json</span><span>json</span></div>
+          <div style="padding:18px 20px; font-family:'JetBrains Mono',monospace; font-size:13px; line-height:1.75; overflow-x:auto;">
+            <div>{</div>
+            <div>&nbsp;&nbsp;<span style="color:#b6b0ff;">"js_kb"</span>: <span style="color:#9fe3c1;">250</span>,</div>
+            <div>&nbsp;&nbsp;<span style="color:#b6b0ff;">"lcp_s"</span>: <span style="color:#9fe3c1;">2.5</span>,</div>
+            <div>&nbsp;&nbsp;<span style="color:#b6b0ff;">"new_third_party"</span>: <span style="color:#f2b5c6;">"alert"</span></div>
+            <div>}</div>
+          </div>
+        </div>
+
+        <div style="margin-top:56px; padding-top:18px; border-top:1px solid rgba(22,21,28,0.08); font-family:'JetBrains Mono',monospace; font-size:11px; letter-spacing:0.1em; color:#8b8894;">TABLE</div>
+        <div style="margin:20px 0 0; border-radius:18px; border:1px solid rgba(22,21,28,0.08); background:#fff; overflow:hidden; font-size:15px; line-height:1.4;">
+          <div style="display:grid; grid-template-columns:minmax(0,1.6fr) repeat(2,minmax(0,0.7fr)); padding:12px 20px; border-bottom:1px solid rgba(22,21,28,0.07); font-family:'JetBrains Mono',monospace; font-size:11px; letter-spacing:0.1em; color:#8b8894;"><span>METRIC</span><span>BUDGET</span><span>NOW</span></div>
+          <div style="display:grid; grid-template-columns:minmax(0,1.6fr) repeat(2,minmax(0,0.7fr)); padding:13px 20px; border-bottom:1px solid rgba(22,21,28,0.06);"><span>JavaScript</span><span style="font-family:'JetBrains Mono',monospace; font-size:14px; color:#5d5a68;">250 KB</span><span style="font-family:'JetBrains Mono',monospace; font-size:14px; color:#d64550;">389 KB</span></div>
+          <div style="display:grid; grid-template-columns:minmax(0,1.6fr) repeat(2,minmax(0,0.7fr)); padding:13px 20px;"><span>LCP, median</span><span style="font-family:'JetBrains Mono',monospace; font-size:14px; color:#5d5a68;">2.5 s</span><span style="font-family:'JetBrains Mono',monospace; font-size:14px; color:#1f9d63;">2.4 s</span></div>
+        </div>
+
+        <div style="margin-top:56px; padding-top:18px; border-top:1px solid rgba(22,21,28,0.08); font-family:'JetBrains Mono',monospace; font-size:11px; letter-spacing:0.1em; color:#8b8894;">MEDIA</div>
+        <figure style="margin:20px 0 0;">
+          <div style="aspect-ratio:16 / 9; border-radius:18px; border:1px dashed rgba(22,21,28,0.18); background:linear-gradient(135deg,#f6f4ff,#fdf6f8); display:flex; align-items:center; justify-content:center; font-family:'JetBrains Mono',monospace; font-size:13px; color:#8b8894;">image · 16:9 · product screenshot or chart</div>
+          <figcaption style="margin-top:10px; font-size:14px; line-height:1.5; color:#8b8894;">Figure caption. Source and date go here: benchmark sample, September 2026.</figcaption>
+        </figure>
+
+        <div style="margin-top:56px; padding-top:18px; border-top:1px solid rgba(22,21,28,0.08); font-family:'JetBrains Mono',monospace; font-size:11px; letter-spacing:0.1em; color:#8b8894;">CALLOUTS</div>
+        <div style="margin:20px 0 0; border-radius:16px; padding:18px 20px; background:rgba(107,94,240,0.07); display:grid; grid-template-columns:auto 1fr; gap:12px; font-size:16px; line-height:1.6;">
+          <span style="font-family:'JetBrains Mono',monospace; font-size:11px; letter-spacing:0.1em; color:#6b5ef0; padding-top:4px;">NOTE</span>
+          <span>Numbers in this post are from the public sample, not from customer sites.</span>
+        </div>
+        <div style="margin:12px 0 0; border-radius:16px; padding:18px 20px; background:rgba(214,69,80,0.07); display:grid; grid-template-columns:auto 1fr; gap:12px; font-size:16px; line-height:1.6;">
+          <span style="font-family:'JetBrains Mono',monospace; font-size:11px; letter-spacing:0.1em; color:#d64550; padding-top:4px;">WARNING</span>
+          <span>Changing run conditions resets comparability with previous days.</span>
+        </div>
+        <div style="margin:20px 0 0; border-radius:20px; border:1px solid rgba(22,21,28,0.08); background:#fff; padding:24px 26px; display:flex; align-items:center; justify-content:space-between; gap:20px; flex-wrap:wrap; box-shadow:0 30px 60px -50px rgba(70,56,180,0.6);">
+          <div style="max-width:380px;">
+            <div style="font-size:17px; font-weight:600; letter-spacing:-0.015em;">In-article CTA</div>
+            <div style="margin-top:4px; font-size:14px; line-height:1.5; color:#5d5a68;">One per post, after the section that raises the question it answers.</div>
+          </div>
+          <a href="Landing v3.dc.html#check" style="flex:none; padding:12px 22px; border-radius:999px; background:linear-gradient(135deg,#6b5ef0,#8f63e8); color:#fff; font-size:15px; font-weight:500;">Check a site free →</a>
+        </div>
+
+        <div style="margin-top:56px; padding-top:18px; border-top:1px solid rgba(22,21,28,0.08); font-family:'JetBrains Mono',monospace; font-size:11px; letter-spacing:0.1em; color:#8b8894;">DIVIDER, TAGS, FOOTNOTES</div>
+        <hr style="margin:28px 0; border:none; height:1px; background:rgba(22,21,28,0.1);" />
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+          <span style="font-size:13px; padding:6px 13px; border-radius:999px; background:rgba(22,21,28,0.05); color:#5d5a68;">third parties</span>
+          <span style="font-size:13px; padding:6px 13px; border-radius:999px; background:rgba(22,21,28,0.05); color:#5d5a68;">GTM</span>
+          <span style="font-size:13px; padding:6px 13px; border-radius:999px; background:rgba(22,21,28,0.05); color:#5d5a68;">benchmark</span>
+        </div>
+        <ol id="fn1" style="margin:28px 0 0; padding-left:20px; font-size:14px; line-height:1.6; color:#8b8894;">
+          <li>Footnote. Method caveats and sources live here, not in the body. <a href="#">↩</a></li>
+        </ol>
+      </div>
+    </div>
+  </sc-if>
+
+  <footer style="margin-top:96px; border-top:1px solid rgba(22,21,28,0.08);">
+    <div style="max-width:1140px; margin:0 auto; padding:26px 28px; display:flex; align-items:center; justify-content:space-between; gap:24px; flex-wrap:wrap; font-size:13px; color:#8b8894;">
+      <div style="display:flex; align-items:center; gap:9px;"><span style="width:16px; height:16px; border-radius:999px; background:linear-gradient(135deg,#7b6cf6,#f2a0b8); display:block;"></span><span>potato © 2026</span></div>
+      <div style="display:flex; gap:20px; flex-wrap:wrap;"><a href="Landing v3.dc.html" style="color:#8b8894;">Product</a><a href="Landing v3.dc.html#benchmark" style="color:#8b8894;">Benchmark</a><button onClick="{{ goType }}" style="background:transparent; border:none; padding:0; cursor:pointer; font-family:'Instrument Sans',sans-serif; font-size:13px; color:#8b8894;">Typography</button><a href="#" style="color:#8b8894;">RSS</a><a href="mailto:hey@projectpotato.dev" style="color:#8b8894;">hey@projectpotato.dev</a></div>
+      <div style="font-family:'JetBrains Mono',monospace; font-size:12px;">synthetic monitoring · not affiliated with Google</div>
+    </div>
+  </footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;startView&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;index&quot;,&quot;article&quot;,&quot;typography&quot;],&quot;default&quot;:&quot;index&quot;,&quot;tsType&quot;:&quot;'index' | 'article' | 'typography'&quot;,&quot;section&quot;:&quot;View&quot;}}">
+class Component extends DCLogic {
+  state = { view: this.props.startView ?? "index", cat: "All", email: "", subscribed: false, y: 0, progress: 0 };
+
+  componentDidMount() {
+    this._onScroll = () => {
+      if (this._raf) return;
+      this._raf = requestAnimationFrame(() => {
+        this._raf = null;
+        const d = document.documentElement;
+        const max = Math.max(1, d.scrollHeight - window.innerHeight);
+        this.setState({ y: window.scrollY || 0, progress: Math.min(1, (window.scrollY || 0) / max) });
+      });
+    };
+    window.addEventListener("scroll", this._onScroll, { passive: true });
+    this._mq = window.matchMedia("(min-width: 1240px)");
+    this._onMq = () => this.setState({ wide: this._mq.matches });
+    this._onMq();
+    this._mq.addEventListener("change", this._onMq);
+  }
+  componentWillUnmount() {
+    window.removeEventListener("scroll", this._onScroll);
+    if (this._mq) this._mq.removeEventListener("change", this._onMq);
+    if (this._raf) cancelAnimationFrame(this._raf);
+  }
+
+  go(view) { this.setState({ view }); window.scrollTo(0, 0); }
+
+  catStyle(cat) {
+    const map = {
+      Benchmark: ["#6b5ef0", "rgba(107,94,240,0.1)"],
+      Comparison: ["#c0487a", "rgba(214,90,140,0.1)"],
+      "By role": ["#1f8fb8", "rgba(56,170,220,0.12)"],
+      Engineering: ["#1f9d63", "rgba(31,157,99,0.1)"]
+    };
+    const c = map[cat] || ["#6b6875", "rgba(22,21,28,0.06)"];
+    return "font-family:'JetBrains Mono',monospace; font-size:10px; letter-spacing:0.1em; text-transform:uppercase; padding:3px 9px; border-radius:999px; color:" + c[0] + "; background:" + c[1] + ";";
+  }
+
+  allPosts() {
+    return [
+      { cat: "Comparison", title: "Us vs. PageSpeed Insights: what a daily diff adds", dek: "PSI tells you how fast a page is. It can’t tell you what changed since Tuesday.", stat: "1 → 41", statNote: "pages checked per run", read: "7 min", date: "Sep 18, 2026", bg: "linear-gradient(135deg,#fdf1f5,#fef9fb)" },
+      { cat: "Benchmark", title: "63% of storefronts got slower in 30 days without a redesign", dek: "No new features, no redesign, no migration. Just a month of ordinary Thursdays.", stat: "63%", statNote: "slower after 30 days", read: "6 min", date: "Sep 12, 2026", bg: "linear-gradient(135deg,#f3f1ff,#faf8ff)" },
+      { cat: "Engineering", title: "What a rotating ad domain does to your diff", dek: "A new creative URL on every load looks like 40 regressions a day. Here’s how we collapse it to zero.", stat: "40 → 0", statNote: "false events per day", read: "11 min", date: "Sep 8, 2026", bg: "linear-gradient(135deg,#f2fbf6,#fafefb)" },
+      { cat: "By role", title: "Performance monitoring for agencies with 10+ client sites", dek: "One feed across every client, and a monthly line you can forward without editing.", stat: "12 sites", statNote: "one morning feed", read: "5 min", date: "Sep 3, 2026", bg: "linear-gradient(135deg,#eff6ff,#f8fbff)" },
+      { cat: "Comparison", title: "Us vs. Lighthouse CI: pre-merge vs. post-deploy", dek: "Keep your CI budget. Here’s the half of regressions it structurally can’t see.", stat: "16%", statNote: "of regressions CI can catch", read: "8 min", date: "Aug 28, 2026", bg: "linear-gradient(135deg,#fdf1f5,#fef9fb)" },
+      { cat: "Benchmark", title: "How much JavaScript a site adds per month, by platform", dek: "Shopify, WooCommerce, headless, custom — median growth and where it comes from.", stat: "+214 KB", statNote: "median JS per month", read: "9 min", date: "Aug 21, 2026", bg: "linear-gradient(135deg,#f3f1ff,#faf8ff)" },
+      { cat: "By role", title: "For e-commerce: when the page is the funnel", dek: "Why the product page, not the home page, is the one to budget first.", stat: "/product", statNote: "the page to watch", read: "5 min", date: "Aug 14, 2026", bg: "linear-gradient(135deg,#eff6ff,#f8fbff)" },
+      { cat: "Engineering", title: "Stable resource identity: matching files across deploys", dek: "app.4f21ac.js and app.9be013.js are the same file. Proving it is harder than it looks.", stat: "2 runs", statNote: "before anything is written", read: "12 min", date: "Aug 7, 2026", bg: "linear-gradient(135deg,#f2fbf6,#fafefb)" }
+    ];
+  }
+
+  renderVals() {
+    const s = this.state;
+    const all = this.allPosts();
+    const catNames = ["All", "Benchmark", "Comparison", "By role", "Engineering"];
+    const filtered = s.cat === "All" ? all : all.filter(p => p.cat === s.cat);
+    const deco = p => Object.assign({}, p, {
+      chip: this.catStyle(p.cat),
+      headStyle: "padding:22px; background:" + p.bg + "; border-bottom:1px solid rgba(22,21,28,0.05);",
+      onClick: () => this.go("article")
+    });
+
+    const blob = (x, y0, size, grad, speed, anim) =>
+      "position:absolute; left:" + x + "; top:" + y0 + "; width:" + size + "px; height:" + size + "px; border-radius:999px; background:" + grad +
+      "; filter:blur(60px); transform:translate3d(0," + Math.round(-s.y * speed) + "px,0); animation:" + anim + "; will-change:transform;";
+
+    return {
+      isIndex: s.view === "index",
+      isArticle: s.view === "article",
+      goIndex: () => this.go("index"),
+      goCategory: () => { this.setState({ cat: "Benchmark" }); this.go("index"); },
+      goType: () => this.go("typography"),
+      isType: s.view === "typography",
+      typeScale: [
+        ["H1", "34 / 1.10", "52 / 1.06", "text-[34px] leading-[1.1] md:text-[52px] md:leading-[1.06]"],
+        ["H2", "24 / 1.22", "28 / 1.20", "text-2xl md:text-[28px]"],
+        ["H3", "20 / 1.30", "22 / 1.30", "text-xl md:text-[22px]"],
+        ["H4", "18 / 1.35", "19 / 1.35", "text-lg md:text-[19px]"],
+        ["H5", "16 / 1.40", "16 / 1.40", "text-base"],
+        ["H6", "12 mono", "12 mono", "font-mono text-xs uppercase tracking-[.12em]"],
+        ["Lead", "18 / 1.55", "20 / 1.55", "text-lg md:text-xl"],
+        ["Body", "17 / 1.65", "18 / 1.70", "text-[17px] md:text-lg"],
+        ["Small", "14 / 1.60", "15 / 1.60", "text-sm md:text-[15px]"],
+        ["Pull quote", "20 / 1.40", "24 / 1.35", "text-xl md:text-2xl"],
+        ["Code", "12.5 / 1.7", "13 / 1.75", "text-[12.5px] md:text-[13px]"]
+      ].map(r => ({ name: r[0], m: r[1], d: r[2], tw: r[3] })),
+      mobileSpecimen: [
+        ["font-family:'JetBrains Mono',monospace; font-size:11px; letter-spacing:0.12em; color:#8b8894;", "BENCHMARK · 9 MIN"],
+        ["margin-top:10px; font-size:34px; line-height:1.1; letter-spacing:-0.04em; font-weight:600; color:#16151c; text-wrap:balance;", "Four out of five regressions came from a tag"],
+        ["margin-top:14px; font-size:18px; line-height:1.55; color:#5d5a68;", "Most of them never went through a pull request."],
+        ["margin-top:22px; font-size:24px; line-height:1.22; letter-spacing:-0.03em; font-weight:600; color:#16151c;", "Why CI doesn’t see it"],
+        ["margin-top:10px; font-size:17px; line-height:1.65;", "A GTM container is edited in a browser tab and live everywhere in seconds. There is no build."],
+        ["margin-top:18px; font-size:20px; line-height:1.3; letter-spacing:-0.02em; font-weight:600; color:#16151c;", "Tag-manager injections"],
+        ["margin-top:8px; font-size:18px; line-height:1.35; font-weight:600; color:#16151c;", "Consent-gated scripts"],
+        ["margin-top:16px; padding:16px 18px; border-radius:16px; background:linear-gradient(130deg,#f4f2ff,#fdf3f6 70%); font-size:20px; line-height:1.4; letter-spacing:-0.015em; color:#16151c;", "Nobody on engineering knew until day 17."],
+        ["margin-top:14px; font-size:14px; line-height:1.6; color:#8b8894;", "mock data · 500 storefronts"]
+      ].map(m => ({ style: m[0], text: m[1] })),
+      inlineToc: !s.wide,
+      tocStyle: s.wide ? "padding-top:44px; justify-self:start; width:100%; max-width:190px;" : "display:none;",
+      articleStyle: "padding-top:40px; font-size:18px; line-height:1.7; color:#2e2c35;" + (s.wide ? "" : " grid-column:1 / -1; max-width:720px; width:100%; justify-self:center;"),
+      openFeatured: () => this.go("article"),
+      blobA: blob("-8%", "-40px", 460, "radial-gradient(circle,rgba(123,108,246,0.42),transparent 68%)", 0.2, "float1 18s ease-in-out infinite"),
+      blobB: blob("62%", "-100px", 520, "radial-gradient(circle,rgba(242,160,184,0.4),transparent 68%)", 0.3, "float2 22s ease-in-out infinite"),
+      progress: Math.round(s.progress * 100) + "%",
+
+      cats: catNames.map(c => ({
+        label: c,
+        count: c === "All" ? all.length + 1 : all.filter(p => p.cat === c).length + (c === "Benchmark" ? 1 : 0),
+        onClick: () => this.setState({ cat: c }),
+        style: "border:none; cursor:pointer; font-family:'Instrument Sans',sans-serif; font-size:14px; padding:9px 17px; border-radius:999px; " +
+          (s.cat === c ? "background:#16151c; color:#fcfcfd;" : "background:rgba(255,255,255,0.75); color:#5d5a68; box-shadow:inset 0 0 0 1px rgba(22,21,28,0.08);")
+      })),
+      showFeatured: s.cat === "All" || s.cat === "Benchmark",
+      posts: filtered.map(deco),
+      empty: filtered.length === 0,
+      related: [all[4], all[0], all[2]].map(deco),
+
+      sources: [
+        ["Tag manager injections", 41, "#6b5ef0"], ["Chat & session replay", 22, "#a77df0"],
+        ["Ads & analytics pixels", 16, "#e07a9b"], ["First-party, with a deploy", 16, "#38bdf8"], ["Other", 5, "#c9c6d4"]
+      ].map(r => ({ label: r[0], pct: r[1] + "%", bar: "height:100%; width:" + r[1] * 2 + "%; border-radius:999px; background:" + r[2] + ";" })),
+      table: [
+        ["Tag manager injections (GTM, Segment)", "579", "41%", "#d64550"],
+        ["Chat and session-replay widgets", "311", "22%", "#d64550"],
+        ["Ads and analytics pixels", "226", "16%", "#d64550"],
+        ["First-party code, matched to a deploy", "226", "16%", "#5d5a68"],
+        ["CDN / hosting config (caching, compression)", "70", "5%", "#5d5a68"]
+      ].map(r => ({ label: r[0], n: r[1], pct: r[2], color: r[3] })),
+
+      email: s.email,
+      onEmail: e => this.setState({ email: e.target.value, subscribed: false }),
+      subscribe: () => this.setState({ subscribed: true }),
+      subLabel: s.subscribed ? "Subscribed ✓" : "Subscribe"
+    };
+  }
+}
+</script>
+</body>
+</html>

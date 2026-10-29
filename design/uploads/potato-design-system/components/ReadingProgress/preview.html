@@ -1,0 +1,12 @@
+<!-- @dsCard group="Article" height=51 -->
+<!doctype html>
+<html>
+<head><meta charset="utf-8"><title>ReadingProgress — preview</title></head>
+<body>
+<div id="root" class="pt-root"></div>
+<script>
+  var P = window.Potato, h = React.createElement;
+  ReactDOM.createRoot(document.getElementById("root")).render(h("div",{style:{padding:20}}, h(P.ReadingProgress,{value:0.42,inline:true})));
+</script>
+</body>
+</html>

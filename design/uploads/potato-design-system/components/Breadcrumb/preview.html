@@ -1,0 +1,12 @@
+<!-- @dsCard group="Article" height=68 -->
+<!doctype html>
+<html>
+<head><meta charset="utf-8"><title>Breadcrumb — preview</title></head>
+<body>
+<div id="root" class="pt-root"></div>
+<script>
+  var P = window.Potato, h = React.createElement;
+  ReactDOM.createRoot(document.getElementById("root")).render(h("div",{style:{padding:20}}, h(P.Breadcrumb,{items:[{label:"Home",href:"#"},{label:"Blog",href:"#"},{label:"Benchmark",href:"#"},{label:"Four out of five regressions came from a tag, not code"}]})));
+</script>
+</body>
+</html>
