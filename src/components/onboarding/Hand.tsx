@@ -6,13 +6,24 @@ import type { ReactNode } from 'react';
 const SPRING = 'transform .35s cubic-bezier(.3,1.4,.5,1)';
 
 /** Illustrated hand poking out from the top edge, holding the stack until it opens. */
-export function Hand({ open, children }: { open: boolean; children: ReactNode }) {
+export function Hand({
+  open,
+  children,
+  left = 590,
+  top = { closed: -36, open: -190 },
+}: {
+  open: boolean;
+  children: ReactNode;
+  left?: number | string;
+  /** Where the hand hangs while holding the wad, and where it retreats once it lets go. */
+  top?: { closed: number; open: number };
+}) {
   return (
     <motion.div
       className="absolute z-10 h-[340px] w-[260px]"
-      style={{ left: 590 }}
+      style={{ left }}
       initial={{ top: -340 }}
-      animate={{ top: open ? -190 : -36 }}
+      animate={{ top: open ? top.open : top.closed }}
       transition={{ duration: open ? 0.8 : 0.9, delay: open ? 0.35 : 0.1, ease: [0.5, 0, 0.3, 1] }}
     >
       <svg viewBox="0 0 260 340" width={260} height={340} className="absolute inset-0 overflow-visible">

@@ -28,6 +28,12 @@
   --sleeve: #3f5f8a;
   --cuff: #f4efe6;
   --danger: #c0452f;
+  /* Mobile wall, drawn in CSS rather than on the canvas. */
+  --wood-dark: #6c4628;
+  --cork: #c99967;
+  --till-solid: #3a3129;
+  --scrim: rgba(30, 18, 8, 0.42);
+  --board-light: radial-gradient(ellipse at 45% 20%, rgba(255, 240, 210, 0.16), transparent 60%);
   color-scheme: light;
 }
 
@@ -58,6 +64,11 @@
   --sleeve: #2f4767;
   --cuff: #d9d2c4;
   --danger: #e0735e;
+  --wood-dark: #2c1d10;
+  --cork: #86603a;
+  --till-solid: #0d0a07;
+  --scrim: rgba(0, 0, 0, 0.55);
+  --board-light: radial-gradient(ellipse at 45% 25%, rgba(255, 200, 130, 0.12), transparent 55%), radial-gradient(ellipse at 50% 50%, transparent 45%, rgba(0, 0, 0, 0.38));
   color-scheme: dark;
 }
 
@@ -186,6 +197,46 @@ input:focus {
 @keyframes till-in {
   from { transform: translate(-50%, -70px) rotate(-6deg); }
   to { transform: translate(-50%, 0) rotate(0); }
+}
+
+/* Mobile version. */
+@keyframes bill-in {
+  0% { transform: translateY(-90px) rotate(calc(var(--r) - 30deg)); opacity: 0; }
+  55% { opacity: 1; transform: translateY(6px) rotate(var(--r)); }
+  78% { transform: translateY(-2px) rotate(var(--r)); }
+  100% { transform: rotate(var(--r)); }
+}
+@keyframes coin-fall {
+  0% { transform: translateY(-150px); opacity: 0; }
+  12% { opacity: 1; }
+  68% { transform: translateY(0); }
+  82% { transform: translateY(-7px); }
+  100% { transform: translateY(0); }
+}
+@keyframes sheet-in {
+  from { transform: translateY(100%); }
+  to { transform: none; }
+}
+@keyframes scrim-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes pig-shake {
+  0%, 100% { transform: rotate(0); }
+  20% { transform: rotate(-9deg) translateY(-5px); }
+  40% { transform: rotate(8deg); }
+  60% { transform: rotate(-6deg) translateY(-2px); }
+  80% { transform: rotate(4deg); }
+}
+.no-scrollbar {
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
 }
 
 @media (prefers-reduced-motion: reduce) {

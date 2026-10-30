@@ -19,6 +19,15 @@ describe('packCells', () => {
     });
   });
 
+  it('packs the default categories into the 4-column phone wall without gaps', () => {
+    const cats = defaultCategories('BYN');
+    const { positions, rows } = packCells(cats, 4);
+    expect(rows).toBe(8);
+    const used = cats.reduce((n, c) => n + Math.min(4, c.colSpan) * c.rowSpan, 0);
+    expect(used).toBe(4 * rows);
+    expect(positions.get('cafe')).toEqual({ col: 3, row: 0 });
+  });
+
   it('grows the board and pushes the shelf down when cells do not fit', () => {
     const base = computeLayout(defaultCategories('BYN'), false);
     const more = computeLayout([...defaultCategories('BYN'), { id: 'cat', name: 'Котик', budget: 100, colSpan: 2, rowSpan: 2 }], false);

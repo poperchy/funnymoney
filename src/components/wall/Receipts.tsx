@@ -7,7 +7,7 @@ import { receiptEditOpened } from '@/model/ui';
 import { $wallet } from '@/model/wallet';
 import type { Receipt } from '@/model/types';
 
-function when(iso: string) {
+export function when(iso: string) {
   const d = new Date(iso), now = new Date();
   const time = d.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
   const day = (x: Date) => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
@@ -26,7 +26,7 @@ function Row({ a, b, className = '' }: { a: string; b: string; className?: strin
   );
 }
 
-function ReceiptPaper({ r, i, fresh, source }: { r: Receipt; i: number; fresh: boolean; source: string }) {
+export function ReceiptPaper({ r, i, fresh, source }: { r: Receipt; i: number; fresh: boolean; source: string }) {
   return (
     <button
       onClick={() => receiptEditOpened(r.id)}

@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="" />
+<link href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  body { margin:0; background:#e6e0d6; -webkit-font-smoothing:antialiased; }
+  * { box-sizing:border-box; }
+  a { color:#2e6b4c; text-decoration:none; }
+  a:hover { color:#1f4f37; }
+</style>
+</helmet>
+<section style="padding:64px 72px 96px; display:flex; flex-direction:column; gap:36px; font-family:'Golos Text',system-ui,sans-serif; color:#2a231b; background:#e6e0d6; width:max-content;">
+  <div style="display:flex; flex-direction:column; gap:10px; max-width:900px;">
+    <span style="font-size:15px; color:#776b5c;">наличка · мобильная версия</span>
+    <h1 style="margin:0; font-size:44px; line-height:1.05; letter-spacing:-0.035em; font-weight:700;">Деньги под большим пальцем</h1>
+    <p style="margin:0; font-size:17px; line-height:1.55; color:#5b5145; text-wrap:pretty;">Стена в две колонки и скроллится, цели для купюр — внизу, в зоне большого пальца. Перетаскивание по долгому нажатию, чтобы не мешать скроллу. На каждое перетаскивание есть запасной путь в один тап. Каждый экран живой: можно тапать и таскать.</p>
+  </div>
+  <div style="display:grid; grid-template-columns:repeat(5, 414px); gap:56px 44px;">
+    <sc-for list="{{ frames }}" as="f" hint-placeholder-count="11">
+      <div id="{{ f.id }}" style="display:flex; flex-direction:column; gap:14px; width:414px;">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <span style="padding:4px 10px; border-radius:999px; background:#2a231b; color:#f1ece3; font-size:13px; font-weight:700;">{{ f.id }}</span>
+          <span style="font-size:18px; font-weight:700; letter-spacing:-0.015em;">{{ f.title }}</span>
+        </div>
+        <div style="width:414px; height:868px; padding:12px; border-radius:62px; background:#1d1915; box-shadow:0 40px 70px -40px rgba(40,25,10,0.7), inset 0 0 0 2px #3a332c;">
+          <div style="position:relative; width:390px; height:844px; border-radius:50px; overflow:hidden; transform:translateZ(0);">
+            <dc-import name="Funny Money Mobile" scene="{{ f.scene }}" theme="{{ f.theme }}" hint-size="390px,844px"></dc-import>
+            <div style="position:absolute; left:135px; top:11px; width:120px; height:34px; border-radius:20px; background:#000; z-index:500; pointer-events:none;"></div>
+          </div>
+        </div>
+        <p style="margin:0; font-size:14px; line-height:1.55; color:#5b5145; text-wrap:pretty;">{{ f.note }}</p>
+      </div>
+    </sc-for>
+  </div>
+</section>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  renderVals() {
+    const F = (id, title, scene, note, theme) => ({ id, title, scene, note, theme: theme || 'light' });
+    return {
+      frames: [
+        F('1a', 'Сколько получил?', 'income', 'Сумма набирается тапами по купюрам, пачка в руке растёт. «−» или долгий тап по купюре убирает одну. «Как в прошлый раз» — в один тап, клавиатура только по ссылке.'),
+        F('1b', 'Купюры на столе', 'landed', 'После «Получил» рука разжимается, купюры падают на стол. Текст зависит от суммы: богач или «ну… бывает».'),
+        F('1c', 'Куча над стеной', 'pile', 'Нераспределённое лежит лентой над стеной, купюры тянутся оттуда в ячейки. «Как в прошлый раз» раскладывает всё по бюджетам.'),
+        F('1d', 'Стена', 'wall', 'Ячейки по размеру бюджета, стена скроллится. Внизу всегда две цели: «Потрачено» (тап — чеки) и свинка (тап — забрать).'),
+        F('1e', 'Тащим купюру', 'drag', 'Долгое нажатие поднимает купюру над пальцем, чтобы её было видно. Зоны внизу вырастают, ячейка под пальцем подсвечивается, у краёв стена сама прокручивается.'),
+        F('1f', 'Трата: сдача', 'spend', 'Отпустил над «Потрачено» — снизу шторка. Частая сумма в один тап или натапай сдачу; монеты сами падают в свинку. Комментарий спрятан.'),
+        F('1g', 'Ячейка без перетаскивания', 'cell', 'Запасной путь: тап по ячейке, выбрал купюру — «Потратить», «В свинку» или «Переложить». Работает одной рукой.'),
+        F('1h', 'Забрать из свинки', 'pig', 'Потряси телефон или тапни свинку 3 раза. Потом вопрос про нажитое непосильным трудом и «Хрясь!».'),
+        F('1i', 'Пустые состояния', 'empty', 'Пустая ячейка — пунктир «Тут было что-то. Было.», почти пустая — «на донышке» красным, голодная свинка в доке.'),
+        F('1j', 'Чеки', 'receipts', 'Тап по «Потрачено» открывает чеки за месяц. Без графиков и без осуждения.'),
+        F('1k', 'Тёмная тема', 'wall', 'Та же стена вечером. Тема и валюта — в «⋯».', 'dark')
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

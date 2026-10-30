@@ -14,6 +14,7 @@ import { ReceiptDialog } from './dialogs/ReceiptDialog';
 import { ShopDialog } from './dialogs/ShopDialog';
 import { SpendDropDialog } from './dialogs/SpendDropDialog';
 import { WelcomeDialog, greeting } from './dialogs/WelcomeDialog';
+import { MobileApp } from './mobile/MobileApp';
 import { FALL_PAN_S, Onboarding } from './onboarding/Onboarding';
 import { DragGhost } from './wall/DragGhost';
 import { Toast } from './wall/Toast';
@@ -21,6 +22,8 @@ import { Header } from './wall/Header';
 import { HEADER_H, Wall, wallHeight } from './wall/Wall';
 
 const DESIGN_W = 1440;
+/** Narrower than this, the scaled-down desktop wall gets too small to touch: the phone layout takes over. */
+const MOBILE_QUERY = '(max-width: 720px)';
 /** Below this the hand screen would not fit; the page then scrolls a little. */
 const MIN_STOP_H = 640;
 
@@ -30,6 +33,12 @@ const subscribeResize = (cb: () => void) => {
 };
 /** The app is laid out for 1440px and scaled down on narrower screens. */
 const useFit = () => useSyncExternalStore(subscribeResize, () => Math.min(1, window.innerWidth / DESIGN_W), () => 1);
+const subscribeMobile = (cb: () => void) => {
+  const mq = window.matchMedia(MOBILE_QUERY);
+  mq.addEventListener('change', cb);
+  return () => mq.removeEventListener('change', cb);
+};
+const useMobile = () => useSyncExternalStore(subscribeMobile, () => window.matchMedia(MOBILE_QUERY).matches, () => false);
 const useViewportH = () => useSyncExternalStore(subscribeResize, () => window.innerHeight, () => 900);
 
 /** Canvas painters read the page font, so wait until it is actually loaded. */
@@ -89,19 +98,14 @@ function FixedHeader({ show, k }: { show: boolean; k: number }) {
 }
 
 export default function MoneyApp() {
-  const [stop, round, theme, layout] = useUnit([$stop, $incomeRound, $theme, $layout]);
-  const k = useFit();
-  const vh = useViewportH();
+  const theme = useUnit($theme);
+  const mobile = useMobile();
   const ready = useFontsReady();
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
   }, [theme]);
   useEffect(preload, []);
-  // Leaving the wall for the hand: start from the top, the camera does the rest.
-  useEffect(() => {
-    if (stop !== 'wall') window.scrollTo({ top: 0 });
-  }, [stop]);
   // Returning visitors get a hello; first-timers get the welcome card instead.
   useEffect(() => {
     if (!$welcomeSeen.getState() || !$wallet.getState().onboarded) return;
@@ -110,6 +114,19 @@ export default function MoneyApp() {
   }, []);
 
   if (!ready) return null;
+  return mobile ? <MobileApp /> : <DesktopApp />;
+}
+
+function DesktopApp() {
+  const [stop, round, layout] = useUnit([$stop, $incomeRound, $layout]);
+  const k = useFit();
+  const vh = useViewportH();
+
+  // Leaving the wall for the hand: start from the top, the camera does the rest.
+  useEffect(() => {
+    if (stop !== 'wall') window.scrollTo({ top: 0 });
+  }, [stop]);
+
   // One stop = one viewport, in design px.
   const hd = Math.max(MIN_STOP_H, vh / k);
   const offset = stop === 'hand' ? 0 : stop === 'table' ? hd : 2 * hd;

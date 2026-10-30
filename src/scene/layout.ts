@@ -45,17 +45,17 @@ export type Layout = {
 
 type Span = Pick<Category, 'colSpan' | 'rowSpan'>;
 
-/** First-fit dense packing, row by row, like CSS grid with `grid-auto-flow: dense`. */
-export function packCells(cats: (Span & { id: string })[]) {
+/** First-fit dense packing, row by row, like CSS grid with `grid-auto-flow: dense`. The phone wall packs into 4 columns. */
+export function packCells(cats: (Span & { id: string })[], cols = GRID_COLS) {
   const taken: boolean[][] = [];
   const free = (r: number, c: number) => !taken[r]?.[c];
   const out = new Map<string, { col: number; row: number }>();
   let rows = 0;
   for (const cat of cats) {
-    const cs = Math.min(GRID_COLS, Math.max(1, cat.colSpan)), rs = Math.max(1, cat.rowSpan);
+    const cs = Math.min(cols, Math.max(1, cat.colSpan)), rs = Math.max(1, cat.rowSpan);
     for (let r = 0; ; r++) {
       let placed = false;
-      for (let c = 0; c + cs <= GRID_COLS; c++) {
+      for (let c = 0; c + cs <= cols; c++) {
         let fits = true;
         for (let dr = 0; dr < rs && fits; dr++) for (let dc = 0; dc < cs && fits; dc++) fits = free(r + dr, c + dc);
         if (!fits) continue;

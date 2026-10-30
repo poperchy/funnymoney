@@ -30,7 +30,7 @@ function pigAnchor(onWall: boolean, piggy: { x: number; y: number }) {
 }
 
 /** Little pig face for when the pig itself is out of sight. */
-function PigFace() {
+export function PigFace() {
   return (
     <svg viewBox="0 0 32 32" width={30} height={30} className="shrink-0" aria-hidden>
       <path d="M7 9 4 3l8 3M25 9l3-6-8 3" fill="#f5adc0" stroke="#d97692" strokeWidth={1.6} strokeLinejoin="round" />
