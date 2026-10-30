@@ -6,13 +6,14 @@ import { money, moneyShort, plural } from '@/lib/money/format';
 import { sum } from '@/lib/money/math';
 import { MAX_CATEGORIES } from '@/model/defaults';
 import { sheetOpened } from '@/model/mobile';
-import { billsIn, coinsIn, piggyCoins } from '@/model/ops';
+import { billsIn, coinsIn, crumpledInWallet, piggyCoins } from '@/model/ops';
 import { coinLocation, type Bill, type BillLocation, type Coin } from '@/model/types';
 import { $skins } from '@/model/skins';
 import { $draftBillIds, $theme, categoryEditOpened, pigOpened, toastShown } from '@/model/ui';
 import { $balance, $currency, $piggyTotal, $wallet, spreadRequested } from '@/model/wallet';
 import { CoinFace } from '@/components/money/BillImg';
 import { packCells } from '@/scene/layout';
+import { crumpledUrl } from '@/scene/paint';
 import { dropItem, type DropKey, type Item } from './actions';
 import { boardSkin, purseSkin, type BoardSkin } from '@/scene/skins';
 import { usePig } from './pig';
@@ -239,9 +240,13 @@ export function MobileWall() {
     return { positions: packed.positions, rows: Math.max(1, packed.rows), add, addOwnRow };
   }, [cats]);
 
-  const pileBills = billsIn(w, { type: 'pile' });
+  // The oldest small bills lie crumpled on the wallet, as on the desktop.
+  const crumpled = crumpledInWallet(w);
+  const allPileBills = billsIn(w, { type: 'pile' });
+  const pileBills = allPileBills.filter(b => !crumpled.has(b.id));
+  const crumpledBills = allPileBills.filter(b => crumpled.has(b.id));
   const pileCoins = coinsIn(w, { type: 'pile' });
-  const pileTotal = sum([...pileBills, ...pileCoins].map(b => b.value));
+  const pileTotal = sum([...allPileBills, ...pileCoins].map(b => b.value));
   const spent = spentThisMonth(w.receipts);
   const dragging = !!drag;
   const hot = (key: string) => !!drag && drag.target === key && drag.target !== (drag.from.type === 'cell' ? drag.from.cellId : drag.from.type);
@@ -283,7 +288,7 @@ export function MobileWall() {
         className="no-scrollbar absolute inset-x-0 bottom-0 overflow-x-hidden overflow-y-auto overscroll-contain"
         style={{ top: 'calc(max(10px, env(safe-area-inset-top)) + 64px)', paddingTop: 6, paddingBottom: 'calc(150px + env(safe-area-inset-bottom))' }}
       >
-        {(pileBills.length > 0 || pileCoins.length > 0) && (
+        {(allPileBills.length > 0 || pileCoins.length > 0) && (
           <div
             data-drop="pile"
             onClick={e => openCell({ type: 'pile' }, e)}
@@ -299,10 +304,10 @@ export function MobileWall() {
               <span className="text-[15px]">
                 В кошельке: <b className="whitespace-nowrap">{moneyShort(pileTotal)} {cur.symbol}</b>
               </span>
-              <span className="text-[13px] text-[rgba(251,241,225,0.75)]">{pileBills.length ? 'Грустят без дела. Разложи их' : 'Мелочь — свинке'}</span>
+              <span className="text-[13px] text-[rgba(251,241,225,0.75)]">{allPileBills.length ? 'Грустят без дела. Разложи их' : 'Мелочь — свинке'}</span>
             </div>
             <div className="relative mt-2.5 flex gap-2">
-              {pileBills.length > 0 && (
+              {allPileBills.length > 0 && (
                 <button
                   onClick={e => {
                     e.stopPropagation();
@@ -324,7 +329,7 @@ export function MobileWall() {
               </button>
             </div>
             <div className="relative mt-2.5 h-[58px]">
-              <div className="absolute inset-y-0 left-0" style={{ right: pileCoins.length ? 76 : 0 }}>
+              <div className="absolute inset-y-0 left-0" style={{ right: (pileCoins.length ? 76 : 0) + crumpledBills.length * 46 }}>
                 {pileBills.map((b, i, all) => (
                   <WallBill
                     key={b.id}
@@ -339,6 +344,28 @@ export function MobileWall() {
                   />
                 ))}
               </div>
+              {crumpledBills.map((b, i) => (
+                <div
+                  key={b.id}
+                  data-bill={b.id}
+                  onPointerDown={e => down(e, billItem(b))}
+                  onContextMenu={e => e.preventDefault()}
+                  aria-label={`${moneyShort(b.value)} ${cur.code}, скомканная`}
+                  className="absolute cursor-grab select-none [-webkit-touch-callout:none]"
+                  style={{
+                    right: (pileCoins.length ? 70 : 0) + i * 44,
+                    bottom: 2 + (i % 2) * 6,
+                    transform: `rotate(${(seeded(b.id)() - 0.5) * 50}deg)`,
+                    filter: 'drop-shadow(0 3px 3px rgba(20,8,0,0.45))',
+                    opacity: drag?.id === b.id || draftIds.has(b.id) ? 0 : 1,
+                    touchAction: 'pan-y',
+                    zIndex: 50,
+                  }}
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element -- generated data URL */}
+                  <img src={crumpledUrl(b.value, cur)} alt="" width={58} height={31} draggable={false} className="pointer-events-none block" />
+                </div>
+              ))}
               {pileCoins.slice(-24).map((c, i) => (
                 <FlatCoin
                   key={c.id}

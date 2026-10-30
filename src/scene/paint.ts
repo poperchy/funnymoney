@@ -143,6 +143,17 @@ export function billUrl(value: number, cur: Currency): string {
   return url;
 }
 
+/** Crumpled bill for the DOM (the phone wallet). */
+export function crumpledUrl(value: number, cur: Currency): string {
+  const key = 'crumpled' + cur.code + value;
+  let url = urlCache.get(key);
+  if (!url) {
+    url = paintCrumpled(value, cur).toDataURL();
+    urlCache.set(key, url);
+  }
+  return url;
+}
+
 /** Soft shadow under a bill; drawn bigger than the bill so the blur fits. */
 export const SHADOW_PAD = 16;
 export function paintShadow(): HTMLCanvasElement {

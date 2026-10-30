@@ -22,6 +22,19 @@ export const piggyTotal = (w: Wallet) => totalIn(w, PIGGY);
 /** The big wallet under the board ("pile" in code): its bills plus the coins in its pocket. */
 export const pileTotal = (w: Wallet) => totalIn(w, PILE);
 export const balance = (w: Wallet) => sum(w.bills.map(b => b.value)) + coinTotal(w);
+/** At most this many small bills lie crumpled on the wallet. */
+const MAX_CRUMPLED = 2;
+/** The oldest bills of the two smallest values lie crumpled on the wallet, as forgotten small money does. */
+export function crumpledInWallet(w: Wallet): Set<string> {
+  const small = new Set(currencyOf(w).bills.slice(0, 2));
+  return new Set(
+    w.bills
+      .filter(b => b.location.type === 'pile' && small.has(b.value))
+      .sort((a, b) => a.id.localeCompare(b.id))
+      .slice(0, MAX_CRUMPLED)
+      .map(b => b.id),
+  );
+}
 export const sourceLocation = (source: string): BillLocation => (source === 'pile' ? PILE : { type: 'cell', cellId: source });
 
 export function randomPose(loc: BillLocation, r: () => number = Math.random): Pose {

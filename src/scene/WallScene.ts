@@ -6,6 +6,7 @@ import { CURRENCIES, type Currency } from '@/lib/money/currency';
 import { moneyShort } from '@/lib/money/format';
 import { billMoved, coinMoved } from '@/model/wallet';
 import { PIG_LINES } from '@/model/defaults';
+import { crumpledInWallet } from '@/model/ops';
 import { dragChanged, draftStarted, exchangeOpened, pigShaken, toastShown, type Theme } from '@/model/ui';
 import { coinLocation, inPiggy, slotKey, type Bill, type BillLocation, type Coin, type DropTarget, type Pose, type Wallet } from '@/model/types';
 import { play } from '@/sound/sfx';
@@ -36,8 +37,6 @@ type DragState = { grab: Grab; ox: number; oy: number; k: number; target: DropTa
 /** On-screen size of a coin in the wallet pocket. */
 const PURSE_COIN_SCALE = 1.35;
 /** What the pig says when you keep poking it. */
-/** At most this many small bills lie crumpled on the wallet. */
-const MAX_CRUMPLED = 2;
 /** Ghost diameter of a dragged coin, in scene px (DragGhost draws the same). */
 export const COIN_GHOST = 24;
 
@@ -218,17 +217,6 @@ export class WallScene {
   }
 
   /** A couple of the smallest bills in the wallet get balled up. Stable: the oldest ones. */
-  private crumpledIds(w: Wallet, cur: Currency) {
-    const small = new Set(cur.bills.slice(0, 2));
-    return new Set(
-      w.bills
-        .filter(b => b.location.type === 'pile' && small.has(b.value))
-        .sort((a, b) => a.id.localeCompare(b.id))
-        .slice(0, MAX_CRUMPLED)
-        .map(b => b.id),
-    );
-  }
-
   /** Puts a view into the right layer with the right face for where it lies. */
   private mount(v: BillView, cur: Currency, crumpled: boolean) {
     v.crumpled = crumpled;
@@ -264,7 +252,7 @@ export class WallScene {
     const relaid = sig !== this.layoutSig;
     if (relaid) this.relayout(L, sig);
     const cur = CURRENCIES[w.currency];
-    const crumpled = this.crumpledIds(w, cur);
+    const crumpled = crumpledInWallet(w);
     const gone = new Set(this.views.keys());
     let entering = 0;
 
