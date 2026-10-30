@@ -23,7 +23,7 @@ export function SpendSheet() {
   const paid = sum(paidBills.map(b => b.value));
   const changeSum = sum(draft.change);
   const spent = paid - changeSum;
-  const name = draft.source === 'pile' ? 'кучи' : '«' + (w.categories.find(c => c.id === draft.source)?.name ?? '') + '»';
+  const name = draft.source === 'pile' ? 'кошелька' : '«' + (w.categories.find(c => c.id === draft.source)?.name ?? '') + '»';
   const rest = billsIn(w, sourceLocation(draft.source)).filter(b => !draft.billIds.includes(b.id));
   const topUps = [...new Set(rest.map(b => b.value))].sort((a, b) => a - b);
   const quick = frequentAmounts(w).filter(a => a < paid);

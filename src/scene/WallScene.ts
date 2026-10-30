@@ -5,6 +5,7 @@ import { Application, Container, type FederatedPointerEvent, Rectangle, Sprite, 
 import { CURRENCIES, type Currency } from '@/lib/money/currency';
 import { moneyShort } from '@/lib/money/format';
 import { billMoved, coinMoved } from '@/model/wallet';
+import { PIG_LINES } from '@/model/defaults';
 import { dragChanged, draftStarted, exchangeOpened, pigShaken, toastShown, type Theme } from '@/model/ui';
 import { coinLocation, inPiggy, slotKey, type Bill, type BillLocation, type Coin, type DropTarget, type Pose, type Wallet } from '@/model/types';
 import { play } from '@/sound/sfx';
@@ -35,13 +36,6 @@ type DragState = { grab: Grab; ox: number; oy: number; k: number; target: DropTa
 /** On-screen size of a coin in the wallet pocket. */
 const PURSE_COIN_SCALE = 1.35;
 /** What the pig says when you keep poking it. */
-const PIG_LINES = [
-  'Хрю! Щекотно',
-  'Хрю-хрю. Покормить не хочешь?',
-  'Я свинка, а не кнопка',
-  'Хрю. Ещё раз — и я начну брать за это мелочью',
-  'Хрю-хрю-хрю! Ладно, мне нравится',
-];
 /** At most this many small bills lie crumpled on the wallet. */
 const MAX_CRUMPLED = 2;
 /** Ghost diameter of a dragged coin, in scene px (DragGhost draws the same). */

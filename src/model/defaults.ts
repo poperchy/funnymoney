@@ -41,6 +41,15 @@ export const JOKES: Record<string, string> = {
 };
 export const DEFAULT_JOKE = 'Прощай, дружок';
 
+/** What the pig says when poked (every fourth poke). */
+export const PIG_LINES = [
+  'Хрю! Щекотно',
+  'Хрю-хрю. Покормить не хочешь?',
+  'Я свинка, а не кнопка',
+  'Хрю. Ещё раз — и я начну брать за это мелочью',
+  'Хрю-хрю-хрю! Ладно, мне нравится',
+];
+
 export function defaultCategories(code: CurrencyCode): Category[] {
   const cur = CURRENCIES[code];
   const step = cur.bills[0];

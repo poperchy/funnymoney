@@ -15,7 +15,7 @@ const locOf = (key: DropKey): BillLocation | null =>
   key === 'pile' ? { type: 'pile' } : key === 'piggy' ? { type: 'piggy' } : key === 'spent' ? null : { type: 'cell', cellId: key };
 
 const placeName = (key: string) =>
-  key === 'pile' ? 'кучи' : '«' + ($wallet.getState().categories.find(c => c.id === key)?.name ?? '') + '»';
+  key === 'pile' ? 'кошелька' : '«' + ($wallet.getState().categories.find(c => c.id === key)?.name ?? '') + '»';
 
 export function itemOf(id: string): Item | null {
   const w = $wallet.getState();
@@ -59,7 +59,7 @@ export function dropItem(item: Item, to: DropKey, pose?: Pose): boolean {
   if (to !== from)
     toastShown(
       to === 'pile'
-        ? 'Вернул в кучу. Подумаем ещё'
+        ? 'Вернул в кошелёк. Подумаем ещё'
         : `Переезд: ${moneyShort(item.value)} ${sym} из ${placeName(from)} в ${placeName(to)}. Прошёл успешно`,
     );
   return true;

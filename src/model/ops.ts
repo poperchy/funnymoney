@@ -1,13 +1,14 @@
 // Pure wallet operations. Effector stores call these; the scene only animates the result.
 import { CURRENCIES, type Currency } from '@/lib/money/currency';
-import { decompose, pickBills, splitChange, sum } from '@/lib/money/math';
+import { changeFor, decompose, pickBills, splitChange, sum } from '@/lib/money/math';
 import { gauss, rng, uid } from '@/lib/rng';
 import { FILL_ORDER, MAX_CATEGORIES } from './defaults';
 import { coinLocation, coinPlace, inPiggy, inWallet, sameSlot, type Bill, type BillLocation, type Category, type Coin, type Pose, type Wallet } from './types';
 
 const PILE: BillLocation = { type: 'pile' };
 const PIGGY: BillLocation = { type: 'piggy' };
-const MAX_RECEIPTS = 300;
+/** Enough history to compare months in the stats. */
+const MAX_RECEIPTS = 2000;
 
 export const currencyOf = (w: Wallet): Currency => CURRENCIES[w.currency];
 export const billsIn = (w: Wallet, loc: BillLocation) => w.bills.filter(b => sameSlot(b.location, loc));
@@ -331,4 +332,79 @@ export function exchangeMerge(w: Wallet, loc: BillLocation, target: number): Wal
   const option = exchangeOptions(w, loc).merge.find(m => m.target === target);
   if (!option) return w;
   return addMoneyAt(without(w, new Set(option.ids)), [target], loc);
+}
+
+// ── Moving an amount: "put 150 into Транспорт" without picking bills by hand ──
+
+export type TransferPlan =
+  | { ok: false; total: number; reason: 'no-amount' | 'not-enough' | 'odd' }
+  | { ok: true; total: number; taken: Payable[]; paid: number; moved: number[]; back: number[] };
+
+/**
+ * Which money leaves `source` to move `amount`. When the bills don't add up exactly, they are broken
+ * on the way, as a cashier would: the target gets exactly `amount`, the rest comes back to the source.
+ */
+export function planTransfer(w: Wallet, source: string, amount: number): TransferPlan {
+  const cur = currencyOf(w);
+  const available: Payable[] = looseHere(w, sourceLocation(source));
+  const total = sum(available.map(b => b.value));
+  if (amount <= 0) return { ok: false, total, reason: 'no-amount' };
+  // Kopecks the currency has no coin for (half a rouble) can't be moved as cash.
+  if (sum(changeFor(amount, cur)) !== amount) return { ok: false, total, reason: 'odd' };
+  const taken = pickBills(available, amount);
+  if (!taken) return { ok: false, total, reason: 'not-enough' };
+  const paid = sum(taken.map(b => b.value));
+  return { ok: true, total, taken, paid, moved: paid === amount ? taken.map(t => t.value) : changeFor(amount, cur), back: changeFor(paid - amount, cur) };
+}
+
+export function transfer(w: Wallet, source: string, target: string, amount: number): Wallet {
+  const plan = planTransfer(w, source, amount);
+  if (!plan.ok || source === target) return w;
+  const to = sourceLocation(target);
+  // Exact: the same bills just move. Otherwise the taken ones are swapped for exact money.
+  if (plan.paid === amount) {
+    let next = w;
+    for (const t of plan.taken) next = w.bills.some(b => b.id === t.id) ? moveBill(next, t.id, to) : moveCoin(next, t.id, to);
+    return next;
+  }
+  const rest = without(w, new Set(plan.taken.map(t => t.id)));
+  return addMoneyAt(addMoneyAt(rest, plan.moved, to), plan.back, sourceLocation(source));
+}
+
+/** Several transfers from one place, in order. Stops quietly at the first one there is no money for. */
+export function distribute(w: Wallet, source: string, parts: { target: string; amount: number }[]): { wallet: Wallet; moved: number } {
+  let next = w, moved = 0;
+  for (const p of parts) {
+    if (p.amount <= 0) continue;
+    if (!planTransfer(next, source, p.amount).ok) break;
+    next = transfer(next, source, p.target, p.amount);
+    moved += p.amount;
+  }
+  return { wallet: next, moved };
+}
+
+// ── Stats: spending per month and category ──
+
+/** "2026-10", in local time: a receipt at 00:30 on the 1st belongs to the new month. */
+export const monthKey = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+
+/** The month before "2026-01" is "2025-12". */
+export function prevMonthKey(key: string) {
+  const [y, m] = key.split('-').map(Number);
+  return monthKey(new Date(y, m - 2, 1));
+}
+
+export type MonthSpending = { total: number; bySource: Record<string, number> };
+
+/** Spent per month, and inside each month per category ('pile' for the wallet). */
+export function spendingByMonth(w: Wallet): Map<string, MonthSpending> {
+  const out = new Map<string, MonthSpending>();
+  for (const r of w.receipts) {
+    const key = monthKey(new Date(r.at));
+    const m = out.get(key) ?? { total: 0, bySource: {} };
+    m.total += r.amount;
+    m.bySource[r.source] = (m.bySource[r.source] ?? 0) + r.amount;
+    out.set(key, m);
+  }
+  return out;
 }

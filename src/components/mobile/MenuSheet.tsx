@@ -4,8 +4,9 @@ import { useUnit } from 'effector-react';
 import { useState } from 'react';
 import { CURRENCY_LIST, type CurrencyCode } from '@/lib/money/currency';
 import { pageHref } from '@/lib/paths';
-import { sheetClosed } from '@/model/mobile';
+import { sheetClosed, sheetOpened } from '@/model/mobile';
 import { $muted, $theme, incomeOpened, muteToggled, themeToggled, type Theme } from '@/model/ui';
+import { shopToggled } from '@/model/skins';
 import { $currency, $wallet, currencyChanged } from '@/model/wallet';
 import { Sheet } from './Sheet';
 
@@ -92,9 +93,26 @@ export function MenuSheet() {
           </div>
         )}
       </div>
-      <button onClick={() => incomeOpened()} className="h-[52px] rounded-[18px] border border-line text-[15px] font-medium text-ink">
-        Пришла новая зарплата
+      <button
+        onClick={() => sheetOpened({ type: 'receipts', tab: 'stats' })}
+        className="h-[52px] rounded-[18px] border border-line text-[15px] font-medium text-ink"
+      >
+        Статистика по месяцам
       </button>
+      <div className="flex gap-2">
+        <button onClick={() => incomeOpened()} className="h-[52px] flex-1 rounded-[18px] border border-line text-[15px] font-medium text-ink">
+          + Зарплата
+        </button>
+        <button
+          onClick={() => {
+            sheetClosed();
+            shopToggled(true);
+          }}
+          className="h-[52px] flex-1 rounded-[18px] border border-line text-[15px] font-medium text-ink"
+        >
+          ✦ Скины
+        </button>
+      </div>
       <a href={pageHref('/')} className="self-center text-[13px] text-ink2 underline underline-offset-[3px]">
         Что это вообще такое
       </a>

@@ -23,6 +23,8 @@ export const receiptEdited = createEvent<{ id: string; edit: ops.ReceiptEdit }>(
 export const receiptDeleted = createEvent<string>();
 export const exchangeSplit = createEvent<string>();
 export const exchangeMerge = createEvent<{ loc: BillLocation; target: number }>();
+/** Amounts typed in by hand, moved from one place to several cells. */
+export const amountsDistributed = createEvent<{ source: string; parts: { target: string; amount: number }[] }>();
 
 $wallet
   .on(incomeReceived, (w, { bills, coins }) => ops.addIncome(w, bills, coins))
@@ -37,7 +39,8 @@ $wallet
   .on(receiptEdited, (w, { id, edit }) => ops.editReceipt(w, id, edit))
   .on(receiptDeleted, (w, id) => ops.deleteReceipt(w, id))
   .on(exchangeSplit, (w, id) => ops.exchangeSplit(w, id))
-  .on(exchangeMerge, (w, { loc, target }) => ops.exchangeMerge(w, loc, target));
+  .on(exchangeMerge, (w, { loc, target }) => ops.exchangeMerge(w, loc, target))
+  .on(amountsDistributed, (w, { source, parts }) => ops.distribute(w, source, parts).wallet);
 
 const spreadComputed = sample({ clock: spreadRequested, source: $wallet, fn: w => ops.autoSpread(w) });
 $wallet.on(spreadComputed, (_, r) => r.wallet);

@@ -12,6 +12,7 @@ import { PiggyDialog } from './dialogs/PiggyDialog';
 import { ExchangeDialog } from './dialogs/ExchangeDialog';
 import { ReceiptDialog } from './dialogs/ReceiptDialog';
 import { ShopDialog } from './dialogs/ShopDialog';
+import { StatsDialog } from './stats/Stats';
 import { SpendDropDialog } from './dialogs/SpendDropDialog';
 import { WelcomeDialog, greeting } from './dialogs/WelcomeDialog';
 import { MobileApp } from './mobile/MobileApp';
@@ -153,6 +154,7 @@ function DesktopApp() {
       <ReceiptDialog />
       <ExchangeDialog />
       <ShopDialog />
+      <StatsDialog />
       <Toast />
       <DragGhost />
     </>

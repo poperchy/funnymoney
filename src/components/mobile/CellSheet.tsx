@@ -4,7 +4,7 @@ import { useUnit } from 'effector-react';
 import { moneyShort } from '@/lib/money/format';
 import { sum } from '@/lib/money/math';
 import { DEFAULT_JOKE, JOKES } from '@/model/defaults';
-import { cellPicked, sheetClosed } from '@/model/mobile';
+import { cellPicked, sheetClosed, sheetOpened } from '@/model/mobile';
 import { billsIn, coinsIn, exchangeOptions } from '@/model/ops';
 import { slotKey, type BillLocation } from '@/model/types';
 import { categoryEditOpened, exchangeOpened } from '@/model/ui';
@@ -37,7 +37,7 @@ export function CellSheet({ loc, sel }: { loc: BillLocation; sel: string | null 
   };
   const moves = [
     ...w.categories.filter(c => c.id !== key).map(c => ({ id: c.id, name: c.name })),
-    ...(key === 'pile' ? [] : [{ id: 'pile', name: 'Обратно в кучу' }]),
+    ...(key === 'pile' ? [] : [{ id: 'pile', name: 'Обратно в кошелёк' }]),
   ];
 
   const pickable = (id: string, face: React.ReactNode, label: string, width: number, height: number) => {
@@ -63,9 +63,9 @@ export function CellSheet({ loc, sel }: { loc: BillLocation; sel: string | null 
   };
 
   return (
-    <Sheet title={cat?.name ?? 'Куча'} onClose={() => sheetClosed()} className="gap-3.5 px-5">
+    <Sheet title={cat?.name ?? 'Кошелёк'} onClose={() => sheetClosed()} className="gap-3.5 px-5">
       <div className="flex items-baseline justify-between gap-3">
-        <span className="truncate text-[26px] font-bold tracking-[-0.025em]">{cat?.name ?? 'Нераспределено'}</span>
+        <span className="truncate text-[26px] font-bold tracking-[-0.025em]">{cat?.name ?? 'Кошелёк'}</span>
         <span className="text-[15px] whitespace-nowrap text-ink2">
           <span className="font-bold text-ink">{moneyShort(total)}</span>
           {budget > 0 && ` / ${moneyShort(budget)}`} {cur.symbol}
@@ -111,12 +111,22 @@ export function CellSheet({ loc, sel }: { loc: BillLocation; sel: string | null 
         <span className="text-sm leading-normal text-ink2">
           {bills.length || coins.length
             ? 'Выбери купюру. А вообще её можно просто зажать на стене и тащить'
-            : 'Перетащи сюда купюру из кучи или другой ячейки. Или переложи через её ячейку'}
+            : 'Перетащи сюда купюру из кошелька или другой ячейки. Или переложи через её ячейку'}
         </span>
       )}
 
-      {(cat || canExchange) && (
-        <div className="flex gap-2 border-t border-line pt-3.5">
+      {(cat || canExchange || total > 0) && (
+        <div className="flex flex-wrap gap-2 border-t border-line pt-3.5">
+          {total > 0 && cat && (
+            <button onClick={() => sheetOpened({ type: 'spend', source: key })} className="h-10 rounded-full bg-btn2 px-4 text-sm font-semibold text-ink">
+              − Вписать трату
+            </button>
+          )}
+          {total > 0 && (
+            <button onClick={() => sheetOpened({ type: 'distribute', source: key })} className="h-10 rounded-full bg-btn2 px-4 text-sm font-semibold text-ink">
+              {key === 'pile' ? 'Вписать суммы' : '→ Переложить сумму'}
+            </button>
+          )}
           {canExchange && (
             <button
               onClick={() => {

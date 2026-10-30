@@ -148,6 +148,9 @@ export const $pigFlow = createStore<PigFlow | null>(null)
   })
   .reset(pigClosed, piggyEmptied);
 
+export const statsToggled = createEvent<boolean>();
+export const $statsOpen = createStore(false).on(statsToggled, (_, v) => v);
+
 export const categoryEditOpened = createEvent<string | null>();
 export const $editingCategory = createStore<string | null>(null).on(categoryEditOpened, (_, id) => id);
 

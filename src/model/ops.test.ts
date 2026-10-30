@@ -201,3 +201,71 @@ describe('exchange', () => {
     expect(ops.exchangeOptions(w, cell).merge.map(m => m.target)).toEqual([]);
   });
 });
+
+describe('transfer', () => {
+  const cell = (id: string) => ({ type: 'cell' as const, cellId: id });
+
+  it('moves the very bills when they add up exactly', () => {
+    const w = funded();
+    const ids = ops.billsIn(w, { type: 'pile' }).filter(b => b.value === 20000).map(b => b.id);
+    const after = ops.transfer(w, 'pile', 'arenda', 40000);
+    expect(ops.billsIn(after, cell('arenda')).map(b => b.id).sort()).toEqual([...ids].sort());
+    expect(ops.balance(after)).toBe(ops.balance(w));
+  });
+
+  it('breaks a bill on the way when the amount is odd, keeping the total', () => {
+    const w = funded();
+    const after = ops.transfer(w, 'pile', 'transport', 15030);
+    expect(ops.totalIn(after, cell('transport'))).toBe(15030);
+    expect(ops.pileTotal(after)).toBe(ops.pileTotal(w) - 15030);
+    expect(ops.balance(after)).toBe(ops.balance(w));
+  });
+
+  it('refuses more than there is, and amounts the currency has no coin for', () => {
+    const w = funded();
+    expect(ops.planTransfer(w, 'pile', 100000)).toMatchObject({ ok: false, reason: 'not-enough' });
+    const rub = ops.addIncome(emptyWallet('RUB'), [100000], []);
+    expect(ops.planTransfer(rub, 'pile', 15050)).toMatchObject({ ok: false, reason: 'odd' });
+  });
+
+  it('distributes several amounts and stops when the money runs out', () => {
+    const w = funded();
+    const { wallet, moved } = ops.distribute(w, 'pile', [
+      { target: 'arenda', amount: 30000 },
+      { target: 'eda', amount: 20000 },
+      { target: 'cafe', amount: 50000 },
+    ]);
+    expect(moved).toBe(50000);
+    expect(ops.totalIn(wallet, cell('arenda'))).toBe(30000);
+    expect(ops.totalIn(wallet, cell('eda'))).toBe(20000);
+    expect(ops.totalIn(wallet, cell('cafe'))).toBe(0);
+    expect(ops.balance(wallet)).toBe(ops.balance(w));
+  });
+});
+
+describe('spendingByMonth', () => {
+  const at = (y: number, m: number, d: number) => new Date(y, m - 1, d, 12).toISOString();
+  const receipt = (source: string, amount: number, iso: string) => ({ id: iso + source + amount, label: '', source, amount, paid: amount, at: iso });
+
+  it('sums receipts per month and per category', () => {
+    const w = {
+      ...emptyWallet('BYN'),
+      receipts: [
+        receipt('eda', 1500, at(2026, 10, 3)),
+        receipt('eda', 2500, at(2026, 10, 20)),
+        receipt('cafe', 800, at(2026, 10, 21)),
+        receipt('eda', 3000, at(2026, 9, 30)),
+        receipt('pile', 500, at(2025, 12, 31)),
+      ],
+    };
+    const m = ops.spendingByMonth(w);
+    expect(m.get('2026-10')).toEqual({ total: 4800, bySource: { eda: 4000, cafe: 800 } });
+    expect(m.get('2026-09')).toEqual({ total: 3000, bySource: { eda: 3000 } });
+    expect(m.get('2025-12')?.bySource.pile).toBe(500);
+  });
+
+  it('knows the month before across a new year', () => {
+    expect(ops.prevMonthKey('2026-01')).toBe('2025-12');
+    expect(ops.prevMonthKey('2026-10')).toBe('2026-09');
+  });
+});

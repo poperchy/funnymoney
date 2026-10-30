@@ -31,7 +31,7 @@ export function Modal({ open, onClose, title, description, width = 560, children
             initial={{ opacity: 0, y: 14, scale: 0.98 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             transition={{ duration: 0.3, ease: [0.22, 0.8, 0.3, 1] }}
-            className={`flex max-h-[calc(100vh-48px)] flex-col gap-5 overflow-auto rounded-3xl bg-modal p-7 text-ink shadow-[0_40px_80px_-30px_rgba(20,10,0,0.6)] ${className}`}
+            className={`flex max-h-[calc(100vh-48px)] flex-col gap-5 overflow-auto rounded-3xl bg-modal p-5 text-ink sm:p-7 shadow-[0_40px_80px_-30px_rgba(20,10,0,0.6)] ${className}`}
           >
             <Dialog.Title className="sr-only">{title}</Dialog.Title>
             {description ? <Dialog.Description className="sr-only">{description}</Dialog.Description> : null}

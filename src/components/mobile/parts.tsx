@@ -134,7 +134,7 @@ const leg = (x: number) => (
 );
 
 /** The glass piggy, 232×182: coins piling up inside, bills tucked in. Breaks in two halves when asked. */
-export function PigArt({ coins, bills, broken, target }: { coins: Coin[]; bills: Bill[]; broken?: boolean; target?: boolean }) {
+export function PigArt({ coins, bills, broken, target, jolt = 0 }: { coins: Coin[]; bills: Bill[]; broken?: boolean; target?: boolean; jolt?: number }) {
   const cur = useUnit($currency);
   // A few hundred coins look the same as a thousand.
   const shown = coins.slice(-160);
@@ -174,7 +174,8 @@ export function PigArt({ coins, bills, broken, target }: { coins: Coin[]; bills:
         zIndex: 2,
       }}
     >
-      <A s={{ inset: 0 }}>{clip ? null : inside}</A>
+      {/* Poking the pig makes the coins inside jump. */}
+      <A s={{ inset: 0, animation: jolt ? `coin-jolt-${jolt % 2 ? 'a' : 'b'} .35s ease-out` : undefined }}>{clip ? null : inside}</A>
       <A s={{ left: 26, top: 14, width: 70, height: 28, borderRadius: '50%', background: 'radial-gradient(ellipse, rgba(255,255,255,0.7), transparent 70%)' }} />
       <A s={{ right: 30, bottom: 12, width: 40, height: 12, borderRadius: '50%', background: 'rgba(255,255,255,0.25)' }} />
     </div>

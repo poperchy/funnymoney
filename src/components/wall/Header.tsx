@@ -4,7 +4,7 @@ import { useUnit } from 'effector-react';
 import { useState, type CSSProperties } from 'react';
 import { CURRENCY_LIST, type CurrencyCode } from '@/lib/money/currency';
 import { money, plural } from '@/lib/money/format';
-import { $muted, $theme, $volume, incomeOpened, manualSpendToggled, muteToggled, themeToggled, volumeChanged } from '@/model/ui';
+import { $muted, $theme, $volume, incomeOpened, manualSpendToggled, muteToggled, statsToggled, themeToggled, volumeChanged } from '@/model/ui';
 import { play } from '@/sound/sfx';
 import { shopToggled } from '@/model/skins';
 import { $balance, $currency, $wallet, currencyChanged } from '@/model/wallet';
@@ -150,6 +150,9 @@ export function Header() {
         <CurrencySelect />
         <ThemeButton />
         <SoundControl />
+        <Button variant="outline" onClick={() => statsToggled(true)} title="Траты по месяцам и ячейкам">
+          Статистика
+        </Button>
         <Button variant="outline" onClick={() => shopToggled(true)} title="Скины для доски и кошелька">
           ✦ Скины
         </Button>

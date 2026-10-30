@@ -1,19 +1,19 @@
 'use client';
 
 import { useUnit } from 'effector-react';
-import { useEffect, useRef, useState } from 'react';
-import { money, moneyShort, plural } from '@/lib/money/format';
-import { sheetClosed } from '@/model/mobile';
+import { useEffect } from 'react';
+import { money, plural } from '@/lib/money/format';
 import { billsIn, piggyCoins } from '@/model/ops';
-import { toastShown } from '@/model/ui';
+import { $pigFlow, pigAgreed, pigClosed, pigShaken, SHAKES_TO_BREAK } from '@/model/ui';
 import { $currency, $piggyTotal, $wallet, piggyBroken } from '@/model/wallet';
 import { play } from '@/sound/sfx';
 import { PigArt } from './parts';
+import { usePig } from './pig';
 import { Sheet } from './Sheet';
 
-const TAPS_TO_ASK = 3;
 /** m/s², gravity included: a real shake, not the phone being picked up. */
 const SHAKE_FORCE = 25;
+const SHAKE_GAP_MS = 600;
 
 type MotionPermission = { requestPermission?: () => Promise<string> };
 
@@ -23,114 +23,92 @@ export function askMotion() {
   ask?.call(DeviceMotionEvent).catch(() => undefined);
 }
 
-type Stage = 'idle' | 'confirm' | 'broken' | 'done';
+const shakeIt = () => {
+  pigShaken();
+  play('oink');
+  play('clink', 0.08);
+};
 
-/** Taking money out: shake the phone or tap the pig three times, confirm, and it breaks. */
+/**
+ * The same ritual and words as on the desktop (`$pigFlow`): are you sure → shake it three times → broken → take it.
+ * On a phone you shake the pig by tapping it or by shaking the phone itself.
+ */
 export function PigSheet() {
-  const [w, total, cur] = useUnit([$wallet, $piggyTotal, $currency]);
-  const [stage, setStage] = useState<Stage>('idle');
-  const [taps, setTaps] = useState(0);
-  const [shake, setShake] = useState(0);
-  const [taken, setTaken] = useState(0);
-  const timer = useRef(0);
+  const [flow, w, total, cur] = useUnit([$pigFlow, $wallet, $piggyTotal, $currency]);
+  const { ref: pigRef, jolt, poke } = usePig();
+  const step = flow?.step;
 
   useEffect(() => {
-    if (stage !== 'idle' || !total) return;
+    if (step === 'broken') play('crack');
+  }, [step]);
+  useEffect(() => {
+    if (step !== 'shake') return;
+    let last = 0;
     const onMotion = (e: DeviceMotionEvent) => {
       const a = e.accelerationIncludingGravity;
-      if (!a || Math.hypot(a.x ?? 0, a.y ?? 0, a.z ?? 0) < SHAKE_FORCE) return;
-      setStage('confirm');
-      setShake(n => n + 1);
-      play('oink');
-      play('clink', 0.08);
+      if (!a || Math.hypot(a.x ?? 0, a.y ?? 0, a.z ?? 0) < SHAKE_FORCE || Date.now() - last < SHAKE_GAP_MS) return;
+      last = Date.now();
+      shakeIt();
     };
     window.addEventListener('devicemotion', onMotion);
     return () => window.removeEventListener('devicemotion', onMotion);
-  }, [stage, total]);
-  useEffect(() => () => clearTimeout(timer.current), []);
+  }, [step]);
 
-  const tap = () => {
-    if (stage === 'idle') {
-      if (!total) {
-        toastShown('Свинка голодает. Нечего трясти');
-        return;
-      }
-      const n = taps + 1;
-      setTaps(n);
-      setShake(s => s + 1);
-      play('oink');
-      play('clink', 0.08);
-      if (n >= TAPS_TO_ASK) setStage('confirm');
-    } else if (stage === 'confirm') setShake(s => s + 1);
-  };
-  const yes = () => {
-    setStage('broken');
-    setTaken(total);
-    play('crack');
-    timer.current = window.setTimeout(() => {
-      piggyBroken();
-      setStage('done');
-      play('flutter');
-    }, 900);
-  };
-  const no = () => {
-    sheetClosed();
-    toastShown('Правильно. Пусть копится');
-  };
-  const close = () => stage !== 'broken' && sheetClosed();
-
-  const left = TAPS_TO_ASK - taps;
-  const title =
-    stage === 'confirm'
-      ? 'Ты точно уверен, что хочешь забрать нажитое непосильным трудом?'
-      : stage === 'broken'
-        ? 'Хрясь!'
-        : stage === 'done'
-          ? `Выпало ${moneyShort(taken)} ${cur.symbol}`
-          : total
-            ? 'Нужная мусорка'
-            : 'Свинка голодает';
-  const sub =
-    stage === 'confirm'
-      ? `Внутри ${money(total)} ${cur.symbol}. Свинку придётся разбить`
-      : stage === 'broken'
-        ? 'Собираем, что выпало…'
-        : stage === 'done'
-          ? 'Всё в нераспределённом: что разменялось — купюрами, остальное мелочью. Новая свинка уже на полке. Не трать всё сразу'
-          : total
-            ? `${money(total)} ${cur.symbol} мелочью и не только. Чтобы достать, потряси телефон или тапни по свинке ещё ${left} ${plural(left, 'раз', 'раза', 'раз')}`
-            : 'Сюда падает мелочь со сдачи. Купюру тоже можно закинуть: просто перетащи её на свинку';
+  if (!flow) return null;
+  const left = SHAKES_TO_BREAK - flow.shakes;
+  const sum = `${money(total)} ${cur.symbol}`;
+  // Once broken, closing still takes the money: you can't un-break a pig.
+  const close = () => (flow.step === 'broken' ? piggyBroken() : pigClosed());
+  const tapPig = () => (flow.step === 'shake' ? shakeIt() : flow.step === 'ask' ? poke() : undefined);
 
   return (
     <Sheet title="Копилка" onClose={close} className="items-center gap-3 px-[22px] text-center">
-      <div onClick={tap} className="relative h-[206px] w-[260px] cursor-pointer">
-        <div key={shake} className="absolute top-0 left-0 h-[182px] w-[232px] origin-[50%_80%]" style={{ animation: shake ? 'pig-shake .5s ease' : undefined }}>
+      <div onClick={tapPig} className="relative h-[206px] w-[260px] cursor-pointer">
+        <div ref={pigRef} className="absolute top-0 left-0 h-[204px] w-[260px] origin-[50%_85%]">
           <div className="absolute top-0 left-0 h-[182px] w-[232px] origin-top-left scale-[1.12]">
-            <PigArt coins={piggyCoins(w)} bills={billsIn(w, { type: 'piggy' })} broken={stage === 'broken'} />
+            <PigArt coins={piggyCoins(w)} bills={billsIn(w, { type: 'piggy' })} broken={flow.step === 'broken'} jolt={jolt} />
           </div>
         </div>
       </div>
-      <span className="text-2xl leading-[1.18] font-bold tracking-[-0.025em] text-balance">{title}</span>
-      <span className="text-[15px] leading-normal text-pretty text-ink2">{sub}</span>
-      {stage === 'confirm' && (
-        <div className="mt-1.5 flex w-full flex-col gap-2">
-          <button onClick={yes} className="h-[54px] rounded-[18px] bg-accent text-base font-semibold text-accent-ink">
-            Да, мне надо
-          </button>
-          <button onClick={no} className="h-[54px] rounded-[18px] border border-line text-base font-medium text-ink">
-            Не, пусть лежит
-          </button>
-        </div>
+
+      {flow.step === 'ask' && (
+        <>
+          <span className="text-2xl leading-[1.18] font-bold tracking-[-0.025em] text-balance">Ты точно уверен, что хочешь забрать нажитое непосильным трудом?</span>
+          <span className="text-[15px] leading-normal text-pretty text-ink2">Там {sum}. Монеты станут купюрами, а что не разменять — мелочью. Всё ляжет в кошелёк.</span>
+          <div className="mt-1.5 flex w-full flex-col gap-2">
+            <button onClick={() => pigAgreed()} className="h-[54px] rounded-[18px] bg-accent text-base font-semibold text-accent-ink">
+              Да, мне надо
+            </button>
+            <button onClick={() => pigClosed()} className="h-[54px] rounded-[18px] border border-line text-base font-medium text-ink">
+              Не, пусть лежит
+            </button>
+          </div>
+        </>
       )}
-      {stage === 'idle' && (
-        <button onClick={() => sheetClosed()} className="mt-1.5 h-[52px] w-full rounded-[18px] border border-line text-[15px] font-medium text-ink">
-          Закрыть
-        </button>
+      {flow.step === 'shake' && (
+        <>
+          <span className="text-2xl leading-[1.18] font-bold tracking-[-0.025em]">Тогда тряси её!</span>
+          <span className="text-[15px] leading-normal text-pretty text-ink2">
+            Тапай по свинке или потряси телефон. Ещё {left} {plural(left, 'раз', 'раза', 'раз')} — и она сдастся
+          </span>
+          <div className="flex gap-2">
+            {Array.from({ length: SHAKES_TO_BREAK }, (_, i) => (
+              <span key={i} className="block h-3 w-3 rounded-full" style={{ background: i < flow.shakes ? 'var(--accent)' : 'var(--line)' }} />
+            ))}
+          </div>
+          <button onClick={shakeIt} className="mt-1.5 h-[52px] w-full rounded-[18px] bg-btn2 text-[15px] font-semibold text-ink">
+            Тряхнуть отсюда
+          </button>
+        </>
       )}
-      {stage === 'done' && (
-        <button onClick={() => sheetClosed()} className="mt-1.5 h-[54px] w-full rounded-[18px] bg-accent text-base font-semibold text-accent-ink">
-          Ладно
-        </button>
+      {flow.step === 'broken' && (
+        <>
+          <span className="text-2xl leading-[1.18] font-bold tracking-[-0.025em] text-balance">Выпало {sum}. Свинка простит. Наверное</span>
+          <span className="text-[15px] leading-normal text-ink2">Забирай. Новая свинка уже на подходе</span>
+          <button onClick={() => piggyBroken()} className="mt-1.5 h-[54px] w-full rounded-[18px] bg-accent text-base font-semibold text-accent-ink">
+            Забрать в кошелёк
+          </button>
+        </>
       )}
     </Sheet>
   );

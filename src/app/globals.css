@@ -28,12 +28,7 @@
   --sleeve: #3f5f8a;
   --cuff: #f4efe6;
   --danger: #c0452f;
-  /* Mobile wall, drawn in CSS rather than on the canvas. */
-  --wood-dark: #6c4628;
-  --cork: #c99967;
-  --till-solid: #3a3129;
   --scrim: rgba(30, 18, 8, 0.42);
-  --board-light: radial-gradient(ellipse at 45% 20%, rgba(255, 240, 210, 0.16), transparent 60%);
   color-scheme: light;
 }
 
@@ -64,11 +59,7 @@
   --sleeve: #2f4767;
   --cuff: #d9d2c4;
   --danger: #e0735e;
-  --wood-dark: #2c1d10;
-  --cork: #86603a;
-  --till-solid: #0d0a07;
   --scrim: rgba(0, 0, 0, 0.55);
-  --board-light: radial-gradient(ellipse at 45% 25%, rgba(255, 200, 130, 0.12), transparent 55%), radial-gradient(ellipse at 50% 50%, transparent 45%, rgba(0, 0, 0, 0.38));
   color-scheme: dark;
 }
 
@@ -231,6 +222,15 @@ input:focus {
   40% { transform: rotate(8deg); }
   60% { transform: rotate(-6deg) translateY(-2px); }
   80% { transform: rotate(4deg); }
+}
+/* Coins inside jump when the pig is poked. Two copies so the animation can restart by switching names. */
+@keyframes coin-jolt-a {
+  0%, 100% { translate: 0 0; }
+  30% { translate: 0 -6px; }
+}
+@keyframes coin-jolt-b {
+  0%, 100% { translate: 0 0; }
+  30% { translate: 0 -6px; }
 }
 .no-scrollbar {
   scrollbar-width: none;

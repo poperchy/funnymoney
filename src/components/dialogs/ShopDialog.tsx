@@ -75,7 +75,7 @@ function Shop() {
         <span className="text-[15px] leading-normal text-balance text-ink2">
           Оплата пока понарошку: ничего не спишется, скин просто откроется. Когда донаты станут настоящими, тут будет нормальная касса.
         </span>
-        <div className="flex gap-2.5">
+        <div className="flex flex-wrap justify-center gap-2.5">
           <Button variant="outline" size="lg" disabled={state === 'processing'} onClick={() => setPaying(null)}>
             Передумал
           </Button>

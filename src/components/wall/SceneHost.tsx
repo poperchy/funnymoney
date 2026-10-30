@@ -3,11 +3,11 @@
 import { combine, type Subscription } from 'effector';
 import { useEffect, useRef } from 'react';
 import { WallScene } from '@/scene/WallScene';
-import { $draftBillIds, $editingCategory, $editingReceipt, $exchangeAt, $manualSpendOpen, $pigFlow, $spendDraft, $theme, pigShaken, toastShown } from '@/model/ui';
+import { $draftBillIds, $editingCategory, $editingReceipt, $exchangeAt, $manualSpendOpen, $pigFlow, $spendDraft, $statsOpen, $theme, pigShaken, toastShown } from '@/model/ui';
 import { $layout, $wallet } from '@/model/wallet';
 import { $shopOpen, $skins } from '@/model/skins';
 
-const $locked = combine([$spendDraft, $manualSpendOpen, $pigFlow, $editingCategory, $editingReceipt, $exchangeAt, $shopOpen], list => list.some(Boolean));
+const $locked = combine([$spendDraft, $manualSpendOpen, $pigFlow, $editingCategory, $editingReceipt, $exchangeAt, $shopOpen, $statsOpen], list => list.some(Boolean));
 
 /** Mounts the Pixi scene and feeds it model updates. */
 export function SceneHost() {
