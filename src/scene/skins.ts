@@ -109,5 +109,26 @@ export const PURSE_SKINS: PurseSkin[] = [
   },
 ];
 
+/** What the pig wears: one thing on the head, one on the neck. Painted in `pigWear.ts`, by id. */
+export type PigWear = { id: string; name: string; blurb: string; price: number };
+export const NO_WEAR = 'none';
+
+export const HAT_SKINS: PigWear[] = [
+  { id: NO_WEAR, name: 'Без шляпы', blurb: 'Голая правда и голая голова', price: 0 },
+  { id: 'tophat', name: 'Цилиндр', blurb: 'Свинка-капиталист. Смотрит на тебя свысока', price: 79 },
+  { id: 'ushanka', name: 'Ушанка', blurb: 'На чёрный день и холодную зиму', price: 79 },
+  { id: 'crown', name: 'Корона', blurb: 'Её величество Нужная мусорка', price: 129 },
+];
+
+export const NECK_SKINS: PigWear[] = [
+  { id: NO_WEAR, name: 'Без украшений', blurb: 'Скромность тоже украшает', price: 0 },
+  { id: 'bow', name: 'Бабочка', blurb: 'Официальный приём мелочи', price: 79 },
+  { id: 'pearls', name: 'Жемчуг', blurb: 'Для свинки из приличной семьи', price: 99 },
+  { id: 'chain', name: 'Золотая цепь', blurb: 'Золото ненастоящее. Мелочь настоящая', price: 129 },
+];
+
+export const hatSkin = (id: string) => HAT_SKINS.find(s => s.id === id) ?? HAT_SKINS[0];
+export const neckSkin = (id: string) => NECK_SKINS.find(s => s.id === id) ?? NECK_SKINS[0];
+
 export const boardSkin = (id: string) => BOARD_SKINS.find(s => s.id === id) ?? BOARD_SKINS[0];
 export const purseSkin = (id: string) => PURSE_SKINS.find(s => s.id === id) ?? PURSE_SKINS[0];

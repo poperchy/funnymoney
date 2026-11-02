@@ -1,0 +1,176 @@
+'use client';
+
+import { useUnit } from 'effector-react';
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
+import type { Currency } from '@/lib/money/currency';
+import { moneyShort } from '@/lib/money/format';
+import { sum } from '@/lib/money/math';
+import { useFontsReady } from '@/lib/useFontsReady';
+import { defaultCategories } from '@/model/defaults';
+import { $currency } from '@/model/wallet';
+import { boardSkin, hatSkin, neckSkin, NO_WEAR, purseSkin } from '@/scene/skins';
+import { billImg, PigArt } from '@/components/mobile/parts';
+import { demoBill, MiniBoard, useInView, type DemoCell } from './MiniBoard';
+
+/** How much of each default budget is still there: a wall in the middle of a month, with one cell already empty. */
+const LEFT: Record<string, number> = { podushka: 1, arenda: 0, eda: 0.6, transport: 0.5, fun: 0.4, cafe: 0.15, health: 1, phone: 1, gifts: 0.5 };
+const MAX_BILLS = 8;
+const WALLET = [3, 2, 1];
+
+/** The slider's slides: whole outfits, put together by hand. A new skin shows up here once it gets a line. */
+const LOOKS = [
+  { name: 'Классика', board: 'cork', purse: 'leather', hat: NO_WEAR, neck: NO_WEAR },
+  { name: 'Казино', board: 'felt', purse: 'croc', hat: 'tophat', neck: 'bow' },
+  { name: 'Лофт', board: 'concrete', purse: 'glam', hat: 'crown', neck: 'chain' },
+  { name: 'Бабуля', board: 'cork', purse: 'leather', hat: 'ushanka', neck: 'pearls' },
+];
+type Look = (typeof LOOKS)[number];
+const PIG_COINS = 18;
+
+const NARROW = '(max-width: 720px)';
+const subscribeNarrow = (cb: () => void) => {
+  const mq = window.matchMedia(NARROW);
+  mq.addEventListener('change', cb);
+  return () => mq.removeEventListener('change', cb);
+};
+const useNarrow = () => useSyncExternalStore(subscribeNarrow, () => window.matchMedia(NARROW).matches, () => false);
+
+/** Counts an amount out in the largest bills it can. Whatever doesn't make up a bill stays out. */
+function billsFor(amount: number, cur: Currency) {
+  const out: number[] = [];
+  let rest = amount;
+  for (const bill of [...cur.bills].reverse()) {
+    while (rest >= bill && out.length < MAX_BILLS) {
+      out.push(bill);
+      rest -= bill;
+    }
+  }
+  return out;
+}
+
+function SkinSlide({ outfit, cur, cols, rowH, show }: { outfit: Look; cur: Currency; cols: number; rowH: number; show: boolean }) {
+  const look = purseSkin(outfit.purse).look.light;
+  const categories = defaultCategories(cur.code);
+  const cells: DemoCell[] = categories.map(({ id, name, budget, colSpan, rowSpan }) => ({ id, name, budget, colSpan, rowSpan }));
+  // Same ids on every slide: the same money lying the same way, only the skin changes.
+  const bills = categories.flatMap(c => billsFor(c.budget * (LEFT[c.id] ?? 1), cur).map((v, n) => demoBill(`${c.id}-${n}`, v, c.id, n)));
+  const inWallet = WALLET.map(i => cur.bills[i]);
+  const coins = Array.from({ length: PIG_COINS }, (_, i) => ({ id: 'cskin' + i * 31, value: cur.coins[i % cur.coins.length], location: 'piggy' as const }));
+
+  return (
+    <>
+      <MiniBoard skin={boardSkin(outfit.board).id} cells={cells} bills={bills} show={show} cols={cols} rowH={rowH} />
+      <div className="mt-3 flex items-stretch gap-3">
+      <div className="relative flex min-w-0 flex-1 flex-col justify-center rounded-[18px] px-4 py-3 text-[#fbf1e1]" style={{ background: `linear-gradient(170deg, ${look.front}, ${look.back})`, boxShadow: '0 14px 26px -16px rgba(30,15,0,0.7), inset 0 1px 0 rgba(255,255,255,0.15)' }}>
+        <div className="pointer-events-none absolute inset-[5px] rounded-[14px] border-[1.5px] border-dashed" style={{ borderColor: look.stitch }} />
+        <div className="relative flex items-center justify-between gap-2">
+          <span className="text-sm whitespace-nowrap">
+            В кошельке: <b className="text-[17px]">{moneyShort(sum(inWallet))} {cur.symbol}</b>
+          </span>
+          <div className="relative h-[30px] flex-none max-[520px]:hidden" style={{ width: 46 + (inWallet.length - 1) * 22 }}>
+            {show &&
+              inWallet.map((v, i) => (
+                <div key={i} className="absolute top-0" style={{ left: i * 22, transform: `rotate(${(i - 1) * 7}deg)`, zIndex: i }}>
+                  {billImg(v, cur, 56, { boxShadow: '0 3px 5px -2px rgba(20,8,0,0.6)' })}
+                </div>
+              ))}
+          </div>
+        </div>
+      </div>
+      {/* The hat is allowed to stick out over the wall. */}
+      <div className="relative h-[86px] w-[110px] flex-none">
+        <div className="absolute top-0 left-0 h-[182px] w-[232px] origin-top-left scale-[0.47]">
+          <PigArt coins={coins} bills={[]} wear={outfit} />
+        </div>
+      </div>
+      </div>
+    </>
+  );
+}
+
+/** The default wall on a slider: swipe it or pick a skin below, and the same wall changes clothes. */
+export function WallSkins() {
+  const ready = useFontsReady();
+  const cur = useUnit($currency);
+  const narrow = useNarrow();
+  const { ref, seen } = useInView(0.2);
+  const track = useRef<HTMLDivElement>(null);
+  const [active, setActive] = useState(0);
+  const chips = useRef<HTMLDivElement>(null);
+
+  // With many skins the row scrolls: keep the current one in sight, without moving the page.
+  useEffect(() => {
+    const row = chips.current;
+    const chip = row?.children[active] as HTMLElement | undefined;
+    if (row && chip) row.scrollTo({ left: chip.offsetLeft - (row.clientWidth - chip.offsetWidth) / 2, behavior: 'smooth' });
+  }, [active]);
+
+  const go = (i: number) => {
+    const el = track.current;
+    const slide = el?.children[i] as HTMLElement | undefined;
+    if (!el || !slide) return;
+    const smooth = !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    el.scrollTo({ left: slide.offsetLeft - (el.clientWidth - slide.offsetWidth) / 2, behavior: smooth ? 'smooth' : 'auto' });
+  };
+
+  const onScroll = () => {
+    const el = track.current;
+    if (!el) return;
+    const center = el.scrollLeft + el.clientWidth / 2;
+    const slides = [...el.children] as HTMLElement[];
+    const dist = slides.map(s => Math.abs(s.offsetLeft + s.offsetWidth / 2 - center));
+    setActive(dist.indexOf(Math.min(...dist)));
+  };
+
+  if (!ready) return <div className="h-[640px]" />;
+
+  const outfit = LOOKS[active];
+  const parts = [boardSkin(outfit.board), purseSkin(outfit.purse), hatSkin(outfit.hat), neckSkin(outfit.neck)];
+  const worn = parts.filter(p => p.id !== NO_WEAR).map(p => p.name);
+  const arrow = 'hidden h-11 w-11 flex-none items-center justify-center rounded-full bg-modal text-lg shadow-[0_0_0_1px_var(--line)] transition-colors hover:bg-accent-wash sm:flex';
+
+  return (
+    <div ref={ref} style={{ '--slide': 'min(1060px, 88vw)' } as React.CSSProperties}>
+      <div ref={track} onScroll={onScroll} className="no-scrollbar relative flex snap-x snap-mandatory gap-6 overflow-x-auto pt-3 pb-8" style={{ paddingInline: 'calc((100% - var(--slide)) / 2)' }}>
+        {LOOKS.map((s, i) => (
+          <div
+            key={s.name}
+            aria-hidden={i !== active}
+            onClick={i === active ? undefined : () => go(i)}
+            className={`flex-none snap-center transition-opacity duration-300 ${i === active ? '' : 'cursor-pointer opacity-50'}`}
+            style={{ width: 'var(--slide)' }}
+          >
+            <SkinSlide outfit={s} cur={cur} cols={narrow ? 4 : 8} rowH={narrow ? 82 : 96} show={seen} />
+          </div>
+        ))}
+      </div>
+
+      <div className="mx-auto flex max-w-[720px] flex-col items-center gap-3 px-4 text-center">
+        <div className="flex max-w-full items-center gap-2">
+          <button onClick={() => go((active + LOOKS.length - 1) % LOOKS.length)} aria-label="Предыдущий скин" className={arrow}>
+            ←
+          </button>
+          <div ref={chips} className="no-scrollbar relative flex min-w-0 gap-2 overflow-x-auto py-0.5 pl-0.5">
+          {LOOKS.map((s, i) => (
+            <button
+              key={s.name}
+              onClick={() => go(i)}
+              aria-pressed={i === active}
+              className={`flex h-11 flex-none items-center gap-2 rounded-full px-4 text-[15px] font-medium transition-colors ${i === active ? 'bg-accent text-accent-ink' : 'bg-modal shadow-[0_0_0_1px_var(--line)] hover:bg-accent-wash'}`}
+            >
+              <span className="h-4 w-4 rounded-full shadow-[inset_0_0_0_1px_rgba(0,0,0,0.2)]" style={{ background: boardSkin(s.board).swatch }} />
+              {s.name}
+            </button>
+          ))}
+          </div>
+          <button onClick={() => go((active + 1) % LOOKS.length)} aria-label="Следующий скин" className={arrow}>
+            →
+          </button>
+        </div>
+        <p className="m-0 min-h-[46px] text-[15px] leading-normal text-balance text-ink2">
+          {worn.join(' + ')}. {parts.some(p => p.price) ? 'Скины за донат.' : 'Бесплатно.'}
+        </p>
+      </div>
+    </div>
+  );
+}

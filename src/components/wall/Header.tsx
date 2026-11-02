@@ -153,7 +153,7 @@ export function Header() {
         <Button variant="outline" onClick={() => statsToggled(true)} title="Траты по месяцам и ячейкам">
           Статистика
         </Button>
-        <Button variant="outline" onClick={() => shopToggled(true)} title="Скины для доски и кошелька">
+        <Button variant="outline" onClick={() => shopToggled(true)} title="Скины для доски, кошелька и свинки">
           ✦ Скины
         </Button>
         <Button variant="secondary" onClick={() => incomeOpened()}>

@@ -19,7 +19,7 @@ import { demoBill, MiniBoard, useInView, type DemoCell } from './MiniBoard';
 import { PigBubble } from './PigBubble';
 
 /** Bills per cell, as indexes into the currency's denominations, so the demo works in any of them. */
-const SALARY: Record<string, number[]> = { podushka: [5, 4, 3], eda: [4, 3, 2, 2], fun: [3, 2], cafe: [2, 1, 1] };
+const SALARY: Record<string, number[]> = { podushka: [5, 5, 4, 4, 3, 3], eda: [4, 4, 3, 3, 2, 2, 1], fun: [3, 3, 2, 2, 1], cafe: [2, 2, 1, 1, 0, 0] };
 const NAMES: Record<string, string> = { podushka: 'Подушка', eda: 'Еда', fun: 'Развлечения', cafe: 'Кафе' };
 const AUTO_MS = 2600;
 /** After a tap the demo holds back: the wall is theirs for a moment. */
@@ -125,10 +125,10 @@ export function LiveWall() {
     return () => clearInterval(t);
   }, [ready, inView]);
 
-  if (!ready) return <div className="h-[556px]" />;
+  if (!ready) return <div className="h-[590px]" />;
 
   return (
-    <div ref={ref} className="relative mx-auto w-full max-w-[560px]">
+    <div ref={ref} className="relative mx-auto w-full max-w-[620px]">
       <div className="mb-2.5 flex items-end justify-between gap-3 px-1 text-left">
         <div className="flex flex-col">
           <span className="text-xs text-ink2">Всё твоё богатство</span>
@@ -139,7 +139,7 @@ export function LiveWall() {
         <span className="pb-1 text-[13px] text-ink2">Ткни в ячейку и вытащи купюру ↓</span>
       </div>
 
-      <MiniBoard skin="cork" cells={cellsFor(cur)} bills={bills} show={seen} dropPrefix="demo-" onCell={tap} />
+      <MiniBoard skin="cork" cells={cellsFor(cur)} bills={bills} show={seen} rowH={94} dropPrefix="demo-" onCell={tap} />
 
       <div className="relative mt-2.5 flex items-stretch gap-2.5">
         <div data-drop="demo-till" className="relative min-w-0 flex-1 overflow-hidden rounded-[22px] px-4 py-3 text-left text-[#f6efe3]" style={{ height: 84, background: 'var(--till)' }}>

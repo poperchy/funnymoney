@@ -6,9 +6,11 @@ import type { Currency } from '@/lib/money/currency';
 import { faceLabel } from '@/lib/money/format';
 import { rng } from '@/lib/rng';
 import type { Bill, Coin } from '@/model/types';
+import { $skins } from '@/model/skins';
 import { $currency } from '@/model/wallet';
 import { billUrl, BIMETAL_CSS, coinLook } from '@/scene/paint';
 import { PIG } from '@/scene/palette';
+import { WEAR_BOX, wearUrl } from '@/scene/pigWear';
 
 /** Bill size on the phone wall. */
 export const MBW = 72;
@@ -144,8 +146,10 @@ const leg = (x: number) => (
 );
 
 /** The glass piggy, 232×182: coins piling up inside, bills tucked in. Breaks in two halves when asked. */
-export function PigArt({ coins, bills, broken, target, jolt = 0 }: { coins: Coin[]; bills: Bill[]; broken?: boolean; target?: boolean; jolt?: number }) {
+export function PigArt({ coins, bills, broken, target, jolt = 0, wear }: { coins: Coin[]; bills: Bill[]; broken?: boolean; target?: boolean; jolt?: number; wear?: { hat: string; neck: string } }) {
   const cur = useUnit($currency);
+  const skins = useUnit($skins);
+  const { hat, neck } = wear ?? skins;
   // A few hundred coins look the same as a thousand.
   const shown = coins.slice(-160);
   const inside = (
@@ -196,7 +200,17 @@ export function PigArt({ coins, bills, broken, target, jolt = 0 }: { coins: Coin
       s={{ left: 0, top: 64, width: 24, height: 24, border: '4px solid ' + PIG.edge, borderRadius: '50%', borderRightColor: 'transparent', borderBottomColor: 'transparent', transform: 'rotate(-40deg)' }}
     />
   );
+  const wearImg = (id: string, zIndex: number) => {
+    const url = wearUrl(id);
+    return (
+      url && (
+        // eslint-disable-next-line @next/next/no-img-element -- generated data URL
+        <img key={'wear' + zIndex} src={url} alt="" draggable={false} className="pointer-events-none max-w-none select-none" style={{ position: 'absolute', left: WEAR_BOX.x, top: WEAR_BOX.y, width: WEAR_BOX.w, height: WEAR_BOX.h, zIndex }} />
+      )
+    );
+  };
   const head = [
+    wearImg(neck, 3),
     <A key="e1" s={{ left: 140, top: 20, width: 26, height: 26, background: PIG.fill, border: '3px solid ' + PIG.edge, borderRadius: '4px 70% 4px 70%', transform: 'rotate(-18deg)', zIndex: 3 }} />,
     <A key="e2" s={{ left: 160, top: 32, width: 22, height: 22, background: PIG.fill, border: '3px solid ' + PIG.edge, borderRadius: '4px 70% 4px 70%', transform: 'rotate(8deg)', zIndex: 3 }} />,
     <A key="sn" s={{ left: 186, top: 72, width: 36, height: 42, borderRadius: '50%', background: PIG.fill, border: '3px solid ' + PIG.edge, zIndex: 3 }}>
@@ -204,6 +218,7 @@ export function PigArt({ coins, bills, broken, target, jolt = 0 }: { coins: Coin
       <A s={{ left: 18, top: 11, width: 6, height: 11, borderRadius: '50%', background: PIG.dark }} />
     </A>,
     <A key="eye" s={{ left: 164, top: 60, width: 8, height: 10, borderRadius: '50%', background: PIG.eye, zIndex: 3 }} />,
+    wearImg(hat, 4),
   ];
 
   if (!broken) {

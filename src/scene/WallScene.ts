@@ -69,7 +69,7 @@ export class WallScene {
   private layout: Layout = computeLayout([]);
   private layoutSig = '';
   private theme: Theme = 'light';
-  private skins = { board: 'cork', purse: 'leather' };
+  private skins = { board: 'cork', purse: 'leather', hat: 'none', neck: 'none' };
   /** For telling a double click from two separate clicks. */
   private lastClick = { id: '', at: 0 };
 
@@ -123,10 +123,11 @@ export class WallScene {
     }
   }
 
-  setSkins(skins: { board: string; purse: string }) {
+  setSkins(skins: { board: string; purse: string; hat: string; neck: string }) {
     this.skins = skins;
     this.paintBg();
     this.paintPurse();
+    this.piggy.setWear(skins.hat, skins.neck);
   }
 
   private paintBg() {

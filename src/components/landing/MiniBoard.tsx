@@ -49,6 +49,8 @@ export function MiniBoard({
   bills,
   coins = [],
   show,
+  cols = COLS,
+  rowH = ROW_H,
   dropPrefix,
   onCell,
 }: {
@@ -57,13 +59,15 @@ export function MiniBoard({
   bills: Bill[];
   coins?: Coin[];
   show: boolean;
+  cols?: number;
+  rowH?: number;
   /** Marks cells as `data-drop` places, for `flyMoney`. */
   dropPrefix?: string;
   onCell?: (id: string, e: MouseEvent) => void;
 }) {
   const board = boardSkin(skin);
   const look = board.look.light;
-  const { positions, rows } = packCells(cells, COLS);
+  const { positions, rows } = packCells(cells, cols);
   return (
     <div
       className="rounded-[18px] p-[9px]"
@@ -76,8 +80,8 @@ export function MiniBoard({
       <div
         className="relative grid rounded-lg p-[7px]"
         style={{
-          gridTemplateColumns: `repeat(${COLS}, minmax(0, 1fr))`,
-          gridTemplateRows: `repeat(${rows}, ${ROW_H}px)`,
+          gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`,
+          gridTemplateRows: `repeat(${rows}, ${rowH}px)`,
           gap: GAP,
           backgroundColor: look.inner,
           backgroundImage: 'repeating-linear-gradient(90deg, rgba(0,0,0,0.08) 0 1px, transparent 1px 5px)',

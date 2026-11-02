@@ -244,15 +244,7 @@ input:focus {
   display: none;
 }
 
-/* Landing page: bills drifting around the title and raining behind the last call. */
-.float-bill {
-  transform: rotate(var(--r));
-  animation: bill-float 6s ease-in-out infinite;
-}
-@keyframes bill-float {
-  0%, 100% { transform: translateY(0) rotate(var(--r)); }
-  50% { transform: translateY(-16px) rotate(calc(var(--r) + 4deg)); }
-}
+/* Landing page: bills raining behind the last call. */
 .rain-bill {
   transform: rotate(var(--r));
   animation: bill-rain 9s linear infinite;
@@ -268,10 +260,7 @@ input:focus {
     animation-duration: 0.01ms !important;
     transition-duration: 0.01ms !important;
   }
-  /* Looping at that speed would flicker: these just hang still. */
-  .float-bill {
-    animation: none !important;
-  }
+  /* Looping at that speed would flicker. */
   .rain-bill {
     display: none;
   }

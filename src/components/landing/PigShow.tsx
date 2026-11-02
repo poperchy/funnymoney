@@ -33,15 +33,16 @@ export function PigShow() {
   const cur = useUnit($currency);
   const { ref, inView } = useInView(0.3);
   const { ref: pigRef, jolt, poke } = usePig();
-  const [line, setLine] = useState({ text: 'Хрю. Я тут главная по мелочи', key: 0 });
+  const [line, setLine] = useState<{ text: string; key: number; moment?: number }>({ text: 'Хрю. Я тут главная по мелочи', key: 0 });
   const [count, setCount] = useState(START_COINS);
   const say = (text: string) => setLine(l => ({ text, key: l.key + 1 }));
 
   useEffect(() => {
     if (!inView || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-    const t = setInterval(() => setLine(l => ({ text: IDLE[l.key % IDLE.length], key: l.key + 1 })), 4500);
-    return () => clearInterval(t);
-  }, [inView]);
+    // Restarts on every line, so whatever was just asked for stays up long enough to read.
+    const t = setTimeout(() => setLine(l => ({ text: IDLE[l.key % IDLE.length], key: l.key + 1 })), 4500);
+    return () => clearTimeout(t);
+  }, [inView, line.key]);
 
   const coins: Coin[] = Array.from({ length: Math.min(count, 160) }, (_, i) => ({ id: 'cpig' + i * 53, value: cur.coins[(i * 5) % cur.coins.length], location: 'piggy' }));
 
@@ -52,10 +53,16 @@ export function PigShow() {
     play('oink', 0.35);
   };
 
+  const ask = (moment: number) => {
+    poke();
+    setLine(l => ({ text: MOMENTS[moment][1], key: l.key + 1, moment }));
+  };
+
+  // Its two parts sit in the section's grid, next to the heading that the page renders on the server.
   return (
-    <div className="grid items-center gap-10 md:grid-cols-[minmax(0,5fr)_minmax(0,6fr)]">
-      <div ref={ref} className="flex flex-col items-center gap-4">
-        <div className="flex min-h-[74px] w-full max-w-[340px] items-end justify-center">
+    <div className="contents">
+      <div ref={ref} className="flex flex-col items-center gap-4 md:col-start-2 md:row-span-2 md:row-start-1">
+        <div className="flex min-h-[86px] w-full max-w-[340px] items-end justify-center">
           <PigBubble line={line} tailRight={70} />
         </div>
         {ready && (
@@ -72,13 +79,20 @@ export function PigShow() {
         </button>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2">
-        {MOMENTS.map(([when, what], i) => (
-          <div key={when} className="flex flex-col gap-1.5 rounded-[18px] bg-modal px-4 py-3.5 shadow-[0_14px_26px_-20px_rgba(30,15,0,0.6),0_0_0_1px_var(--line)]" style={{ transform: `rotate(${(((i * 37) % 5) - 2) * 0.3}deg)` }}>
-            <span className="font-mono text-[11px] tracking-[0.08em] text-ink2 uppercase">{when}</span>
-            <span className="text-[15px] leading-snug font-medium text-balance">{what}</span>
-          </div>
-        ))}
+      <div className="flex flex-col items-center gap-3 self-start md:col-start-1 md:row-start-2 md:items-start">
+        <span className="text-sm font-semibold text-ink2">Что она скажет, если:</span>
+        <div className="flex flex-wrap justify-center gap-2 md:justify-start">
+          {MOMENTS.map(([when], i) => (
+            <button
+              key={when}
+              onClick={() => ask(i)}
+              aria-pressed={line.moment === i}
+              className={`rounded-full px-4 py-2 text-[15px] font-medium transition-colors ${line.moment === i ? 'bg-accent text-accent-ink' : 'bg-modal shadow-[0_0_0_1px_var(--line)] hover:bg-accent-wash'}`}
+            >
+              {when}
+            </button>
+          ))}
+        </div>
       </div>
     </div>
   );

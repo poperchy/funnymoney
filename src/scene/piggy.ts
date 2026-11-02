@@ -2,9 +2,10 @@
 // Physics runs in the pig's local coordinates (design px).
 import gsap from 'gsap';
 import Matter from 'matter-js';
-import { Container, Graphics, type Sprite } from 'pixi.js';
+import { Container, Graphics, Sprite, Texture } from 'pixi.js';
 import { PIG } from './palette';
 import { PIG_FLOOR_Y, PIG_PILE_X } from './layout';
+import { paintWear, WEAR_BOX, WEAR_RES } from './pigWear';
 
 const { Bodies, Body, Composite, Engine, Sleeping } = Matter;
 
@@ -30,6 +31,9 @@ export class Piggy {
   private walls: Matter.Body[] = [];
   private floor: Matter.Body[] = [];
   private items = new Map<string, Item>();
+  private readonly hat = new Sprite();
+  private readonly neck = new Sprite();
+  private wearTextures = new Map<string, Texture>();
   private waiting: (() => void)[] = [];
   broken = false;
   /** Top-left of the piggy box in scene coordinates; moves down when the board grows. */
@@ -108,7 +112,30 @@ export class Piggy {
       .fill(PIG.dark);
     const eye = new Graphics().ellipse(168, 65, 4, 5).fill(PIG.eye);
     this.frontL.addChild(fL, mFL);
-    this.frontR.addChild(fR, mFR, ear(140, 20, 26, -0.6), ear(160, 32, 22, 0.35), snout, eye);
+    // On the head half, so it all flies off with the head when the pig is smashed. Necklaces go under the snout, hats over the ears.
+    for (const s of [this.hat, this.neck]) {
+      s.position.set(WEAR_BOX.x, WEAR_BOX.y);
+      s.scale.set(1 / WEAR_RES);
+      s.visible = false;
+    }
+    this.frontR.addChild(fR, mFR, this.neck, ear(140, 20, 26, -0.6), ear(160, 32, 22, 0.35), snout, eye, this.hat);
+  }
+
+  setWear(hat: string, neck: string) {
+    const dress = (sprite: Sprite, id: string) => {
+      let tex = this.wearTextures.get(id);
+      if (!tex) {
+        const painted = paintWear(id);
+        if (painted) {
+          tex = Texture.from(painted);
+          this.wearTextures.set(id, tex);
+        }
+      }
+      sprite.visible = !!tex;
+      if (tex) sprite.texture = tex;
+    };
+    dress(this.hat, hat);
+    dress(this.neck, neck);
   }
 
   private makeWalls() {

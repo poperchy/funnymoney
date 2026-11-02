@@ -5,21 +5,31 @@ import { motion } from 'motion/react';
 import { useState } from 'react';
 import { $ownedSkins, $shopOpen, $skins, shopToggled, skinSelected, skinUnlocked, type SkinKind } from '@/model/skins';
 import { toastShown } from '@/model/ui';
-import { BOARD_SKINS, PURSE_SKINS, type BoardSkin, type PurseSkin } from '@/scene/skins';
+import { BOARD_SKINS, HAT_SKINS, NECK_SKINS, NO_WEAR, PURSE_SKINS, type BoardSkin, type PigWear, type PurseSkin } from '@/scene/skins';
+import { PigArt } from '@/components/mobile/parts';
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
 import { play } from '@/sound/sfx';
 
-type Skin = (BoardSkin | PurseSkin) & { kind: SkinKind };
+type Skin = (BoardSkin | PurseSkin | PigWear) & { kind: SkinKind };
 
-/** Thumbnail: a tiny board (frame + three cells) or a tiny wallet. */
+/** Thumbnail: a tiny board (frame + three cells), a tiny wallet or the pig wearing the thing. */
 function Preview({ skin }: { skin: Skin }) {
+  if (skin.kind === 'hat' || skin.kind === 'neck') {
+    return (
+      <span className="relative block h-16 w-full">
+        <span className="absolute top-[8px] left-1/2 block h-[182px] w-[232px] origin-top-left scale-[0.32]" style={{ marginLeft: -37 }}>
+          <PigArt coins={[]} bills={[]} wear={{ hat: skin.kind === 'hat' ? skin.id : NO_WEAR, neck: skin.kind === 'neck' ? skin.id : NO_WEAR }} />
+        </span>
+      </span>
+    );
+  }
   if (skin.kind === 'board') {
     const look = (skin as BoardSkin).look.light;
     return (
       <span className="grid h-16 w-full grid-cols-3 gap-1 rounded-lg p-1.5" style={{ background: look.frame, boxShadow: `inset 0 0 0 4px ${look.inner}` }}>
         {[0, 1, 2].map(i => (
-          <span key={i} className="rounded-[3px]" style={{ background: skin.swatch }} />
+          <span key={i} className="rounded-[3px]" style={{ background: (skin as BoardSkin).swatch }} />
         ))}
       </span>
     );
@@ -28,7 +38,7 @@ function Preview({ skin }: { skin: Skin }) {
   return (
     <span className="relative block h-16 w-full">
       <span className="absolute inset-x-2 top-2 bottom-2 rounded-xl" style={{ background: look.back }} />
-      <span className="absolute inset-x-1 top-7 bottom-1 rounded-xl" style={{ background: skin.swatch, boxShadow: `inset 0 0 0 2px ${look.stitch}` }} />
+      <span className="absolute inset-x-1 top-7 bottom-1 rounded-xl" style={{ background: (skin as PurseSkin).swatch, boxShadow: `inset 0 0 0 2px ${look.stitch}` }} />
     </span>
   );
 }
@@ -96,9 +106,9 @@ function Shop() {
   const section = (title: string, list: Skin[]) => (
     <section className="flex flex-col gap-2.5">
       <span className="text-sm font-semibold text-ink2">{title}</span>
-      <div className="grid grid-cols-3 gap-2.5">
+      <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
         {list.map(s => {
-          const isOwned = owned.includes(s.id), isOn = selected[s.kind] === s.id;
+          const isOwned = s.price === 0 || owned.includes(s.id), isOn = selected[s.kind] === s.id;
           return (
             <div key={s.id} className={`flex flex-col gap-2 rounded-2xl border-2 p-2.5 ${isOn ? 'border-accent bg-accent-wash' : 'border-line'}`}>
               <Preview skin={s} />
@@ -137,6 +147,8 @@ function Shop() {
       </div>
       {section('Доска', BOARD_SKINS.map(s => ({ ...s, kind: 'board' as const })))}
       {section('Кошелёк', PURSE_SKINS.map(s => ({ ...s, kind: 'purse' as const })))}
+      {section('Свинке на голову', HAT_SKINS.map(s => ({ ...s, kind: 'hat' as const })))}
+      {section('Свинке на шею', NECK_SKINS.map(s => ({ ...s, kind: 'neck' as const })))}
     </Modal>
   );
 }

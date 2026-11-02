@@ -16,7 +16,7 @@ const hash = (s: string) => [...s].reduce((h, ch) => (Math.imul(h, 31) + ch.char
 const fontFamily = () =>
   typeof document === 'undefined' ? 'sans-serif' : getComputedStyle(document.body).fontFamily || 'sans-serif';
 
-function canvas(w: number, h: number, res = RES) {
+export function canvas(w: number, h: number, res = RES) {
   const c = document.createElement('canvas');
   c.width = Math.ceil(w * res);
   c.height = Math.ceil(h * res);
