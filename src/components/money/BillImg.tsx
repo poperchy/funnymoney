@@ -74,12 +74,14 @@ export function CountButton({
 
 export function CoinFace({ value, size = 44 }: { value: number; size?: number }) {
   const cur = useUnit($currency);
+  const label = faceLabel(value);
   return (
     <span
-      className="flex items-center justify-center rounded-full text-[13px] font-bold text-[#3a2a14]"
-      style={{ width: size, height: size, ...coinFaceCss(value, cur) }}
+      className="flex shrink-0 items-center justify-center rounded-full font-bold whitespace-nowrap text-[#3a2a14]"
+      // The label shrinks to stay on the coin: "0,50" is four characters on a small circle.
+      style={{ width: size, height: size, fontSize: Math.min(13, (size / label.length) * 1.4), ...coinFaceCss(value, cur) }}
     >
-      {faceLabel(value)}
+      {label}
     </span>
   );
 }

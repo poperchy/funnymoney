@@ -9,13 +9,14 @@ import { sheetOpened } from '@/model/mobile';
 import { billsIn, coinsIn, crumpledInWallet, piggyCoins } from '@/model/ops';
 import { coinLocation, type Bill, type BillLocation, type Coin } from '@/model/types';
 import { $skins } from '@/model/skins';
-import { $draftBillIds, $theme, categoryEditOpened, pigOpened, toastShown } from '@/model/ui';
+import { $theme, categoryEditOpened, pigOpened, toastShown } from '@/model/ui';
 import { $balance, $currency, $piggyTotal, $wallet, spreadRequested } from '@/model/wallet';
 import { CoinFace } from '@/components/money/BillImg';
 import { packCells } from '@/scene/layout';
 import { crumpledUrl } from '@/scene/paint';
 import { dropItem, type DropKey, type Item } from './actions';
-import { boardSkin, purseSkin, type BoardSkin } from '@/scene/skins';
+import { FRAME, PIN, SURFACE } from '@/scene/skinCss';
+import { boardSkin, purseSkin } from '@/scene/skins';
 import { usePig } from './pig';
 import { askMotion } from './PigSheet';
 import { billImg, FlatCoin, MBH, MBW, PigArt, seeded, setLive, TAG_TOP, WallBill } from './parts';
@@ -26,22 +27,6 @@ const ADD_ID = '__add';
 const LONG_PRESS_MS = 260;
 /** On touch the bill rides above the finger, so it isn't hidden under it. */
 const LIFT = 28;
-
-const PIN = 'radial-gradient(circle at 35% 30%, #ff8a6a, #b8321b)';
-/** SVG fractal noise as a CSS background: grains of one colour (r g b in 0..1). */
-const noise = (freq: number, octaves: number, [r, g, b]: number[], alpha: number) =>
-  `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='${freq}' numOctaves='${octaves}' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 ${r} 0 0 0 0 ${g} 0 0 0 0 ${b} 0 0 0 ${alpha} 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`;
-const SHEEN = 'radial-gradient(ellipse at 30% 15%, rgba(255,255,255,0.14), transparent 60%)';
-/** Cell surfaces per board skin, in CSS (the desktop paints the same three on a canvas). */
-const SURFACE: Record<BoardSkin['cellTexture'], string> = {
-  cork: `${noise(0.9, 3, [0.22, 0.12, 0.04], 0.75)}, ${SHEEN}`,
-  felt: `${noise(1.8, 2, [0, 0.05, 0.02], 0.5)}, ${SHEEN}`,
-  concrete: `${noise(0.55, 4, [0.2, 0.2, 0.2], 0.45)}, ${SHEEN}`,
-};
-const FRAME: Record<BoardSkin['frameTexture'], string> = {
-  wood: 'repeating-linear-gradient(92deg, rgba(0,0,0,0.07) 0 1px, transparent 1px 6px, rgba(255,255,255,0.04) 6px 7px, transparent 7px 13px), linear-gradient(180deg, rgba(255,255,255,0.12), rgba(0,0,0,0.18))',
-  metal: 'repeating-linear-gradient(0deg, rgba(255,255,255,0.05) 0 1px, transparent 1px 3px, rgba(0,0,0,0.05) 3px 4px), linear-gradient(90deg, rgba(255,255,255,0.08), rgba(255,255,255,0.18), rgba(0,0,0,0.12))',
-};
 
 type Drag = Item & { x: number; y: number; ox: number; oy: number; lift: number; target: DropKey | null };
 type Grab = { item: Item; sx: number; sy: number; cx: number; cy: number; ox: number; oy: number; touch: boolean; timer: number };
@@ -213,7 +198,7 @@ function spentThisMonth(receipts: { amount: number; at: string }[]) {
 }
 
 export function MobileWall() {
-  const [w, cur, balance, pigTotal, draftIds] = useUnit([$wallet, $currency, $balance, $piggyTotal, $draftBillIds]);
+  const [w, cur, balance, pigTotal] = useUnit([$wallet, $currency, $balance, $piggyTotal]);
   const scrollRef = useRef<HTMLDivElement>(null);
   const dockRef = useRef<HTMLDivElement>(null);
   const { drag, down, justDropped } = useDrag(scrollRef, dockRef);
@@ -250,10 +235,9 @@ export function MobileWall() {
   const spent = spentThisMonth(w.receipts);
   const dragging = !!drag;
   const hot = (key: string) => !!drag && drag.target === key && drag.target !== (drag.from.type === 'cell' ? drag.from.cellId : drag.from.type);
-  const openCell = (loc: BillLocation, e: React.MouseEvent) => {
+  const openCell = (loc: BillLocation) => {
     if (justDropped() || dragging) return;
-    const el = (e.target as HTMLElement).closest<HTMLElement>('[data-bill],[data-coin]');
-    sheetOpened({ type: 'cell', loc, sel: el ? (el.dataset.bill ?? el.dataset.coin ?? null) : null });
+    sheetOpened({ type: 'cell', loc });
   };
   const zoneH = dragging ? 112 : 70;
 
@@ -291,8 +275,8 @@ export function MobileWall() {
         {(allPileBills.length > 0 || pileCoins.length > 0) && (
           <div
             data-drop="pile"
-            onClick={e => openCell({ type: 'pile' }, e)}
-            className="relative mx-3 mb-3 cursor-pointer rounded-[20px] px-3.5 pt-3.5 pb-2.5 text-[#fbf1e1] transition-shadow duration-200"
+            onClick={() => openCell({ type: 'pile' })}
+            className="relative mx-3 mb-3 cursor-pointer scroll-mt-2 rounded-[20px] px-3.5 pt-3.5 pb-2.5 text-[#fbf1e1] transition-shadow duration-200"
             style={{
               background: `linear-gradient(170deg, ${purse.front}, ${purse.back})`,
               boxShadow: hot('pile') ? '0 0 0 3px var(--accent), 0 14px 26px -16px rgba(30,15,0,0.7)' : '0 14px 26px -16px rgba(30,15,0,0.7), inset 0 1px 0 rgba(255,255,255,0.15)',
@@ -302,9 +286,9 @@ export function MobileWall() {
             <div className="pointer-events-none absolute inset-[5px] rounded-[16px] border-[1.5px] border-dashed" style={{ borderColor: purse.stitch }} />
             <div className="relative flex min-w-0 flex-col gap-0.5">
               <span className="text-[15px]">
-                В кошельке: <b className="whitespace-nowrap">{moneyShort(pileTotal)} {cur.symbol}</b>
+                В кошельке: <b className="text-[22px] tracking-[-0.02em] whitespace-nowrap">{moneyShort(pileTotal)} {cur.symbol}</b>
               </span>
-              <span className="text-[13px] text-[rgba(251,241,225,0.75)]">{allPileBills.length ? 'Грустят без дела. Разложи их' : 'Мелочь — свинке'}</span>
+              <span className="text-[13px] text-[rgba(251,241,225,0.75)]">{allPileBills.length ? 'Грустят без дела. Разложи их' : 'Мелочь. Тоже деньги, между прочим'}</span>
             </div>
             <div className="relative mt-2.5 flex gap-2">
               {allPileBills.length > 0 && (
@@ -313,7 +297,7 @@ export function MobileWall() {
                     e.stopPropagation();
                     spreadRequested();
                   }}
-                  className="h-9 rounded-full bg-[rgba(255,248,235,0.94)] px-3 text-[13px] font-semibold text-[#2a231b]"
+                  className="h-11 flex-1 rounded-full bg-[rgba(255,248,235,0.94)] px-3 text-sm font-semibold whitespace-nowrap text-[#2a231b]"
                 >
                   Как в прошлый раз
                 </button>
@@ -323,7 +307,7 @@ export function MobileWall() {
                   e.stopPropagation();
                   sheetOpened({ type: 'distribute', source: 'pile' });
                 }}
-                className="h-9 rounded-full border-[1.5px] border-[rgba(255,240,220,0.5)] px-3 text-[13px] font-semibold"
+                className="h-11 flex-1 rounded-full border-[1.5px] border-[rgba(255,240,220,0.5)] px-3 text-sm font-semibold whitespace-nowrap"
               >
                 Вписать суммы
               </button>
@@ -334,7 +318,7 @@ export function MobileWall() {
                   <WallBill
                     key={b.id}
                     bill={b}
-                    hidden={drag?.id === b.id || draftIds.has(b.id)}
+                    hidden={drag?.id === b.id}
                     pos={{
                       left: all.length > 1 ? `calc(min(34px, (100% - ${MBW}px) / ${all.length - 1}) * ${i})` : '0px',
                       top: 8 + (i % 2) * 5 + 'px',
@@ -357,7 +341,7 @@ export function MobileWall() {
                     bottom: 2 + (i % 2) * 6,
                     transform: `rotate(${(seeded(b.id)() - 0.5) * 50}deg)`,
                     filter: 'drop-shadow(0 3px 3px rgba(20,8,0,0.45))',
-                    opacity: drag?.id === b.id || draftIds.has(b.id) ? 0 : 1,
+                    opacity: drag?.id === b.id ? 0 : 1,
                     touchAction: 'pan-y',
                     zIndex: 50,
                   }}
@@ -411,8 +395,9 @@ export function MobileWall() {
                 <div
                   key={c.id}
                   data-drop={c.id}
-                  onClick={e => openCell(loc, e)}
-                  className="relative cursor-pointer overflow-hidden rounded-[5px]"
+                  onClick={() => openCell(loc)}
+                  // The dock covers the bottom of the wall: a cell scrolled into view has to clear it.
+                  className="relative cursor-pointer scroll-mt-2 scroll-mb-[120px] overflow-hidden rounded-[5px]"
                   style={{
                     gridColumn: `${p.col + 1} / span ${cs}`,
                     gridRow: `${p.row + 1} / span ${c.rowSpan}`,
@@ -429,7 +414,7 @@ export function MobileWall() {
                   {/* Own stacking context: bill z-orders keep growing and must stay under the tag. */}
                   <div className="absolute inset-0 z-[1]">
                     {bills.map(b => (
-                      <WallBill key={b.id} bill={b} hidden={drag?.id === b.id || draftIds.has(b.id)} onPointerDown={e => down(e, billItem(b))} />
+                      <WallBill key={b.id} bill={b} hidden={drag?.id === b.id} onPointerDown={e => down(e, billItem(b))} />
                     ))}
                     {coins.map(co => {
                       const r = seeded(co.id);
@@ -480,7 +465,7 @@ export function MobileWall() {
           </div>
         </div>
         <div className="mx-7 mt-3.5 text-center text-xs leading-[1.45] text-balance text-ink2">
-          Трату проще вписать кнопкой «Потратить». А можно по-старому: зажми купюру и тащи в другую ячейку, в «Потрачено» или в свинку. Или тапни по ячейке
+          Тапни по ячейке или кошельку и впиши, сколько куда. А для любителей пощупать: зажми купюру и тащи
         </div>
       </div>
 
@@ -541,7 +526,7 @@ export function MobileWall() {
             onClick={() => {
               if (justDropped()) return;
               if (!pigTotal) {
-                toastShown('Свинка голодает. Покорми её мелочью со сдачи');
+                toastShown('Свинка голодает. Переложи ей мелочь из кошелька');
                 return;
               }
               askMotion();

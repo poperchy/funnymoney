@@ -168,6 +168,10 @@ export function paintShadow(): HTMLCanvasElement {
 
 export type CoinLook = { size: number; bg: string[]; edge: string; bimetal: boolean };
 
+/** Two-metal coin: a gold core dead centre in a silver ring. `closest-side` follows the shape, round or lying flat. */
+const BIMETAL_STOPS: [number, string][] = [[0, '#f6e09a'], [0.42, '#d9b65c'], [0.56, '#b8933c'], [0.585, '#eeeeea'], [1, '#9e9e97']];
+export const BIMETAL_CSS = `radial-gradient(closest-side, ${BIMETAL_STOPS.map(([at, color]) => `${color} ${at * 100}%`).join(', ')})`;
+
 export function coinLook(value: number, cur: Currency): CoinLook {
   const i = Math.max(0, cur.coins.indexOf(value));
   const n = cur.coins.length;
@@ -187,16 +191,23 @@ export function paintCoin(value: number, cur: Currency): HTMLCanvasElement {
   ctx.ellipse(size / 2, h / 2 + rim, size / 2, h / 2, 0, 0, Math.PI * 2);
   ctx.fill();
   ctx.fillRect(0, h / 2, size, rim);
-  const g = ctx.createRadialGradient(size * 0.35, h * 0.3, 0, size * 0.35, h * 0.3, size * 0.7);
   if (bimetal) {
-    g.addColorStop(0, '#f6e09a');
-    g.addColorStop(0.3, '#b8933c');
-    g.addColorStop(0.36, '#eeeeea');
-    g.addColorStop(1, '#9e9e97');
-  } else {
-    g.addColorStop(0, bg[0]);
-    g.addColorStop(0.72, bg[1]);
+    // Squashed along with the coin, so the core stays centred in the ring.
+    ctx.save();
+    ctx.translate(size / 2, h / 2);
+    ctx.scale(1, h / size);
+    const g = ctx.createRadialGradient(0, 0, 0, 0, 0, size / 2);
+    for (const [at, color] of BIMETAL_STOPS) g.addColorStop(at, color);
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.arc(0, 0, size / 2, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+    return c;
   }
+  const g = ctx.createRadialGradient(size * 0.35, h * 0.3, 0, size * 0.35, h * 0.3, size * 0.7);
+  g.addColorStop(0, bg[0]);
+  g.addColorStop(0.72, bg[1]);
   ctx.fillStyle = g;
   ctx.beginPath();
   ctx.ellipse(size / 2, h / 2, size / 2, h / 2, 0, 0, Math.PI * 2);
@@ -207,9 +218,7 @@ export function paintCoin(value: number, cur: Currency): HTMLCanvasElement {
 /** Round coin face for change buttons in the DOM. */
 export function coinFaceCss(value: number, cur: Currency) {
   const { bg, edge, bimetal } = coinLook(value, cur);
-  const background = bimetal
-    ? 'radial-gradient(circle at 40% 35%, #f6e09a 0 30%, #b8933c 44%, #eeeeea 47%, #9e9e97 80%)'
-    : `radial-gradient(circle at 35% 30%, ${bg[0]}, ${bg[1]} 72%)`;
+  const background = bimetal ? BIMETAL_CSS : `radial-gradient(circle at 35% 30%, ${bg[0]}, ${bg[1]} 72%)`;
   return { background, boxShadow: `inset 0 -3px 0 ${edge}, 0 3px 6px rgba(0,0,0,0.25)` };
 }
 

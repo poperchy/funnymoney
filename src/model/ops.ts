@@ -35,7 +35,7 @@ export function crumpledInWallet(w: Wallet): Set<string> {
       .map(b => b.id),
   );
 }
-export const sourceLocation = (source: string): BillLocation => (source === 'pile' ? PILE : { type: 'cell', cellId: source });
+export const sourceLocation = (source: string): BillLocation => (source === 'pile' ? PILE : source === 'piggy' ? PIGGY : { type: 'cell', cellId: source });
 
 export function randomPose(loc: BillLocation, r: () => number = Math.random): Pose {
   // Stuffed into the wallet any old way.
@@ -79,7 +79,7 @@ export function moveBill(w: Wallet, id: string, to: BillLocation, pose?: Pose): 
 
 export type SpendInput = { source: string; billIds: string[]; change: number[]; label?: string };
 
-/** Paid bills (and wallet coins) leave, change bills return to where the money came from, change coins drop into the piggy. */
+/** Paid bills (and wallet coins) leave, change bills return to where the money came from, change coins go to the wallet pocket. */
 export function spend(w: Wallet, { source, billIds, change, label }: SpendInput): Wallet {
   const ids = new Set(billIds);
   const paid = sum([...w.bills, ...w.coins].filter(b => ids.has(b.id)).map(b => b.value));
@@ -96,14 +96,14 @@ export function spend(w: Wallet, { source, billIds, change, label }: SpendInput)
   };
 }
 
-/** Hands over the given bills/coins; change bills go back to the source, change coins to the piggy. */
+/** Hands over the given bills/coins; change bills go back to the source, change coins to the wallet pocket. The piggy is fed by hand. */
 function pay(w: Wallet, source: string, ids: Set<string>, change: number[]): Wallet {
   const cur = currencyOf(w);
   const rest = { ...w, bills: w.bills.filter(b => !ids.has(b.id)), coins: w.coins.filter(c => !ids.has(c.id)) };
   return {
     ...rest,
     bills: [...rest.bills, ...makeBills(rest, change.filter(v => v >= cur.bills[0]), sourceLocation(source))],
-    coins: [...rest.coins, ...makeCoins(change.filter(v => v < cur.bills[0]), 'piggy')],
+    coins: [...rest.coins, ...makeCoins(change.filter(v => v < cur.bills[0]), 'wallet')],
   };
 }
 

@@ -17,7 +17,7 @@ export function decompose(amount: number, denominations: number[]): number[] {
 
 export const sum = (list: number[]) => list.reduce((a, b) => a + b, 0);
 
-/** Splits change into bills (go back to the cell) and coins (go to the piggy bank). */
+/** Splits change into bills (go back to the cell) and coins (go to the wallet pocket). */
 export function splitChange(amount: number, cur: Currency) {
   const bills = decompose(amount, cur.bills);
   const coins = decompose(amount - sum(bills), cur.coins);

@@ -16,7 +16,7 @@ export type Bill = {
 };
 
 /**
- * Coins live in the wallet pocket, in a cell (`cellId`), or in the piggy (change).
+ * Coins live in the wallet pocket (salary and change), in a cell (`cellId`), or in the piggy (put there by hand).
  * Old saves have no location: piggy.
  */
 export type Coin = { id: string; value: number; location?: 'wallet' | 'piggy' | 'cell'; cellId?: string };

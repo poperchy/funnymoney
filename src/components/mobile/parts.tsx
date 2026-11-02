@@ -7,7 +7,7 @@ import { faceLabel } from '@/lib/money/format';
 import { rng } from '@/lib/rng';
 import type { Bill, Coin } from '@/model/types';
 import { $currency } from '@/model/wallet';
-import { billUrl, coinLook } from '@/scene/paint';
+import { billUrl, BIMETAL_CSS, coinLook } from '@/scene/paint';
 import { PIG } from '@/scene/palette';
 
 /** Bill size on the phone wall. */
@@ -28,6 +28,16 @@ export const setLive = (v: boolean) => {
   live = v;
 };
 export const useArrived = () => useState(() => live)[0];
+
+/**
+ * While money flies across the wall (`flyMoney`), what appears waits this long (ms) for its ghost to arrive,
+ * then just settles in place instead of dropping in.
+ */
+let landing = 0;
+export const setLanding = (ms: number) => {
+  landing = ms;
+};
+const useLanding = () => useState(() => landing)[0];
 
 export function billImg(value: number, cur: Currency, width: number, style?: CSSProperties) {
   return (
@@ -61,6 +71,7 @@ export function WallBill({
 }) {
   const cur = useUnit($currency);
   const arrived = useArrived();
+  const land = useLanding();
   const [delay] = useState(() => Math.round(seeded(bill.id)() * 250));
   const r = pos?.r ?? bill.pose.r;
   const left = pos?.left ?? `max(0px, calc((100% - ${MBW}px) * ${bill.pose.x}))`;
@@ -85,7 +96,7 @@ export function WallBill({
           opacity: hidden ? 0 : 1,
           touchAction: 'pan-y',
           transition: 'left .25s ease, top .25s ease, transform .25s ease',
-          animation: arrived ? `bill-in .7s cubic-bezier(.22,.8,.3,1) ${delay}ms backwards` : undefined,
+          animation: land ? `money-land .24s ease-out ${land}ms backwards` : arrived ? `bill-in .7s cubic-bezier(.22,.8,.3,1) ${delay}ms backwards` : undefined,
         } as CSSProperties
       }
     >
@@ -96,9 +107,7 @@ export function WallBill({
 
 export function coinBg(value: number, cur: Currency) {
   const { bg, edge, bimetal, size } = coinLook(value, cur);
-  const background = bimetal
-    ? 'radial-gradient(ellipse at 40% 35%, #f6e09a 0 30%, #b8933c 44%, #eeeeea 47%, #9e9e97 80%)'
-    : `radial-gradient(ellipse at 35% 30%, ${bg[0]}, ${bg[1]} 72%)`;
+  const background = bimetal ? BIMETAL_CSS : `radial-gradient(ellipse at 35% 30%, ${bg[0]}, ${bg[1]} 72%)`;
   return { background, edge, size };
 }
 
@@ -106,6 +115,7 @@ export function coinBg(value: number, cur: Currency) {
 export function FlatCoin({ coin, style, onPointerDown, fall }: { coin: Coin; style?: CSSProperties; onPointerDown?: (e: React.PointerEvent) => void; fall?: boolean }) {
   const cur = useUnit($currency);
   const arrived = useArrived();
+  const land = useLanding();
   const { background, edge, size } = coinBg(coin.value, cur);
   return (
     <div
@@ -120,7 +130,7 @@ export function FlatCoin({ coin, style, onPointerDown, fall }: { coin: Coin; sty
         background,
         boxShadow: `0 ${Math.round(size * 0.12)}px 0 ${edge}, 0 3px 4px rgba(0,0,0,0.25)`,
         touchAction: 'pan-y',
-        animation: arrived && fall ? 'coin-fall .9s cubic-bezier(.4,0,.6,1) backwards' : undefined,
+        animation: land ? `money-land .24s ease-out ${land}ms backwards` : arrived && fall ? 'coin-fall .9s cubic-bezier(.4,0,.6,1) backwards' : undefined,
         ...style,
       }}
     />

@@ -43,14 +43,14 @@ export function SpendDropDialog() {
     if (!changeSum) summary += ' Без сдачи, чисто.';
     else {
       if (back.length) summary += ` ${back.map(moneyShort).join(' + ')} вернутся в ${sourceName}.`;
-      if (coins) summary += ` ${money(coins)} мелочью — свинке.`;
+      if (coins) summary += ` ${money(coins)} мелочью — в кошелёк.`;
     }
   }
 
   const confirm = () => {
     if (spent <= 0) return;
     toastShown(
-      'Прощай, дружок · −' + money(spent) + (back.length ? ' · сдача ' + back.map(moneyShort).join(' + ') + ' вернулась' : '') + (coins ? ' · ' + money(coins) + ' свинке' : ''),
+      'Прощай, дружок · −' + money(spent) + (back.length ? ' · сдача ' + back.map(moneyShort).join(' + ') + ' вернулась' : '') + (coins ? ' · ' + money(coins) + ' в кошелёк' : ''),
     );
     play('till');
     draftConfirmed();

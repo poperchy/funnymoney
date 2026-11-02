@@ -2,7 +2,7 @@
 
 import { useUnit } from 'effector-react';
 import { useState } from 'react';
-import { money, moneyShort, plural } from '@/lib/money/format';
+import { money, moneyShort } from '@/lib/money/format';
 import { changeFor, sum } from '@/lib/money/math';
 import { FILL_ORDER } from '@/model/defaults';
 import { sheetClosed } from '@/model/mobile';
@@ -10,6 +10,7 @@ import { sourceLocation, totalIn } from '@/model/ops';
 import { toastShown } from '@/model/ui';
 import { $currency, $wallet, amountsDistributed } from '@/model/wallet';
 import { play } from '@/sound/sfx';
+import { flyMoney } from './fly';
 import { parseAmount } from './ManualSpendSheet';
 import { Sheet } from './Sheet';
 
@@ -24,6 +25,7 @@ export function DistributeSheet({ source }: { source: string }) {
   const targets = [
     ...w.categories.filter(c => c.id !== source).map(c => ({ id: c.id, name: c.name, budget: c.budget })),
     ...(source === 'pile' ? [] : [{ id: 'pile', name: 'Обратно в кошелёк', budget: 0 }]),
+    { id: 'piggy', name: 'Свинка', budget: 0 },
   ];
 
   const amounts = Object.fromEntries(targets.map(t => [t.id, parseAmount(texts[t.id] ?? '')]));
@@ -52,10 +54,20 @@ export function DistributeSheet({ source }: { source: string }) {
   const submit = () => {
     if (!total || left < 0 || odd.length) return;
     const parts = targets.filter(t => amounts[t.id] > 0).map(t => ({ target: t.id, amount: amounts[t.id] }));
-    amountsDistributed({ source, parts });
-    toastShown(`Разложил ${money(total)} по ${parts.length} ${plural(parts.length, 'ячейке', 'ячейкам', 'ячейкам')}. Где надо — разменял`);
-    play('rustle');
+    const hops = parts.map((p, i) => ({
+      from: source,
+      to: p.target,
+      values: changeFor(p.amount, cur),
+      at: i * 130,
+      onLand: () => {
+        if (p.target === 'piggy') play('oink', 0.05);
+        else play(p.amount < cur.bills[0] ? 'clink' : 'rustle');
+        if (i === parts.length - 1) toastShown(`Разлетелось: ${money(total)} ${cur.symbol}. Где надо, разменял`);
+      },
+    }));
     sheetClosed();
+    play('flutter');
+    flyMoney(hops, () => amountsDistributed({ source, parts }));
   };
 
   let status = left === available ? `Впиши, сколько куда. Купюры разменяю сам` : `Останется в ${source === 'pile' ? 'кошельке' : fromName}: ${money(Math.max(0, left))} ${cur.symbol}`;
@@ -63,16 +75,16 @@ export function DistributeSheet({ source }: { source: string }) {
   else if (odd.length) status = `В «${odd[0].name}» сумма с копейками, для которых нет монеты. Округли`;
 
   return (
-    <Sheet title="Разложить вручную" onClose={() => sheetClosed()} className="gap-3.5 px-5">
+    <Sheet title="Разложить вручную" onClose={() => sheetClosed()} className="gap-3.5 px-5 pt-2" flush>
       <div className="flex items-start justify-between gap-3">
         <div className="flex min-w-0 flex-col gap-0.5">
-          <span className="text-2xl font-bold tracking-[-0.025em]">{source === 'pile' ? 'Разложить вручную' : `Переложить из ${fromName}`}</span>
+          <span className="text-2xl font-bold tracking-[-0.025em]">{source === 'pile' ? 'Куда полетят?' : `Куда из ${fromName}?`}</span>
           <span className="text-sm text-ink2">
             Есть {money(available)} {cur.symbol}
           </span>
         </div>
         {source === 'pile' && (
-          <button onClick={fillBudgets} className="h-9 flex-none rounded-full border-[1.5px] border-accent bg-accent-wash px-3 text-[13px] font-semibold text-ink">
+          <button onClick={fillBudgets} className="h-11 flex-none rounded-full border-[1.5px] border-accent bg-accent-wash px-3.5 text-sm font-semibold text-ink">
             По бюджетам
           </button>
         )}
@@ -94,18 +106,19 @@ export function DistributeSheet({ source }: { source: string }) {
                 </span>
               </div>
               {gap > 0 && !value && (
-                <button onClick={() => set(t.id, Math.min(gap, Math.max(0, left)))} disabled={left <= 0} className="h-9 flex-none rounded-full bg-btn2 px-2.5 text-[13px] font-semibold text-ink disabled:opacity-40">
+                <button onClick={() => set(t.id, Math.min(gap, Math.max(0, left)))} disabled={left <= 0} className="h-11 flex-none rounded-full bg-btn2 px-3 text-sm font-semibold text-ink disabled:opacity-40">
                   +{moneyShort(Math.min(gap, Math.max(0, left)) || gap)}
                 </button>
               )}
-              <label className="flex h-11 w-[108px] flex-none items-center gap-1 rounded-xl border border-line bg-field px-2.5">
+              <label className="flex h-[52px] w-[112px] flex-none items-center gap-1 rounded-[14px] border border-line bg-field px-2.5">
                 <input
                   value={texts[t.id] ?? ''}
                   inputMode="decimal"
                   placeholder="0"
                   aria-label={'Сумма в ' + t.name}
                   onChange={e => setTexts(x => ({ ...x, [t.id]: e.target.value.replace(/[^\d.,]/g, '').slice(0, 10) }))}
-                  className="w-full min-w-0 bg-transparent text-right text-base font-semibold text-ink"
+                  onKeyDown={e => e.key === 'Enter' && submit()}
+                  className="w-full min-w-0 bg-transparent text-right text-lg font-semibold text-ink"
                 />
                 <span className="text-xs text-ink2">{cur.symbol}</span>
               </label>
@@ -114,16 +127,13 @@ export function DistributeSheet({ source }: { source: string }) {
         })}
       </div>
 
-      <div className="rounded-2xl bg-field px-[15px] py-[13px] text-sm leading-normal" style={{ color: left < 0 || odd.length ? 'var(--danger)' : 'var(--ink2)' }}>
-        {status}
-      </div>
-
-      <div className="flex gap-2.5">
-        <button onClick={() => sheetClosed()} className="h-[54px] rounded-[18px] border border-line px-5 text-[15px] font-medium text-ink">
-          Отмена
-        </button>
-        <button onClick={submit} disabled={!total || left < 0 || odd.length > 0} className="h-[54px] flex-1 rounded-[18px] bg-accent text-base font-semibold text-accent-ink disabled:opacity-40">
-          {total ? `Разложить · ${money(total)}` : 'Разложить'}
+      {/* Stays on screen however many cells there are: the list scrolls under it. */}
+      <div className="sticky bottom-0 z-[1] -mx-5 -mt-3.5 flex shrink-0 flex-col gap-2.5 bg-modal px-5 pt-2.5 pb-[calc(env(safe-area-inset-bottom)+14px)]">
+        <span className="text-sm leading-snug" style={{ color: left < 0 || odd.length ? 'var(--danger)' : 'var(--ink2)' }}>
+          {status}
+        </span>
+        <button onClick={submit} disabled={!total || left < 0 || odd.length > 0} className="h-[64px] rounded-[20px] bg-accent text-[17px] font-semibold text-accent-ink disabled:opacity-40">
+          {total ? `Летите, родные · ${moneyShort(total)} ${cur.symbol}` : 'Сначала сумма'}
         </button>
       </div>
     </Sheet>

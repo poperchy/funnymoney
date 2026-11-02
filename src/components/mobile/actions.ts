@@ -1,9 +1,10 @@
-// What happens when money lands somewhere on the phone: by drag or from the cell sheet. Same texts as the desktop scene.
+// What happens when a dragged bill or coin lands somewhere on the phone. Same texts as the desktop scene.
 import { CURRENCIES } from '@/lib/money/currency';
 import { moneyShort } from '@/lib/money/format';
-import { draftStarted, toastShown } from '@/model/ui';
+import { sheetOpened } from '@/model/mobile';
+import { toastShown } from '@/model/ui';
 import { $wallet, billMoved, coinMoved } from '@/model/wallet';
-import { coinLocation, slotKey, type BillLocation, type Pose } from '@/model/types';
+import { slotKey, type BillLocation, type Pose } from '@/model/types';
 import { play } from '@/sound/sfx';
 
 export type Item = { kind: 'bill' | 'coin'; id: string; value: number; from: BillLocation };
@@ -16,14 +17,6 @@ const locOf = (key: DropKey): BillLocation | null =>
 
 const placeName = (key: string) =>
   key === 'pile' ? 'кошелька' : '«' + ($wallet.getState().categories.find(c => c.id === key)?.name ?? '') + '»';
-
-export function itemOf(id: string): Item | null {
-  const w = $wallet.getState();
-  const b = w.bills.find(x => x.id === id);
-  if (b) return { kind: 'bill', id, value: b.value, from: b.location };
-  const c = w.coins.find(x => x.id === id);
-  return c ? { kind: 'coin', id, value: c.value, from: coinLocation(c) } : null;
-}
 
 /** Returns false when nothing happened (dropped back where it was, or the till refused a coin). */
 export function dropItem(item: Item, to: DropKey, pose?: Pose): boolean {
@@ -43,8 +36,8 @@ export function dropItem(item: Item, to: DropKey, pose?: Pose): boolean {
     return true;
   }
   if (to === 'spent') {
-    draftStarted({ billId: item.id, from: item.from });
-    play('till');
+    // Same as the "Потратить" button: type the amount. The sound and the flight come after it.
+    sheetOpened({ type: 'spend', source: from });
     return true;
   }
   if (to === 'piggy') {

@@ -4,7 +4,7 @@ import { useUnit } from 'effector-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useEffect } from 'react';
 import { $sheet } from '@/model/mobile';
-import { $incomeRound, $pigFlow, $spendDraft, $stop, $toast, toastHidden } from '@/model/ui';
+import { $incomeRound, $pigFlow, $stop, $toast, toastHidden } from '@/model/ui';
 import { CategoryDialog } from '@/components/dialogs/CategoryDialog';
 import { ExchangeDialog } from '@/components/dialogs/ExchangeDialog';
 import { ReceiptDialog } from '@/components/dialogs/ReceiptDialog';
@@ -19,7 +19,6 @@ import { MobileOnboarding } from './MobileOnboarding';
 import { MobileWall } from './MobileWall';
 import { PigSheet } from './PigSheet';
 import { ReceiptsSheet } from './ReceiptsSheet';
-import { SpendSheet } from './SpendSheet';
 
 /** Where the bubble's tail points: the dock pig's head, in screen px. Null when the pig can't be seen. */
 function pigAnchor() {
@@ -84,14 +83,13 @@ function MobileToast({ onWall, sheetUp }: { onWall: boolean; sheetUp: boolean })
 
 /** Phone layout: the same wallet and model, laid out for one thumb. No canvas: the wall is plain DOM. */
 export function MobileApp() {
-  const [stop, round, sheet, draft, pigFlow] = useUnit([$stop, $incomeRound, $sheet, $spendDraft, $pigFlow]);
+  const [stop, round, sheet, pigFlow] = useUnit([$stop, $incomeRound, $sheet, $pigFlow]);
   const onWall = stop === 'wall';
 
   return (
     <>
       {onWall ? <MobileWall /> : <MobileOnboarding key={round} />}
-      {draft && <SpendSheet key={draft.billIds[0]} />}
-      {sheet?.type === 'cell' && <CellSheet loc={sheet.loc} sel={sheet.sel} />}
+      {sheet?.type === 'cell' && <CellSheet loc={sheet.loc} />}
       {pigFlow && <PigSheet />}
       {sheet?.type === 'receipts' && <ReceiptsSheet tab={sheet.tab ?? 'receipts'} />}
       {sheet?.type === 'menu' && <MenuSheet />}
@@ -102,7 +100,7 @@ export function MobileApp() {
       <ReceiptDialog />
       <ExchangeDialog />
       <ShopDialog />
-      <MobileToast onWall={onWall} sheetUp={!!sheet || !!draft || !!pigFlow} />
+      <MobileToast onWall={onWall} sheetUp={!!sheet || !!pigFlow} />
     </>
   );
 }

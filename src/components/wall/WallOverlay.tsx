@@ -74,7 +74,7 @@ export function WallOverlay() {
               В кошельке: <b>{moneyShort(pileTotal)} {cur.symbol}</b>
             </span>
             <span className="truncate text-[13px] text-ink2">
-              {pileCount ? 'Грустят без дела' : walletCoinCount ? 'Мелочь — свинке' : 'Всё по местам'}
+              {pileCount ? 'Грустят без дела' : walletCoinCount ? 'Мелочь. Тоже деньги, между прочим' : 'Всё по местам'}
             </span>
           </div>
           <div className="flex shrink-0 gap-2">

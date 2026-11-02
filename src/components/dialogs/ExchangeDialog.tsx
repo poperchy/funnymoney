@@ -13,7 +13,7 @@ import { play } from '@/sound/sfx';
 /** A bill or a coin, small. */
 function Money({ value }: { value: number }) {
   const cur = useUnit($currency);
-  return value >= cur.bills[0] ? <BillImg value={value} scale={0.56} /> : <CoinFace value={value} size={26} />;
+  return value >= cur.bills[0] ? <BillImg value={value} scale={0.56} /> : <CoinFace value={value} size={30} />;
 }
 
 /** A run of money: shows each piece, collapses long runs of the same value into "×N". */

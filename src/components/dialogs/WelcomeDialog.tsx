@@ -13,7 +13,7 @@ import { play } from '@/sound/sfx';
 const POINTS = [
   ['Зарплата приходит пачкой', 'Кликаешь по купюрам — пачка толстеет. Самый приятный клик в жизни. После «Отменить подписку», конечно.'],
   ['Раскладываешь по ячейкам', 'Еда, аренда, котик. Котику побольше — он проверит.'],
-  ['Тратишь — вытаскиваешь', 'Купюру в кассу, сдачу обратно, мелочь в свинку. Свинка всё видит, но молчит. Пока.'],
+  ['Тратишь — вытаскиваешь', 'Купюру в кассу, сдачу обратно, мелочь в кошелёк. Свинка всё видит, но молчит. Пока.'],
 ];
 
 const PROMISES = [
@@ -121,7 +121,8 @@ function WelcomeBills() {
   };
 
   return (
-    <div className="relative mx-auto mt-6 h-[86px] w-[240px]">
+    // shrink-0: its bills are absolute, so in a short scrolling modal the block would collapse under the title.
+    <div className="relative mx-auto mt-6 h-[86px] w-[240px] shrink-0">
       <AnimatePresence>
         {quip && (
           <motion.div

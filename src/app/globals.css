@@ -204,6 +204,11 @@ input:focus {
   82% { transform: translateY(-7px); }
   100% { transform: translateY(0); }
 }
+/* Money that just flew in settles where its ghost landed. */
+@keyframes money-land {
+  from { opacity: 0; transform: rotate(var(--r, 0deg)) scale(1.18); }
+  to { opacity: 1; transform: rotate(var(--r, 0deg)); }
+}
 @keyframes sheet-in {
   from { transform: translateY(100%); }
   to { transform: none; }
@@ -239,9 +244,35 @@ input:focus {
   display: none;
 }
 
+/* Landing page: bills drifting around the title and raining behind the last call. */
+.float-bill {
+  transform: rotate(var(--r));
+  animation: bill-float 6s ease-in-out infinite;
+}
+@keyframes bill-float {
+  0%, 100% { transform: translateY(0) rotate(var(--r)); }
+  50% { transform: translateY(-16px) rotate(calc(var(--r) + 4deg)); }
+}
+.rain-bill {
+  transform: rotate(var(--r));
+  animation: bill-rain 9s linear infinite;
+}
+@keyframes bill-rain {
+  from { transform: translateY(0) rotate(var(--r)); }
+  50% { transform: translateY(380px) translateX(24px) rotate(calc(var(--r) + 50deg)); }
+  to { transform: translateY(780px) rotate(calc(var(--r) + 110deg)); }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;
     transition-duration: 0.01ms !important;
+  }
+  /* Looping at that speed would flicker: these just hang still. */
+  .float-bill {
+    animation: none !important;
+  }
+  .rain-bill {
+    display: none;
   }
 }

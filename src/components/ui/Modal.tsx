@@ -3,6 +3,7 @@
 import * as Dialog from '@radix-ui/react-dialog';
 import { motion } from 'motion/react';
 import type { ReactNode } from 'react';
+import { useSwipeDown } from './useSwipeDown';
 
 type Props = {
   open: boolean;
@@ -17,6 +18,7 @@ type Props = {
 };
 
 export function Modal({ open, onClose, title, description, width = 560, children, bare, className = '' }: Props) {
+  const swipe = useSwipeDown(onClose);
   return (
     <Dialog.Root open={open} onOpenChange={o => !o && onClose()} modal={!bare}>
       <Dialog.Portal>
@@ -24,10 +26,15 @@ export function Modal({ open, onClose, title, description, width = 560, children
         <Dialog.Content
           {...(description ? {} : { 'aria-describedby': undefined })}
           onInteractOutside={bare ? e => e.preventDefault() : undefined}
+          // Focus belongs to keyboards: on a touch screen it only draws a ring around the first button.
+          onOpenAutoFocus={e => {
+            if (window.matchMedia('(pointer: coarse)').matches) e.preventDefault();
+          }}
           className={`fixed z-[210] max-w-[calc(100vw-32px)] ${bare ? 'top-6 left-1/2 -translate-x-1/2' : 'top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2'}`}
           style={{ width }}
         >
           <motion.div
+            ref={swipe}
             initial={{ opacity: 0, y: 14, scale: 0.98 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             transition={{ duration: 0.3, ease: [0.22, 0.8, 0.3, 1] }}

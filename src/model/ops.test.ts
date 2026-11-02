@@ -58,7 +58,7 @@ describe('wallet ops', () => {
     for (const c of wallet.categories) expect(ops.totalIn(wallet, { type: 'cell', cellId: c.id })).toBeLessThanOrEqual(c.budget);
   });
 
-  it('spending returns bill change to the cell and coins to the piggy', () => {
+  it('spending returns bill change to the cell and coins to the wallet, not the piggy', () => {
     let w = funded();
     const bill = w.bills.find(b => b.value === 5000)!;
     w = ops.moveBill(w, bill.id, { type: 'cell', cellId: 'eda' });
@@ -70,6 +70,8 @@ describe('wallet ops', () => {
     expect(ops.balance(after)).toBe(before - 2730);
     expect(ops.totalIn(after, { type: 'cell', cellId: 'eda' })).toBe(2000);
     expect(ops.coinTotal(after)).toBe(250 + 270);
+    expect(ops.piggyTotal(after)).toBe(0);
+    expect(sum(ops.walletCoins(after).map(c => c.value))).toBe(250 + 270);
     expect(after.receipts[0]).toMatchObject({ amount: 2730, paid: 5000, source: 'eda', label: 'Еда' });
   });
 
@@ -95,7 +97,7 @@ describe('wallet ops', () => {
   });
 
   describe('editing a receipt', () => {
-    // 50 in "Еда", spent 27,30: 20 back to the cell, 2,70 to the piggy.
+    // 50 in "Еда", spent 27,30: 20 back to the cell, 2,70 to the wallet.
     const spentFood = () => {
       let w = funded();
       w = ops.moveBill(w, w.bills.find(b => b.value === 5000)!.id, { type: 'cell', cellId: 'eda' });
@@ -226,6 +228,14 @@ describe('transfer', () => {
     expect(ops.planTransfer(w, 'pile', 100000)).toMatchObject({ ok: false, reason: 'not-enough' });
     const rub = ops.addIncome(emptyWallet('RUB'), [100000], []);
     expect(ops.planTransfer(rub, 'pile', 15050)).toMatchObject({ ok: false, reason: 'odd' });
+  });
+
+  it('feeds the piggy, but nothing can be moved out of it this way', () => {
+    const w = funded();
+    const fed = ops.transfer(w, 'pile', 'piggy', 15030);
+    expect(ops.piggyTotal(fed)).toBe(15030);
+    expect(ops.balance(fed)).toBe(ops.balance(w));
+    expect(ops.planTransfer(fed, 'piggy', 100)).toMatchObject({ ok: false, reason: 'not-enough' });
   });
 
   it('distributes several amounts and stops when the money runs out', () => {

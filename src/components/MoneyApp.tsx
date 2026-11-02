@@ -2,9 +2,10 @@
 
 import { useUnit } from 'effector-react';
 import { AnimatePresence, motion } from 'motion/react';
-import { useEffect, useState, useSyncExternalStore } from 'react';
+import { useEffect, useSyncExternalStore } from 'react';
 import { $incomeRound, $stop, $theme, $welcomeSeen, toastShown, type Stop } from '@/model/ui';
 import { $layout, $wallet } from '@/model/wallet';
+import { useFontsReady } from '@/lib/useFontsReady';
 import { preload } from '@/sound/sfx';
 import { CategoryDialog } from './dialogs/CategoryDialog';
 import { ManualSpendDialog } from './dialogs/ManualSpendDialog';
@@ -41,18 +42,6 @@ const subscribeMobile = (cb: () => void) => {
 };
 const useMobile = () => useSyncExternalStore(subscribeMobile, () => window.matchMedia(MOBILE_QUERY).matches, () => false);
 const useViewportH = () => useSyncExternalStore(subscribeResize, () => window.innerHeight, () => 900);
-
-/** Canvas painters read the page font, so wait until it is actually loaded. */
-function useFontsReady() {
-  const [ready, setReady] = useState(false);
-  useEffect(() => {
-    const family = getComputedStyle(document.body).fontFamily;
-    Promise.all([document.fonts.load(`700 20px ${family}`), document.fonts.load(`400 16px ${family}`)])
-      .catch(() => undefined)
-      .then(() => setReady(true));
-  }, []);
-  return ready;
-}
 
 const PAN: Record<Stop, { duration: number; delay: number }> = {
   hand: { duration: 1, delay: 0 },

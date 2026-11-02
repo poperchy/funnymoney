@@ -44,7 +44,7 @@ function ManualSpendForm() {
     else {
       if (plan.back.length) planText += ` Сдача ${plan.back.map(moneyShort).join(' + ')} вернётся купюрами.`;
       const c = plan.coins.reduce((a, b) => a + b, 0);
-      if (c) planText += ` ${money(c)} мелочью — свинке.`;
+      if (c) planText += ` ${money(c)} мелочью — в кошелёк.`;
     }
   }
 
