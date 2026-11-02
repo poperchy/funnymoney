@@ -72,7 +72,7 @@ function DenomButton({ value, count, onAdd, onRemove }: { value: number; count: 
         }}
         className="relative h-[52px] w-[104px] select-none transition-transform duration-150 active:scale-[0.96] [-webkit-touch-callout:none]"
       >
-        {billImg(value, cur, 104, { boxShadow: '0 1px 1px rgba(0,0,0,0.22), 0 6px 10px -4px rgba(40,20,0,0.45)', borderRadius: 4 })}
+        {billImg(value, cur, 104, { borderRadius: 4 })}
       </button>
       <div className="flex h-[30px] items-center gap-2">
         {count > 0 && (
@@ -261,7 +261,7 @@ export function MobileOnboarding() {
               }}
               transition={{ duration: 1, delay: b.delay, times: [0, 0.4, 0.74, 0.87, 1], ease: 'easeInOut' }}
             >
-              {billImg(b.value, cur, HEAP.bw, { boxShadow: '0 1px 1px rgba(0,0,0,0.24), 0 6px 9px -3px rgba(30,15,0,0.45)' })}
+              {billImg(b.value, cur, HEAP.bw)}
             </motion.div>
           ))}
         </div>

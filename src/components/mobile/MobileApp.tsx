@@ -6,6 +6,7 @@ import { useEffect } from 'react';
 import { $sheet } from '@/model/mobile';
 import { $incomeRound, $pigFlow, $stop, $toast, toastHidden } from '@/model/ui';
 import { CategoryDialog } from '@/components/dialogs/CategoryDialog';
+import { PigGoalDialog } from '@/components/dialogs/PigGoalDialog';
 import { ExchangeDialog } from '@/components/dialogs/ExchangeDialog';
 import { ReceiptDialog } from '@/components/dialogs/ReceiptDialog';
 import { ShopDialog } from '@/components/dialogs/ShopDialog';
@@ -97,6 +98,7 @@ export function MobileApp() {
       {sheet?.type === 'distribute' && <DistributeSheet key={sheet.source} source={sheet.source} />}
       <WelcomeDialog />
       <CategoryDialog />
+      <PigGoalDialog />
       <ReceiptDialog />
       <ExchangeDialog />
       <ShopDialog />

@@ -4,7 +4,7 @@ import { useUnit } from 'effector-react';
 import { money, moneyShort } from '@/lib/money/format';
 import { changeFor, sum } from '@/lib/money/math';
 import { DEFAULT_JOKE, JOKES } from '@/model/defaults';
-import { billsIn, frequentAmounts, sourceLocation } from '@/model/ops';
+import { billsIn, coinsIn, frequentAmounts, sourceLocation } from '@/model/ops';
 import { $spendDraft, draftCancelled, draftChanged, draftConfirmed, draftTopUp, toastShown } from '@/model/ui';
 import { $currency, $wallet } from '@/model/wallet';
 import { BillImg, CoinFace, CountButton } from '@/components/money/BillImg';
@@ -12,21 +12,23 @@ import { Button, Chip } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
 import { play } from '@/sound/sfx';
 
-/** Opens after a bill is dropped into "Потрачено": how much was it, and what change came back. */
+/** Opens after a bill or coin is dropped into "Потрачено": how much was it, and what change came back. */
 export function SpendDropDialog() {
   const [draft, w, cur] = useUnit([$spendDraft, $wallet, $currency]);
   if (!draft) return null;
 
-  const paidBills = draft.billIds.map(id => w.bills.find(b => b.id === id)).filter(b => !!b);
-  const paid = sum(paidBills.map(b => b.value));
+  const allMoney = [...w.bills, ...w.coins];
+  const paidItems = draft.billIds.map(id => allMoney.find(b => b.id === id)).filter(b => !!b);
+  const paid = sum(paidItems.map(b => b.value));
   const changeSum = sum(draft.change);
   const spent = paid - changeSum;
   const sourceName = draft.source === 'pile' ? 'кошелька' : '«' + (w.categories.find(c => c.id === draft.source)?.name ?? '') + '»';
-  const rest = billsIn(w, sourceLocation(draft.source)).filter(b => !draft.billIds.includes(b.id));
+  const here = sourceLocation(draft.source);
+  const rest = [...billsIn(w, here), ...coinsIn(w, here)].filter(b => !draft.billIds.includes(b.id));
   const topUps = [...new Set(rest.map(b => b.value))].sort((a, b) => a - b);
   const quick = [paid, ...frequentAmounts(w).filter(a => a < paid)];
   const changeBills = cur.bills.filter(v => v < paid);
-  const changeCoins = cur.coins.slice(-5).reverse();
+  const changeCoins = cur.coins.slice(-5).reverse().filter(v => v < paid);
   const back = draft.change.filter(v => v >= cur.bills[0]);
   const coins = sum(draft.change.filter(v => v < cur.bills[0]));
 
@@ -77,11 +79,11 @@ export function SpendDropDialog() {
   return (
     <Modal open onClose={cancel} title="Трата" width={620}>
       <div className="flex items-center gap-4">
-        <div className="shrink-0 -rotate-6">{paidBills[0] && <BillImg value={paidBills[0].value} />}</div>
+        <div className="shrink-0 -rotate-6">{paidItems[0] && (paidItems[0].value < cur.bills[0] ? <CoinFace value={paidItems[0].value} size={56} /> : <BillImg value={paidItems[0].value} />)}</div>
         <div className="flex min-w-0 flex-col gap-[3px]">
           <span className="text-[26px] leading-[1.1] font-bold tracking-[-0.025em]">{JOKES[draft.source] ?? DEFAULT_JOKE}</span>
           <span className="text-sm text-ink2">
-            Из {sourceName}: {paidBills.map(b => moneyShort(b.value)).join(' + ')} {cur.symbol}
+            Из {sourceName}: {paidItems.map(b => moneyShort(b.value)).join(' + ')} {cur.symbol}
           </span>
         </div>
       </div>
@@ -97,13 +99,15 @@ export function SpendDropDialog() {
         </div>
       </div>
 
-      <div className="flex flex-col gap-2.5">
-        <span className="text-sm text-ink2">Или отметь сдачу, которую дали</span>
-        <div className="flex flex-wrap items-end gap-3">
-          {changeBills.map(v => changeButton(v, true))}
-          {changeCoins.map(v => changeButton(v, false))}
+      {changeBills.length + changeCoins.length > 0 && (
+        <div className="flex flex-col gap-2.5">
+          <span className="text-sm text-ink2">Или отметь сдачу, которую дали</span>
+          <div className="flex flex-wrap items-end gap-3">
+            {changeBills.map(v => changeButton(v, true))}
+            {changeCoins.map(v => changeButton(v, false))}
+          </div>
         </div>
-      </div>
+      )}
 
       {topUps.length > 0 && (
         <div className="flex flex-wrap items-center gap-2.5 text-sm text-ink2">
@@ -117,7 +121,7 @@ export function SpendDropDialog() {
                 const b = rest.find(x => x.value === v);
                 if (b) {
                   draftTopUp(b.id);
-                  play('rustle');
+                  play(v < cur.bills[0] ? 'clink' : 'rustle');
                 }
               }}
             >

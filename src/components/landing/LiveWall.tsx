@@ -15,6 +15,7 @@ import { flyMoney } from '@/components/mobile/fly';
 import { PigArt } from '@/components/mobile/parts';
 import { usePig } from '@/components/mobile/pig';
 import { play } from '@/sound/sfx';
+import './live';
 import { demoBill, MiniBoard, useInView, type DemoCell } from './MiniBoard';
 import { PigBubble } from './PigBubble';
 

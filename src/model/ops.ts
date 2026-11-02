@@ -3,7 +3,7 @@ import { CURRENCIES, type Currency } from '@/lib/money/currency';
 import { changeFor, decompose, pickBills, splitChange, sum } from '@/lib/money/math';
 import { gauss, rng, uid } from '@/lib/rng';
 import { FILL_ORDER, MAX_CATEGORIES } from './defaults';
-import { coinLocation, coinPlace, inPiggy, inWallet, sameSlot, type Bill, type BillLocation, type Category, type Coin, type Pose, type Wallet } from './types';
+import { coinLocation, coinPlace, inPiggy, inWallet, sameSlot, type Bill, type BillLocation, type Category, type Coin, type PigGoal, type Pose, type Wallet } from './types';
 
 const PILE: BillLocation = { type: 'pile' };
 const PIGGY: BillLocation = { type: 'piggy' };
@@ -213,9 +213,38 @@ export function autoSpread(w: Wallet): { wallet: Wallet; moved: number } {
   return { wallet: { ...w, bills: w.bills.map(b => moves.get(b.id) ?? b) }, moved };
 }
 
+/** Starting the layout over: everything lying in cells goes back to the wallet. The piggy keeps what it was fed. */
+export function clearBoard(w: Wallet): Wallet {
+  const r = rng(Date.now() % 1e6);
+  let z = nextZ(w);
+  return {
+    ...w,
+    bills: w.bills.map(b => (b.location.type === 'cell' ? { ...b, location: PILE, pose: randomPose(PILE, r), z: z++ } : b)),
+    coins: w.coins.map(c => (c.location === 'cell' ? { ...c, ...coinPlace(PILE) } : c)),
+  };
+}
+
+/** Is there anything in the cells to take back? */
+export const boardHasMoney = (w: Wallet) => w.bills.some(b => b.location.type === 'cell') || w.coins.some(c => c.location === 'cell');
+
+/** Sets what the piggy saves for, or clears it with null. */
+export function setPigGoal(w: Wallet, goal: PigGoal | null): Wallet {
+  if (!goal) return { ...w, pigGoal: undefined };
+  const name = goal.name.trim();
+  return name && goal.amount > 0 ? { ...w, pigGoal: { name, amount: goal.amount } } : w;
+}
+
+/** How far along the goal is, or null when there is none. */
+export function pigGoalProgress(w: Wallet) {
+  if (!w.pigGoal) return null;
+  const saved = piggyTotal(w);
+  return { ...w.pigGoal, saved, left: Math.max(0, w.pigGoal.amount - saved), share: Math.min(1, saved / w.pigGoal.amount), reached: saved >= w.pigGoal.amount };
+}
+
 /**
  * Everything comes out: coins are exchanged for bills where possible, and those bills, the bills that
  * were inside, and the coins too small to exchange all land in the wallet. The piggy is left empty.
+ * A goal that was reached is done; one that wasn't stays, and the saving starts over.
  */
 export function breakPiggy(w: Wallet): { wallet: Wallet; taken: number } {
   const cur = currencyOf(w);
@@ -231,6 +260,7 @@ export function breakPiggy(w: Wallet): { wallet: Wallet; taken: number } {
       ...base,
       bills: [...base.bills, ...makeBills(base, exchanged, PILE)],
       coins: [...w.coins.filter(c => !inPiggy(c)), ...makeCoins(leftover, 'wallet')],
+      pigGoal: pigGoalProgress(w)?.reached ? undefined : w.pigGoal,
     },
     taken: coinsSum + sum(fromPiggy.map(b => b.value)),
   };

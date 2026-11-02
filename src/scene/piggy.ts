@@ -1,4 +1,4 @@
-// The piggy bank: a glass pig drawn with Pixi, coins inside simulated with matter.js.
+// The piggy bank: a pig with a window-like belly, drawn with Pixi, coins inside simulated with matter.js.
 // Physics runs in the pig's local coordinates (design px).
 import gsap from 'gsap';
 import Matter from 'matter-js';
@@ -70,10 +70,10 @@ export class Piggy {
     const legsR = new Graphics();
     leg(legsR, 128);
     leg(legsR, 154);
-    const glass = () => new Graphics().ellipse(CX, CY, RX, RY).fill(PIG.glass);
+    const belly = () => new Graphics().ellipse(CX, CY, RX, RY).fill(PIG.body);
     const halfMask = (left: boolean) => new Graphics().rect(left ? -40 : SPLIT_X, -40, left ? SPLIT_X + 40 : 200, 260).fill(0xffffff);
 
-    const bodyL = glass(), bodyR = glass();
+    const bodyL = belly(), bodyR = belly();
     const mBL = halfMask(true), mBR = halfMask(false);
     bodyL.mask = mBL;
     bodyR.mask = mBR;

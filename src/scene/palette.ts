@@ -16,4 +16,4 @@ export const METAL = {
 
 // Board and wallet colours live in skins.ts.
 
-export const PIG = { fill: '#f5adc0', edge: '#d97692', glass: 'rgba(247,170,192,0.34)', dark: '#8a3f55', eye: '#3a2328' };
+export const PIG = { fill: '#f5adc0', edge: '#d97692', body: '#f6dadd', dark: '#8a3f55', eye: '#3a2328' };

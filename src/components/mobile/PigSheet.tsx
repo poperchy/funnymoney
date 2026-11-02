@@ -9,6 +9,7 @@ import { $currency, $piggyTotal, $wallet, piggyBroken } from '@/model/wallet';
 import { play } from '@/sound/sfx';
 import { PigArt } from './parts';
 import { usePig } from './pig';
+import { pigGoalNote } from '@/components/dialogs/PigGoalDialog';
 import { Sheet } from './Sheet';
 
 /** m/s², gravity included: a real shake, not the phone being picked up. */
@@ -74,7 +75,7 @@ export function PigSheet() {
       {flow.step === 'ask' && (
         <>
           <span className="text-2xl leading-[1.18] font-bold tracking-[-0.025em] text-balance">Ты точно уверен, что хочешь забрать нажитое непосильным трудом?</span>
-          <span className="text-[15px] leading-normal text-pretty text-ink2">Там {sum}. Монеты станут купюрами, а что не разменять — мелочью. Всё ляжет в кошелёк.</span>
+          <span className="text-[15px] leading-normal text-pretty text-ink2">Там {sum}. Монеты станут купюрами, а что не разменять — мелочью. Всё ляжет в кошелёк. {pigGoalNote(w, cur.symbol)}</span>
           <div className="mt-1.5 flex w-full flex-col gap-2">
             <button onClick={() => pigAgreed()} className="h-[54px] rounded-[18px] bg-accent text-base font-semibold text-accent-ink">
               Да, мне надо

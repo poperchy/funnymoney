@@ -4,16 +4,17 @@ import { useUnit } from 'effector-react';
 import { useEffect } from 'react';
 import { money, plural } from '@/lib/money/format';
 import { $pigFlow, pigAgreed, pigClosed, pigShaken, SHAKES_TO_BREAK } from '@/model/ui';
-import { $currency, $piggyTotal, piggyBroken } from '@/model/wallet';
+import { $currency, $piggyTotal, $wallet, piggyBroken } from '@/model/wallet';
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
+import { pigGoalNote } from './PigGoalDialog';
 
 /**
  * Taking money out of the piggy is a small ritual: confirm, shake it three times, break it.
  * The card floats at the top without a backdrop so the pig on the shelf stays clickable.
  */
 export function PiggyDialog() {
-  const [flow, total, cur] = useUnit([$pigFlow, $piggyTotal, $currency]);
+  const [flow, total, cur, w] = useUnit([$pigFlow, $piggyTotal, $currency, $wallet]);
   const open = !!flow;
   // The pig stands at the very bottom of the wall, often below the fold — bring it into view,
   // otherwise it shakes and breaks where nobody is looking.
@@ -39,7 +40,7 @@ export function PiggyDialog() {
             Ты точно уверен, что хочешь забрать нажитое непосильным трудом?
           </span>
           <span className="max-w-[420px] text-[15px] leading-normal text-ink2">
-            Там {sum}. Монеты станут купюрами, а что не разменять — мелочью. Всё ляжет в кошелёк.
+            Там {sum}. Монеты станут купюрами, а что не разменять — мелочью. Всё ляжет в кошелёк. {pigGoalNote(w, cur.symbol)}
           </span>
           <div className="flex gap-2.5">
             <Button variant="outline" size="lg" onClick={() => pigClosed()}>

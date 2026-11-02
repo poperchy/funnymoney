@@ -3,21 +3,16 @@
 import { useUnit } from 'effector-react';
 import { motion, type TargetAndTransition } from 'motion/react';
 import { useEffect, useRef } from 'react';
-import { money } from '@/lib/money/format';
 import { $drag, $shred, $tillBill, tillCleared, type TillBill } from '@/model/ui';
 import { $currency, $wallet } from '@/model/wallet';
 import { billIndex } from '@/lib/money/currency';
 import { rng } from '@/lib/rng';
 import { BILL_PAL } from '@/scene/palette';
 import { setSpentZone } from '@/scene/WallScene';
-import { BillImg } from '@/components/money/BillImg';
-
-const sameMonth = (iso: string, now = new Date()) => {
-  const d = new Date(iso);
-  return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
-};
-
-export const monthName = () => new Date().toLocaleString('ru-RU', { month: 'long' }).toLowerCase();
+import { $skins } from '@/model/skins';
+import { tillSkin } from '@/scene/skins';
+import { BillImg, CoinFace } from '@/components/money/BillImg';
+import { TillFace, tillTotal } from '@/components/money/TillArt';
 
 const TILL_MOTION: Record<TillBill['state'], TargetAndTransition> = {
   // Hovers over the slot while you decide.
@@ -29,13 +24,16 @@ const TILL_MOTION: Record<TillBill['state'], TargetAndTransition> = {
   returned: { y: -90, rotate: 12, opacity: 0, transition: { duration: 0.45, ease: 'easeOut' } },
 };
 
-/** The swallowed bill coming out under the slot as a shower of shredded strips and a few sparkles. */
+const COIN_SPARKS = ['#f0d98a', '#d9d9d2', '#b8933c'];
+
+/** The swallowed bill comes out under the slot as a shower of shredded strips and a few sparkles; a coin only sparkles. */
 function Shreds({ burst }: { burst: { key: number; value: number } }) {
   const cur = useUnit($currency);
-  const [p0, p1, p2] = BILL_PAL[billIndex(cur, burst.value)];
+  const coin = burst.value < cur.bills[0];
+  const [p0, p1, p2] = coin ? COIN_SPARKS : BILL_PAL[billIndex(cur, burst.value)];
   const r = rng(burst.key * 7919 + burst.value);
   const pieces = Array.from({ length: 22 }, (_, i) => {
-    const strip = i < 15;
+    const strip = !coin && i < 15;
     return {
       strip,
       // Strips leave the slot side by side, like out of a shredder; sparkles scatter wider.
@@ -68,9 +66,9 @@ function Shreds({ burst }: { burst: { key: number; value: number } }) {
 /** "Потрачено" — the cash register where bills are dropped to spend them. */
 export function SpentTill() {
   const ref = useRef<HTMLDivElement>(null);
-  const [w, drag, till, shred] = useUnit([$wallet, $drag, $tillBill, $shred]);
+  const [w, cur, drag, till, shred, skins] = useUnit([$wallet, $currency, $drag, $tillBill, $shred, $skins]);
+  const skin = tillSkin(skins.till);
   const over = drag?.target?.type === 'spent';
-  const spentMonth = w.receipts.filter(r => sameMonth(r.at)).reduce((a, r) => a + r.amount, 0);
 
   useEffect(() => {
     setSpentZone(ref.current);
@@ -78,47 +76,35 @@ export function SpentTill() {
   }, []);
 
   return (
-    <div
-      ref={ref}
-      className="relative h-[168px] overflow-hidden rounded-[20px] px-[18px] py-4 text-[#f6efe3] transition-[box-shadow,transform] duration-200"
-      style={{
-        background: 'var(--till)',
-        boxShadow: over ? '0 0 0 3px var(--accent), 0 24px 40px -20px rgba(0,0,0,0.6)' : '0 24px 40px -24px rgba(0,0,0,0.55)',
-        transform: over ? 'scale(1.02)' : 'none',
-      }}
-    >
-      <div className="relative z-[3] flex flex-col gap-0.5">
-        <span className="text-lg font-bold tracking-[-0.01em]">Потрачено</span>
-        <span className="text-[13px] text-[rgba(246,239,227,0.7)]">{over ? 'Отпускай. Не бойся' : drag ? 'Сюда, сюда' : 'Брось сюда купюру из ячейки'}</span>
-      </div>
-      <div className="absolute inset-x-[22px] bottom-[30px] h-[62px] rounded-xl bg-[rgba(0,0,0,0.35)] shadow-[inset_0_3px_8px_rgba(0,0,0,0.5)]">
-        <div className="absolute inset-x-3.5 top-3 h-2 rounded-full bg-[#0b0806] shadow-[0_1px_0_rgba(255,255,255,0.12)]" />
-        {/* Clipped at the slot line, so a bill sliding down disappears into the till. */}
-        <div className="absolute inset-x-0 -top-[60px] h-[76px] overflow-hidden">
-          {till && (
-            <motion.div
-              key={till.key}
-              className="absolute top-[18px] left-1/2 -ml-[50px]"
-              initial={{ y: -80, rotate: -6, opacity: 0 }}
-              animate={TILL_MOTION[till.state]}
-              onAnimationComplete={() => till.state !== 'waiting' && tillCleared()}
-            >
+    <TillFace ref={ref} skin={skin} over={over} caption={over ? 'Отпускай. Не бойся' : drag ? 'Сюда, сюда' : 'Брось сюда купюру или монету'} total={tillTotal(w.receipts)}>
+      {/* Clipped at the slot line, so a bill sliding down disappears into the till. */}
+      <div className="absolute inset-x-0 -top-[60px] h-[76px] overflow-hidden">
+        {till && (
+          <motion.div
+            key={till.key}
+            className="absolute top-[18px] left-1/2 -ml-[50px] flex w-[100px] justify-center"
+            initial={{ y: -80, rotate: -6, opacity: 0 }}
+            animate={TILL_MOTION[till.state]}
+            onAnimationComplete={() => till.state !== 'waiting' && tillCleared()}
+          >
+            {till.value < cur.bills[0] ? (
+              <span className="mt-3 block">
+                <CoinFace value={till.value} />
+              </span>
+            ) : (
               <BillImg value={till.value} />
-            </motion.div>
-          )}
-        </div>
-        <motion.div
-          key={till?.state === 'eaten' ? 'glow' + till.key : 'idle'}
-          className="absolute inset-x-3.5 top-3 h-2 rounded-full"
-          initial={{ boxShadow: '0 0 0 0 rgba(255,214,140,0)' }}
-          animate={till?.state === 'eaten' ? { boxShadow: ['0 0 0 0 rgba(255,214,140,0)', '0 0 14px 3px rgba(255,214,140,0.55)', '0 0 0 0 rgba(255,214,140,0)'] } : {}}
-          transition={{ duration: 0.9, delay: 0.35 }}
-        />
-        {shred && <Shreds key={'shred' + shred.key} burst={shred} />}
-        <div className="absolute bottom-2.5 left-3.5 text-xs text-[rgba(246,239,227,0.55)]">
-          −{money(spentMonth)} за {monthName()}
-        </div>
+            )}
+          </motion.div>
+        )}
       </div>
-    </div>
+      <motion.div
+        key={till?.state === 'eaten' ? 'glow' + till.key : 'idle'}
+        className="absolute inset-x-3.5 top-3 h-2 rounded-full"
+        initial={{ boxShadow: '0 0 0 0 rgba(255,214,140,0)' }}
+        animate={till?.state === 'eaten' ? { boxShadow: ['0 0 0 0 rgba(255,214,140,0)', '0 0 14px 3px rgba(255,214,140,0.55)', '0 0 0 0 rgba(255,214,140,0)'] } : {}}
+        transition={{ duration: 0.9, delay: 0.35 }}
+      />
+      {shred && <Shreds key={'shred' + shred.key} burst={shred} />}
+    </TillFace>
   );
 }

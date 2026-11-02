@@ -5,9 +5,11 @@ import { useState } from 'react';
 import { CURRENCY_LIST, type CurrencyCode } from '@/lib/money/currency';
 import { pageHref } from '@/lib/paths';
 import { sheetClosed, sheetOpened } from '@/model/mobile';
-import { $muted, $theme, incomeOpened, muteToggled, themeToggled, type Theme } from '@/model/ui';
+import { $muted, $theme, incomeOpened, muteToggled, pigGoalToggled, themeToggled, type Theme } from '@/model/ui';
 import { shopToggled } from '@/model/skins';
-import { $currency, $wallet, currencyChanged } from '@/model/wallet';
+import { boardHasMoney } from '@/model/ops';
+import { $currency, $wallet, boardCleared, currencyChanged } from '@/model/wallet';
+import { useArmed } from '@/components/ui/useArmed';
 import { Sheet } from './Sheet';
 
 /** "⋯": theme, currency, sound and a new salary. */
@@ -15,6 +17,10 @@ export function MenuSheet() {
   const [theme, cur, w, muted] = useUnit([$theme, $currency, $wallet, $muted]);
   const [pending, setPending] = useState<CurrencyCode | null>(null);
   const hasMoney = w.bills.length > 0 || w.coins.length > 0 || w.receipts.length > 0;
+  const reset = useArmed(() => {
+    boardCleared();
+    sheetClosed();
+  });
 
   const pickCurrency = (code: CurrencyCode) => {
     if (code === cur.code) return;
@@ -113,6 +119,20 @@ export function MenuSheet() {
           ✦ Скины
         </button>
       </div>
+      <button
+        onClick={() => {
+          sheetClosed();
+          pigGoalToggled(true);
+        }}
+        className="h-[52px] rounded-[18px] border border-line text-[15px] font-medium text-ink"
+      >
+        {w.pigGoal ? `Цель копилки: ${w.pigGoal.name}` : 'Цель для копилки'}
+      </button>
+      {boardHasMoney(w) && (
+        <button onClick={reset.press} className="h-[52px] rounded-[18px] border border-line text-[15px] font-medium text-ink">
+          {reset.armed ? 'Точно? Всё вернётся в кошелёк' : '↺ Сбросить раскладку'}
+        </button>
+      )}
       <a href={pageHref('/')} className="self-center text-[13px] text-ink2 underline underline-offset-[3px]">
         Что это вообще такое
       </a>

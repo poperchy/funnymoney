@@ -4,13 +4,11 @@ import { useEffect, useState, type MouseEvent } from 'react';
 import { moneyShort } from '@/lib/money/format';
 import { sum } from '@/lib/money/math';
 import type { Bill, Coin } from '@/model/types';
-import { FlatCoin, seeded, setLive, WallBill } from '@/components/mobile/parts';
+import { FlatCoin, seeded, WallBill } from '@/components/mobile/parts';
 import { packCells } from '@/scene/layout';
-import { FRAME, PIN, SURFACE } from '@/scene/skinCss';
+import { boardCss, cellCss, PIN, SURFACE } from '@/scene/skinCss';
 import { boardSkin, type BoardSkinId } from '@/scene/skins';
-
-// Everything on the landing page appears once it is scrolled to, so it should drop in.
-setLive(true);
+import type { Theme } from '@/model/ui';
 
 const COLS = 4, ROW_H = 82, GAP = 7;
 
@@ -45,6 +43,7 @@ export function useInView(threshold = 0.25) {
 /** A small wall in any skin, looking like the phone version of the real one. Bills stay away until `show`. */
 export function MiniBoard({
   skin,
+  theme = 'light',
   cells,
   bills,
   coins = [],
@@ -55,6 +54,7 @@ export function MiniBoard({
   onCell,
 }: {
   skin: BoardSkinId;
+  theme?: Theme;
   cells: DemoCell[];
   bills: Bill[];
   coins?: Coin[];
@@ -66,16 +66,13 @@ export function MiniBoard({
   onCell?: (id: string, e: MouseEvent) => void;
 }) {
   const board = boardSkin(skin);
-  const look = board.look.light;
+  const look = board.look[theme];
   const { positions, rows } = packCells(cells, cols);
+  const css = boardCss(board, look);
   return (
     <div
       className="rounded-[18px] p-[9px]"
-      style={{
-        backgroundColor: look.frame,
-        backgroundImage: FRAME[board.frameTexture],
-        boxShadow: '0 30px 50px -26px rgba(40,20,0,0.75), inset 0 1px 0 rgba(255,255,255,0.2), inset 0 0 0 1px rgba(0,0,0,0.25)',
-      }}
+      style={css.frame}
     >
       <div
         className="relative grid rounded-lg p-[7px]"
@@ -83,9 +80,7 @@ export function MiniBoard({
           gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`,
           gridTemplateRows: `repeat(${rows}, ${rowH}px)`,
           gap: GAP,
-          backgroundColor: look.inner,
-          backgroundImage: 'repeating-linear-gradient(90deg, rgba(0,0,0,0.08) 0 1px, transparent 1px 5px)',
-          boxShadow: 'inset 0 3px 10px rgba(0,0,0,0.45)',
+          ...css.inner,
         }}
       >
         {cells.map((c, i) => {
@@ -104,8 +99,7 @@ export function MiniBoard({
               style={{
                 gridColumn: `${p.col + 1} / span ${c.colSpan}`,
                 gridRow: `${p.row + 1} / span ${c.rowSpan}`,
-                backgroundColor: look.cell,
-                boxShadow: 'inset 0 2px 6px rgba(50,25,5,0.45), inset 0 0 0 1px rgba(0,0,0,0.12)',
+                ...cellCss(board, look, c.id),
               }}
             >
               <div className="pointer-events-none absolute inset-0 opacity-90" style={{ backgroundImage: SURFACE[board.cellTexture] }} />

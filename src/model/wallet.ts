@@ -4,7 +4,7 @@ import type { CurrencyCode } from '@/lib/money/currency';
 import { emptyWallet } from './defaults';
 import * as ops from './ops';
 import { computeLayout } from '@/scene/layout';
-import type { BillLocation, Category, Pose, Wallet } from './types';
+import type { BillLocation, Category, PigGoal, Pose, Wallet } from './types';
 
 export const $wallet = createStore<Wallet>(emptyWallet());
 
@@ -14,6 +14,10 @@ export const coinMoved = createEvent<{ id: string; to: BillLocation }>();
 export const spent = createEvent<ops.SpendInput>();
 export const spreadRequested = createEvent();
 export const piggyBroken = createEvent();
+/** Start the layout over: everything in the cells goes back to the wallet. */
+export const boardCleared = createEvent();
+/** What the piggy saves for; null clears it. */
+export const pigGoalSet = createEvent<PigGoal | null>();
 export const categoryUpdated = createEvent<{ id: string } & ops.CategoryPatch>();
 export const categoryAdded = createEvent<Omit<Category, 'id'>>();
 export const categoryRemoved = createEvent<string>();
@@ -31,6 +35,8 @@ $wallet
   .on(billMoved, (w, { id, to, pose }) => ops.moveBill(w, id, to, pose))
   .on(coinMoved, (w, { id, to }) => ops.moveCoin(w, id, to))
   .on(spent, (w, input) => ops.spend(w, input))
+  .on(boardCleared, w => ops.clearBoard(w))
+  .on(pigGoalSet, (w, goal) => ops.setPigGoal(w, goal))
   .on(categoryUpdated, (w, { id, ...patch }) => ops.updateCategory(w, id, patch))
   .on(categoryAdded, (w, c) => ops.addCategory(w, c))
   .on(categoryRemoved, (w, id) => ops.removeCategory(w, id))
@@ -58,6 +64,9 @@ export const $currency = $wallet.map(ops.currencyOf);
 export const $balance = $wallet.map(ops.balance);
 export const $piggyTotal = $wallet.map(ops.piggyTotal);
 export const $pileTotal = $wallet.map(ops.pileTotal);
+/** Counts every time the wallet got more money while the app is open: the hungry wallet skin squints on each. */
+const $pileMeals = createStore({ total: $pileTotal.getState(), meals: 0 }).on($pileTotal.updates, (s, total) => ({ total, meals: total > s.total ? s.meals + 1 : s.meals }));
+export const $purseMeals = $pileMeals.map(s => s.meals);
 /** Recomputed only when categories change: map() skips identical values. */
 export const $categories = $wallet.map(w => w.categories);
 export const $layout = $categories.map(computeLayout);

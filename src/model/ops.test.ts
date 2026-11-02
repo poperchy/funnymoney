@@ -30,6 +30,63 @@ describe('wallet ops', () => {
     expect(plan.ok && plan.taken.map(t => t.id)).toEqual([b.id]);
   });
 
+  it('clearing the board returns cell money to the wallet and leaves the piggy alone', () => {
+    const w = funded();
+    const [toCell, toPig] = w.bills;
+    const [coinToCell, coinToPig] = w.coins;
+    let laid = ops.moveBill(w, toCell.id, { type: 'cell', cellId: 'cafe' });
+    laid = ops.moveBill(laid, toPig.id, { type: 'piggy' });
+    laid = ops.moveCoin(laid, coinToCell.id, { type: 'cell', cellId: 'cafe' });
+    laid = ops.moveCoin(laid, coinToPig.id, { type: 'piggy' });
+    expect(ops.boardHasMoney(laid)).toBe(true);
+
+    const after = ops.clearBoard(laid);
+    expect(ops.boardHasMoney(after)).toBe(false);
+    expect(ops.totalIn(after, { type: 'cell', cellId: 'cafe' })).toBe(0);
+    expect(after.bills.find(b => b.id === toCell.id)?.location.type).toBe('pile');
+    expect(after.coins.find(c => c.id === coinToCell.id)?.location).toBe('wallet');
+    expect(ops.piggyTotal(after)).toBe(toPig.value + coinToPig.value);
+    expect(ops.balance(after)).toBe(ops.balance(w));
+  });
+
+  it('a single coin can pay on its own, with change back to the wallet', () => {
+    const w = funded();
+    const coin = w.coins.find(c => c.value === 200)!;
+    const inCell = ops.moveCoin(w, coin.id, { type: 'cell', cellId: 'cafe' });
+    const after = ops.spend(inCell, { source: 'cafe', billIds: [coin.id], change: [50], label: 'Талончик' });
+    expect(after.coins.some(c => c.id === coin.id)).toBe(false);
+    expect(after.receipts[0]).toMatchObject({ source: 'cafe', amount: 150, paid: 200, label: 'Талончик' });
+    expect(ops.balance(after)).toBe(ops.balance(w) - 150);
+    expect(ops.coinsIn(after, { type: 'pile' }).filter(c => c.value === 50)).toHaveLength(2);
+  });
+
+  describe('piggy goal', () => {
+    const saving = (amount: number) => {
+      const w = funded();
+      return ops.setPigGoal(ops.moveBill(w, w.bills[0].id, { type: 'piggy' }), { name: ' Велик ', amount });
+    };
+
+    it('tracks what is saved and what is left', () => {
+      expect(ops.pigGoalProgress(funded())).toBeNull();
+      expect(ops.pigGoalProgress(saving(80000))).toMatchObject({ name: 'Велик', saved: 20000, left: 60000, share: 0.25, reached: false });
+      expect(ops.pigGoalProgress(saving(10000))).toMatchObject({ left: 0, share: 1, reached: true });
+    });
+
+    it('ignores a goal without a name or an amount, and can be cleared', () => {
+      const w = saving(80000);
+      expect(ops.setPigGoal(w, { name: '  ', amount: 100 }).pigGoal?.name).toBe('Велик');
+      expect(ops.setPigGoal(w, { name: 'Отпуск', amount: 0 }).pigGoal?.name).toBe('Велик');
+      expect(ops.setPigGoal(w, null).pigGoal).toBeUndefined();
+    });
+
+    it('breaking the piggy finishes a reached goal and keeps an unreached one', () => {
+      expect(ops.breakPiggy(saving(10000)).wallet.pigGoal).toBeUndefined();
+      const kept = ops.breakPiggy(saving(80000)).wallet;
+      expect(kept.pigGoal?.name).toBe('Велик');
+      expect(ops.pigGoalProgress(kept)?.saved).toBe(0);
+    });
+  });
+
   it('removing a cell sends its coins back to the wallet', () => {
     const w = funded();
     const coin = w.coins[0];

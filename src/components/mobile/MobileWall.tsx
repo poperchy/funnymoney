@@ -6,17 +6,19 @@ import { money, moneyShort, plural } from '@/lib/money/format';
 import { sum } from '@/lib/money/math';
 import { MAX_CATEGORIES } from '@/model/defaults';
 import { sheetOpened } from '@/model/mobile';
-import { billsIn, coinsIn, crumpledInWallet, piggyCoins } from '@/model/ops';
+import { billsIn, coinsIn, crumpledInWallet, pigGoalProgress, piggyCoins } from '@/model/ops';
 import { coinLocation, type Bill, type BillLocation, type Coin } from '@/model/types';
 import { $skins } from '@/model/skins';
-import { $theme, categoryEditOpened, pigOpened, toastShown } from '@/model/ui';
-import { $balance, $currency, $piggyTotal, $wallet, spreadRequested } from '@/model/wallet';
+import { $theme, categoryEditOpened, pigGoalToggled, pigOpened, toastShown } from '@/model/ui';
+import { $balance, $currency, $piggyTotal, $purseMeals, $wallet, spreadRequested } from '@/model/wallet';
 import { CoinFace } from '@/components/money/BillImg';
 import { packCells } from '@/scene/layout';
 import { crumpledUrl } from '@/scene/paint';
 import { dropItem, type DropKey, type Item } from './actions';
-import { FRAME, PIN, SURFACE } from '@/scene/skinCss';
-import { boardSkin, purseSkin } from '@/scene/skins';
+import { boardCss, cellCss, PIN, purseCss, SURFACE } from '@/scene/skinCss';
+import { PurseTrim } from '@/components/money/PurseTrim';
+import { boardSkin, purseSkin, tillSkin } from '@/scene/skins';
+import { TillDock } from '@/components/money/TillArt';
 import { usePig } from './pig';
 import { askMotion } from './PigSheet';
 import { billImg, FlatCoin, MBH, MBW, PigArt, seeded, setLive, TAG_TOP, WallBill } from './parts';
@@ -172,7 +174,7 @@ function Ghost({ d }: { d: Drag }) {
           <CoinFace value={d.value} size={30} />
         </span>
       ) : (
-        billImg(d.value, cur, MBW, { boxShadow: '0 3px 3px rgba(0,0,0,0.2), 0 26px 30px -10px rgba(30,15,0,0.6)' })
+        billImg(d.value, cur, MBW)
       )}
     </div>
   );
@@ -206,7 +208,11 @@ export function MobileWall() {
   const [theme, skins] = useUnit([$theme, $skins]);
   const board = boardSkin(skins.board);
   const look = board.look[theme];
-  const purse = purseSkin(skins.purse).look[theme];
+  const boardStyle = boardCss(board, look);
+  const wallet = purseSkin(skins.purse);
+  const purse = wallet.look[theme];
+  const meals = useUnit($purseMeals);
+  const till = tillSkin(skins.till);
 
   // Money that arrives from now on drops in.
   useEffect(() => {
@@ -233,6 +239,7 @@ export function MobileWall() {
   const pileCoins = coinsIn(w, { type: 'pile' });
   const pileTotal = sum([...allPileBills, ...pileCoins].map(b => b.value));
   const spent = spentThisMonth(w.receipts);
+  const goal = pigGoalProgress(w);
   const dragging = !!drag;
   const hot = (key: string) => !!drag && drag.target === key && drag.target !== (drag.from.type === 'cell' ? drag.from.cellId : drag.from.type);
   const openCell = (loc: BillLocation) => {
@@ -242,7 +249,7 @@ export function MobileWall() {
   const zoneH = dragging ? 112 : 70;
 
   return (
-    <div className="fixed inset-0 overflow-hidden bg-page" style={{ overscrollBehavior: 'none' }}>
+    <div className="fixed inset-0 overflow-hidden" style={{ overscrollBehavior: 'none' }}>
       <header
         className="absolute inset-x-0 top-0 z-20 flex items-center justify-between gap-2.5 bg-page pr-3.5 pl-5"
         style={{ paddingTop: 'max(10px, env(safe-area-inset-top))', height: 'calc(max(10px, env(safe-area-inset-top)) + 64px)' }}
@@ -276,19 +283,17 @@ export function MobileWall() {
           <div
             data-drop="pile"
             onClick={() => openCell({ type: 'pile' })}
-            className="relative mx-3 mb-3 cursor-pointer scroll-mt-2 rounded-[20px] px-3.5 pt-3.5 pb-2.5 text-[#fbf1e1] transition-shadow duration-200"
-            style={{
-              background: `linear-gradient(170deg, ${purse.front}, ${purse.back})`,
-              boxShadow: hot('pile') ? '0 0 0 3px var(--accent), 0 14px 26px -16px rgba(30,15,0,0.7)' : '0 14px 26px -16px rgba(30,15,0,0.7), inset 0 1px 0 rgba(255,255,255,0.15)',
-            }}
+            className="relative mx-3 mb-3 cursor-pointer scroll-mt-2 rounded-[20px] px-3.5 pt-3.5 pb-2.5 transition-shadow duration-200"
+            style={purseCss(purse, hot('pile'))}
           >
+            <PurseTrim skin={wallet} look={purse} open={dragging} wide={drag?.target === 'pile'} meals={meals} faceWidth={48} />
             {/* The wallet's stitching, in the colours of the chosen wallet skin. */}
             <div className="pointer-events-none absolute inset-[5px] rounded-[16px] border-[1.5px] border-dashed" style={{ borderColor: purse.stitch }} />
             <div className="relative flex min-w-0 flex-col gap-0.5">
               <span className="text-[15px]">
                 В кошельке: <b className="text-[22px] tracking-[-0.02em] whitespace-nowrap">{moneyShort(pileTotal)} {cur.symbol}</b>
               </span>
-              <span className="text-[13px] text-[rgba(251,241,225,0.75)]">{allPileBills.length ? 'Грустят без дела. Разложи их' : 'Мелочь. Тоже деньги, между прочим'}</span>
+              <span className="text-[13px] opacity-75">{allPileBills.length ? 'Грустят без дела. Разложи их' : 'Мелочь. Тоже деньги, между прочим'}</span>
             </div>
             <div className="relative mt-2.5 flex gap-2">
               {allPileBills.length > 0 && (
@@ -307,7 +312,8 @@ export function MobileWall() {
                   e.stopPropagation();
                   sheetOpened({ type: 'distribute', source: 'pile' });
                 }}
-                className="h-11 flex-1 rounded-full border-[1.5px] border-[rgba(255,240,220,0.5)] px-3 text-sm font-semibold whitespace-nowrap"
+                className="h-11 flex-1 rounded-full border-[1.5px] px-3 text-sm font-semibold whitespace-nowrap"
+                style={{ borderColor: purse.ink ?? 'rgba(255,240,220,0.5)' }}
               >
                 Вписать суммы
               </button>
@@ -340,7 +346,6 @@ export function MobileWall() {
                     right: (pileCoins.length ? 70 : 0) + i * 44,
                     bottom: 2 + (i % 2) * 6,
                     transform: `rotate(${(seeded(b.id)() - 0.5) * 50}deg)`,
-                    filter: 'drop-shadow(0 3px 3px rgba(20,8,0,0.45))',
                     opacity: drag?.id === b.id ? 0 : 1,
                     touchAction: 'pan-y',
                     zIndex: 50,
@@ -365,11 +370,7 @@ export function MobileWall() {
 
         <div
           className="mx-3 rounded-[18px] p-[9px]"
-          style={{
-            backgroundColor: look.frame,
-            backgroundImage: FRAME[board.frameTexture],
-            boxShadow: '0 24px 40px -26px rgba(40,20,0,0.75), inset 0 1px 0 rgba(255,255,255,0.2), inset 0 0 0 1px rgba(0,0,0,0.25)',
-          }}
+          style={boardStyle.frame}
         >
           <div
             className="relative grid rounded-lg p-[7px]"
@@ -377,9 +378,7 @@ export function MobileWall() {
               gridTemplateColumns: `repeat(${COLS}, minmax(0, 1fr))`,
               gridTemplateRows: `repeat(${grid.rows}, ${ROW_H}px)`,
               gap: GAP,
-              backgroundColor: look.inner,
-              backgroundImage: 'repeating-linear-gradient(90deg, rgba(0,0,0,0.08) 0 1px, transparent 1px 5px)',
-              boxShadow: 'inset 0 3px 10px rgba(0,0,0,0.45)',
+              ...boardStyle.inner,
             }}
           >
             {cats.map((c, i) => {
@@ -401,8 +400,7 @@ export function MobileWall() {
                   style={{
                     gridColumn: `${p.col + 1} / span ${cs}`,
                     gridRow: `${p.row + 1} / span ${c.rowSpan}`,
-                    backgroundColor: look.cell,
-                    boxShadow: 'inset 0 2px 6px rgba(50,25,5,0.45), inset 0 0 0 1px rgba(0,0,0,0.12)',
+                    ...cellCss(board, look, c.id),
                   }}
                 >
                   <div className="pointer-events-none absolute inset-0 opacity-90" style={{ backgroundImage: SURFACE[board.cellTexture] }} />
@@ -441,7 +439,7 @@ export function MobileWall() {
                       {low && cs > 1 && <span> · на донышке</span>}
                     </div>
                   </div>
-                  {hot(c.id) && <div className="pointer-events-none absolute inset-0 z-[3] rounded-[5px] border-2 border-[rgba(255,250,235,0.95)] bg-[rgba(255,250,235,0.16)]" />}
+                  {hot(c.id) && <div className="pointer-events-none absolute inset-0 z-[3] rounded-[5px] border-2 bg-[rgba(255,250,235,0.16)]" style={{ borderColor: look.ink ? 'var(--accent)' : 'rgba(255,250,235,0.95)' }} />}
                 </div>
               );
             })}
@@ -474,36 +472,23 @@ export function MobileWall() {
         className="pointer-events-none absolute inset-x-0 bottom-0 z-30 flex items-end gap-2.5 px-3 pt-6"
         style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 18px)', background: 'linear-gradient(180deg, transparent, var(--page) 30%)' }}
       >
-        <div
+        <TillDock
+          skin={till}
           data-drop="spent"
           onClick={() => !justDropped() && sheetOpened({ type: 'receipts' })}
-          className="pointer-events-auto relative min-w-0 flex-1 cursor-pointer overflow-hidden rounded-[22px] px-4 py-3 text-[#f6efe3]"
-          style={{
-            height: zoneH,
-            background: 'var(--till)',
-            boxShadow:
-              drag?.target === 'spent'
-                ? '0 0 0 3px var(--accent), 0 18px 30px -12px rgba(0,0,0,0.6)'
-                : dragging
-                  ? '0 0 0 2px rgba(246,239,227,0.25)'
-                  : '0 10px 20px -14px rgba(0,0,0,0.6)',
-            transition: 'height .25s cubic-bezier(.22,.8,.3,1), box-shadow .2s ease',
-          }}
-        >
-          <div className="absolute inset-x-4 top-[9px] h-1 rounded-sm bg-[rgba(0,0,0,0.5)] shadow-[0_1px_0_rgba(255,255,255,0.1)]" />
-          <div className="relative mt-2 flex flex-col gap-0.5">
-            <span className="text-[17px] font-bold">Потрачено</span>
-            <span className="truncate text-[13px] text-[rgba(246,239,227,0.75)]">
-              {dragging
-                ? drag.target === 'spent'
-                  ? 'Отпускай. Прощай, дружок'
-                  : 'Тащи сюда, чтобы потратить'
-                : spent
-                  ? `−${money(spent)} за месяц · чеки, статистика ›`
-                  : 'Пока ничего · чеки, статистика ›'}
-            </span>
-          </div>
-        </div>
+          className="pointer-events-auto min-w-0 flex-1 cursor-pointer"
+          height={zoneH}
+          ring={drag?.target === 'spent' ? '0 0 0 3px var(--accent), 0 18px 30px -12px rgba(0,0,0,0.6)' : dragging ? '0 0 0 2px rgba(246,239,227,0.25)' : undefined}
+          caption={
+            dragging
+              ? drag.target === 'spent'
+                ? 'Отпускай. Прощай, дружок'
+                : 'Тащи сюда, чтобы потратить'
+              : spent
+                ? `−${money(spent)} за месяц · чеки, статистика ›`
+                : 'Пока ничего · чеки, статистика ›'
+          }
+        />
         <div
           data-drop="piggy"
           className="pointer-events-auto relative w-[176px] flex-none overflow-hidden rounded-[22px] bg-panel"
@@ -526,7 +511,9 @@ export function MobileWall() {
             onClick={() => {
               if (justDropped()) return;
               if (!pigTotal) {
-                toastShown('Свинка голодает. Переложи ей мелочь из кошелька');
+                // An empty pig with no goal: a good moment to give it one.
+                if (goal) toastShown('Свинка голодает. Переложи ей мелочь из кошелька');
+                else pigGoalToggled(true);
                 return;
               }
               askMotion();
@@ -534,13 +521,18 @@ export function MobileWall() {
             }}
             className="absolute inset-y-0 right-0 left-[86px] flex flex-col items-end gap-px pt-[9px] pr-3 text-right"
           >
-            <span className="text-[11px] whitespace-nowrap text-ink2">Нужная мусорка</span>
+            <span className="max-w-full truncate text-[11px] whitespace-nowrap text-ink2">{goal ? goal.name : 'Нужная мусорка'}</span>
             <span className="text-[15px] font-bold whitespace-nowrap">
               {moneyShort(pigTotal)} <span className="text-[11px] font-medium text-ink2">{cur.symbol}</span>
             </span>
             <span className="text-[11px] font-semibold whitespace-nowrap" style={{ color: pigTotal && !dragging ? 'var(--accent)' : 'var(--ink2)' }}>
-              {dragging ? 'Хрю, сюда' : pigTotal ? 'Забрать ›' : 'Свинка голодает'}
+              {dragging ? 'Хрю, сюда' : pigTotal ? 'Разбить ›' : 'Свинка голодает'}
             </span>
+            {goal && !dragging && (
+              <span className="absolute right-3 bottom-[5px] left-1 h-1 overflow-hidden rounded-full bg-line">
+                <span className="block h-full rounded-full bg-accent" style={{ width: `${goal.share * 100}%` }} />
+              </span>
+            )}
           </button>
         </div>
       </div>

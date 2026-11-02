@@ -56,6 +56,9 @@ export type Receipt = {
   at: string;
 };
 
+/** What the piggy is saving for. Older saves have none. */
+export type PigGoal = { name: string; amount: number };
+
 export type Wallet = {
   version: 1;
   currency: CurrencyCode;
@@ -65,6 +68,7 @@ export type Wallet = {
   receipts: Receipt[];
   lastIncome: number;
   onboarded: boolean;
+  pigGoal?: PigGoal;
 };
 
 /** Spot a bill can be dragged to. */

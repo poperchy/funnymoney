@@ -20,7 +20,7 @@ export function DragGhost() {
           <CoinFace value={drag.value} size={COIN_GHOST * drag.k} />
         </span>
       ) : (
-        <BillImg value={drag.value} scale={drag.k} style={{ boxShadow: '0 3px 3px rgba(0,0,0,0.2), 0 30px 34px -10px rgba(30,15,0,0.55)' }} />
+        <BillImg value={drag.value} scale={drag.k} />
       )}
     </div>,
     document.body,

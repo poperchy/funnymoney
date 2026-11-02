@@ -9,6 +9,7 @@ import { $currency } from '@/model/wallet';
 import { PigArt } from '@/components/mobile/parts';
 import { usePig } from '@/components/mobile/pig';
 import { play } from '@/sound/sfx';
+import './live';
 import { useInView } from './MiniBoard';
 import { PigBubble } from './PigBubble';
 

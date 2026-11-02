@@ -16,7 +16,7 @@ export function Stack({ bills }: { bills: number[] }) {
   const layers = Math.min(30, bills.length);
   const top = bills[bills.length - 1];
   return (
-    <div className="relative" style={{ width: W + layers * 1.5, height: H + layers * 1.8, filter: 'drop-shadow(0 18px 18px rgba(30,15,0,0.35))' }}>
+    <div className="relative" style={{ width: W + layers * 1.5, height: H + layers * 1.8 }}>
       {Array.from({ length: layers - 1 }, (_, j) => {
         const i = layers - 1 - j;
         const [p0, p1] = BILL_PAL[billIndex(cur, bills[(bills.length - 1 - i + bills.length) % bills.length])];
@@ -29,7 +29,7 @@ export function Stack({ bills }: { bills: number[] }) {
         );
       })}
       <motion.div key={bills.length} className="absolute top-0 left-0" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}>
-        <BillImg value={top} scale={2.2} className="!rounded-lg" style={{ boxShadow: 'none' }} />
+        <BillImg value={top} scale={2.2} className="!rounded-lg" />
       </motion.div>
       {bills.length >= 10 && (
         <div

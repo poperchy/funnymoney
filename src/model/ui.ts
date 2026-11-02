@@ -1,9 +1,10 @@
-import { createEvent, createStore, sample } from 'effector';
+import { createEffect, createEvent, createStore, sample } from 'effector';
 import { persist } from 'effector-storage/local';
 import type { BillLocation, DropTarget } from './types';
 import { slotKey } from './types';
 import { moneyShort } from '@/lib/money/format';
-import { $wallet, piggyEmptied, spent, spreadDone } from './wallet';
+import { pigGoalProgress } from './ops';
+import { $wallet, boardCleared, piggyEmptied, spent, spreadDone } from './wallet';
 
 export type Theme = 'light' | 'dark';
 export const themeToggled = createEvent();
@@ -101,7 +102,7 @@ sample({
   clock: [draftStarted.map(p => p.billId), draftTopUp],
   source: { w: $wallet, t: $tillBill },
   fn: ({ w, t }, id): TillBill | null => {
-    const value = w.bills.find(b => b.id === id)?.value;
+    const value = [...w.bills, ...w.coins].find(b => b.id === id)?.value;
     return value ? { value, key: (t?.key ?? 0) + 1, state: 'waiting' } : t;
   },
   target: $tillBill,
@@ -109,15 +110,15 @@ sample({
 
 /**
  * Each swallowed bill comes out under the slot as shredded strips. Kept apart from $tillBill,
- * which clears as soon as the bill is gone, while the strips are still falling.
+ * which clears as soon as the bill is gone, while the strips are still falling. Has its own counter:
+ * $tillBill's key starts over after every clear, and a repeated key wouldn't restart the animation.
  */
-export const $shred = createStore<{ key: number; value: number } | null>(null);
-sample({
+const billEaten = sample({
   clock: $tillBill,
   filter: t => t?.state === 'eaten',
-  fn: t => ({ key: t!.key, value: t!.value }),
-  target: $shred,
+  fn: t => t!.value,
 });
+export const $shred = createStore<{ key: number; value: number } | null>(null).on(billEaten, (s, value) => ({ key: (s?.key ?? 0) + 1, value }));
 
 /** Exchange dialog for the money lying in one place (a cell or the wallet). */
 export const exchangeOpened = createEvent<BillLocation | null>();
@@ -151,6 +152,9 @@ export const $pigFlow = createStore<PigFlow | null>(null)
 export const statsToggled = createEvent<boolean>();
 export const $statsOpen = createStore(false).on(statsToggled, (_, v) => v);
 
+export const pigGoalToggled = createEvent<boolean>();
+export const $pigGoalOpen = createStore(false).on(pigGoalToggled, (_, v) => v);
+
 export const categoryEditOpened = createEvent<string | null>();
 export const $editingCategory = createStore<string | null>(null).on(categoryEditOpened, (_, id) => id);
 
@@ -163,6 +167,24 @@ export const $toast = createStore<{ text: string; key: number } | null>(null)
 sample({
   clock: spreadDone,
   fn: moved => (moved ? 'Разложил как в прошлый раз. Стабильность — признак мастерства' : 'Подходящих купюр нет. Тут нужен человек'),
+  target: toastShown,
+});
+// Fires only when the flag flips, so reloading a reached goal stays quiet.
+const $goalReached = $wallet.map(w => !!pigGoalProgress(w)?.reached);
+/** After the pause: the "Хрю, +50" of the drop that got us here speaks first. */
+const goalCheeredFx = createEffect((text: string) => {
+  setTimeout(() => toastShown(text), 1500);
+});
+sample({
+  clock: $goalReached,
+  source: $wallet,
+  filter: (_, reached) => reached,
+  fn: w => `Накопили на «${w.pigGoal?.name}»! Можно разбивать. А можно подкопить ещё, я не против`,
+  target: goalCheeredFx,
+});
+sample({
+  clock: boardCleared,
+  fn: () => 'Всё обратно в кошельке. Раскладывай заново, меня не трогали',
   target: toastShown,
 });
 sample({

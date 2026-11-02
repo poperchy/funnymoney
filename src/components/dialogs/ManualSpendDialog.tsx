@@ -50,9 +50,8 @@ function ManualSpendForm() {
 
   const submit = () => {
     if (!plan.ok) return;
-    // The biggest bill handed over is the one the till swallows (paying in coins only feeds it nothing).
-    const top = Math.max(...plan.taken.map(b => b.value));
-    if (top >= cur.bills[0]) tillFed(top);
+    // The biggest bill or coin handed over is the one the till swallows.
+    tillFed(Math.max(...plan.taken.map(b => b.value)));
     spent({ source, billIds: plan.taken.map(b => b.id), change: [...plan.back, ...plan.coins], label: note ?? undefined });
     toastShown((JOKES[source] ?? DEFAULT_JOKE) + ' · −' + money(amt));
     play('till', 0.3);

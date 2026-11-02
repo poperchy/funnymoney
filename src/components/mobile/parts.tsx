@@ -56,8 +56,6 @@ export function billImg(value: number, cur: Currency, width: number, style?: CSS
   );
 }
 
-const BILL_SHADOW = '0 1px 1px rgba(0,0,0,0.24), 0 4px 7px -3px rgba(40,20,0,0.4)';
-
 /** A bill lying in a cell: its pose is a share of the free space under the tag. */
 export function WallBill({
   bill,
@@ -94,7 +92,6 @@ export function WallBill({
           zIndex: bill.z,
           '--r': `${r}deg`,
           transform: `rotate(${r}deg)`,
-          boxShadow: BILL_SHADOW,
           opacity: hidden ? 0 : 1,
           touchAction: 'pan-y',
           transition: 'left .25s ease, top .25s ease, transform .25s ease',
@@ -145,7 +142,7 @@ const leg = (x: number) => (
   <A key={'leg' + x} s={{ left: x, top: 134, width: 24, height: 30, borderRadius: '6px 6px 10px 10px', background: PIG.fill, border: '3px solid ' + PIG.edge }} />
 );
 
-/** The glass piggy, 232×182: coins piling up inside, bills tucked in. Breaks in two halves when asked. */
+/** The piggy, 232×182: coins piling up inside, bills tucked in. Breaks in two halves when asked. */
 export function PigArt({ coins, bills, broken, target, jolt = 0, wear }: { coins: Coin[]; bills: Bill[]; broken?: boolean; target?: boolean; jolt?: number; wear?: { hat: string; neck: string } }) {
   const cur = useUnit($currency);
   const skins = useUnit($skins);
@@ -162,7 +159,7 @@ export function PigArt({ coins, bills, broken, target, jolt = 0, wear }: { coins
       {bills.map(b => {
         const r = seeded(b.id);
         return (
-          <A key={b.id} s={{ left: 24 + r() * 70, top: 34 + r() * 46, transform: `rotate(${(r() - 0.5) * 50}deg)`, boxShadow: '0 2px 4px rgba(0,0,0,0.25)', borderRadius: 3 }}>
+          <A key={b.id} s={{ left: 24 + r() * 70, top: 34 + r() * 46, transform: `rotate(${(r() - 0.5) * 50}deg)`, borderRadius: 3 }}>
             {billImg(b.value, cur, 50)}
           </A>
         );
@@ -180,7 +177,7 @@ export function PigArt({ coins, bills, broken, target, jolt = 0, wear }: { coins
         height: 124,
         borderRadius: '50%',
         border: '3px solid ' + PIG.edge,
-        background: PIG.glass,
+        background: PIG.body,
         overflow: 'hidden',
         clipPath: clip,
         boxShadow: target ? '0 0 0 8px rgba(255,250,235,0.7)' : 'none',

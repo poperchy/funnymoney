@@ -8,6 +8,7 @@ import { $layout, $wallet } from '@/model/wallet';
 import { useFontsReady } from '@/lib/useFontsReady';
 import { preload } from '@/sound/sfx';
 import { CategoryDialog } from './dialogs/CategoryDialog';
+import { PigGoalDialog } from './dialogs/PigGoalDialog';
 import { ManualSpendDialog } from './dialogs/ManualSpendDialog';
 import { PiggyDialog } from './dialogs/PiggyDialog';
 import { ExchangeDialog } from './dialogs/ExchangeDialog';
@@ -23,9 +24,11 @@ import { Toast } from './wall/Toast';
 import { Header } from './wall/Header';
 import { HEADER_H, Wall, wallHeight } from './wall/Wall';
 
+import { useMobile } from '@/lib/useMobile';
+import { $skins } from '@/model/skins';
+import { pageSkin } from '@/scene/skins';
+
 const DESIGN_W = 1440;
-/** Narrower than this, the scaled-down desktop wall gets too small to touch: the phone layout takes over. */
-const MOBILE_QUERY = '(max-width: 720px)';
 /** Below this the hand screen would not fit; the page then scrolls a little. */
 const MIN_STOP_H = 640;
 
@@ -35,12 +38,6 @@ const subscribeResize = (cb: () => void) => {
 };
 /** The app is laid out for 1440px and scaled down on narrower screens. */
 const useFit = () => useSyncExternalStore(subscribeResize, () => Math.min(1, window.innerWidth / DESIGN_W), () => 1);
-const subscribeMobile = (cb: () => void) => {
-  const mq = window.matchMedia(MOBILE_QUERY);
-  mq.addEventListener('change', cb);
-  return () => mq.removeEventListener('change', cb);
-};
-const useMobile = () => useSyncExternalStore(subscribeMobile, () => window.matchMedia(MOBILE_QUERY).matches, () => false);
 const useViewportH = () => useSyncExternalStore(subscribeResize, () => window.innerHeight, () => 900);
 
 const PAN: Record<Stop, { duration: number; delay: number }> = {
@@ -95,6 +92,14 @@ export default function MoneyApp() {
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
   }, [theme]);
+  // The page skin lives on the body, so everything see-through shows it. The landing page keeps its own look.
+  const pageId = useUnit($skins).page;
+  useEffect(() => {
+    const look = pageSkin(pageId).look[theme];
+    document.documentElement.style.setProperty('--page', look.color);
+    document.body.style.backgroundImage = look.image;
+    document.body.style.backgroundSize = look.size;
+  }, [pageId, theme]);
   useEffect(preload, []);
   // Returning visitors get a hello; first-timers get the welcome card instead.
   useEffect(() => {
@@ -139,6 +144,7 @@ function DesktopApp() {
       <SpendDropDialog />
       <ManualSpendDialog />
       <PiggyDialog />
+      <PigGoalDialog />
       <CategoryDialog />
       <ReceiptDialog />
       <ExchangeDialog />

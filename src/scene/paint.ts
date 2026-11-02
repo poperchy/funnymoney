@@ -6,7 +6,7 @@ import { rng } from '@/lib/rng';
 import type { Theme } from '@/model/ui';
 import { BH, BW, SCENE_W, type Layout } from './layout';
 import { BILL_PAL, METAL } from './palette';
-import { boardSkin, purseSkin, type BoardSkin, type PurseSkin } from './skins';
+import { boardSkin, cellColor, purseSkin, type BoardSkin, type PurseSkin } from './skins';
 
 export const RES = 3;
 
@@ -152,18 +152,6 @@ export function crumpledUrl(value: number, cur: Currency): string {
     urlCache.set(key, url);
   }
   return url;
-}
-
-/** Soft shadow under a bill; drawn bigger than the bill so the blur fits. */
-export const SHADOW_PAD = 16;
-export function paintShadow(): HTMLCanvasElement {
-  const { c, ctx } = canvas(BW + SHADOW_PAD * 2, BH + SHADOW_PAD * 2, 2);
-  ctx.shadowColor = 'rgba(40,20,0,0.55)';
-  ctx.shadowBlur = 9;
-  ctx.fillStyle = 'rgba(40,20,0,0.35)';
-  roundRect(ctx, SHADOW_PAD, SHADOW_PAD, BW, BH, 4);
-  ctx.fill();
-  return c;
 }
 
 export type CoinLook = { size: number; bg: string[]; edge: string; bimetal: boolean };
@@ -331,13 +319,113 @@ function concrete(ctx: CanvasRenderingContext2D, x: number, y: number, w: number
   }
 }
 
-/** A cell's surface for the skin, with the same sunken edge for all of them. */
-function cellSurface(ctx: CanvasRenderingContext2D, skin: BoardSkin, x: number, y: number, w: number, h: number, base: string, seed: number) {
+/** Woven cloth: fine threads both ways. */
+function linen(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, base: string) {
+  ctx.fillStyle = base;
+  ctx.fillRect(x, y, w, h);
+  ctx.fillStyle = 'rgba(120,95,60,0.08)';
+  for (let i = y; i < y + h; i += 3) ctx.fillRect(x, i, w, 1);
+  ctx.fillStyle = 'rgba(120,95,60,0.07)';
+  for (let i = x; i < x + w; i += 3) ctx.fillRect(i, y, 1, h);
+}
+
+/** No texture at all: the flat skin is colour and contours. */
+function flat(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, base: string) {
+  ctx.fillStyle = base;
+  ctx.fillRect(x, y, w, h);
+}
+
+/** The back of a kraft envelope: paper fibres, the flap on top, the seams meeting under it. */
+function envelope(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, base: string, seed: number) {
+  ctx.save();
+  roundRect(ctx, x, y, w, h, 4);
+  ctx.clip();
+  ctx.fillStyle = base;
+  ctx.fillRect(x, y, w, h);
+  const r = rng(seed);
+  for (let i = 0; i < (w * h) / 12; i++) {
+    ctx.fillStyle = r() > 0.5 ? `rgba(90,55,20,${0.03 + r() * 0.06})` : `rgba(255,245,225,${0.03 + r() * 0.06})`;
+    ctx.fillRect(x + r() * w, y + r() * h, 0.6 + r() * 2.4, 0.5);
+  }
+  const tipX = x + w / 2, tipY = y + h * 0.42;
+  ctx.beginPath();
+  ctx.moveTo(x, y);
+  ctx.lineTo(x + w, y);
+  ctx.lineTo(tipX, tipY);
+  ctx.closePath();
+  ctx.fillStyle = 'rgba(88,47,10,0.13)';
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(88,47,10,0.3)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(x, y);
+  ctx.lineTo(tipX, tipY);
+  ctx.lineTo(x + w, y);
+  ctx.moveTo(x, y + h);
+  ctx.lineTo(tipX, tipY);
+  ctx.lineTo(x + w, y + h);
+  ctx.stroke();
+  ctx.restore();
+  ctx.strokeStyle = 'rgba(90,55,20,0.3)';
+  roundRect(ctx, x + 0.5, y + 0.5, w - 1, h - 1, 4);
+  ctx.stroke();
+}
+
+/** Perforated board: rows of holes, each with a lit lower lip. */
+function pegboard(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, base: string) {
+  ctx.fillStyle = base;
+  ctx.fillRect(x, y, w, h);
+  const STEP = 18;
+  for (let py = y + 9; py < y + h; py += STEP) {
+    for (let px = x + 9; px < x + w; px += STEP) {
+      ctx.beginPath();
+      ctx.arc(px, py + 0.6, 2.8, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(255,255,255,0.1)';
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(px, py, 2.6, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(10,16,12,0.75)';
+      ctx.fill();
+    }
+  }
+}
+
+/** Night sky: a soft nebula and scattered stars. */
+function stars(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, base: string, seed: number) {
+  ctx.fillStyle = base;
+  ctx.fillRect(x, y, w, h);
+  const r = rng(seed);
+  const nx = x + r() * w, ny = y + r() * h, nr = Math.max(w, h) * 0.7;
+  const glow = ctx.createRadialGradient(nx, ny, 0, nx, ny, nr);
+  glow.addColorStop(0, 'rgba(140,110,255,0.28)');
+  glow.addColorStop(1, 'rgba(140,110,255,0)');
+  ctx.fillStyle = glow;
+  ctx.fillRect(x, y, w, h);
+  for (let i = 0; i < (w * h) / 500; i++) {
+    ctx.fillStyle = `rgba(255,255,255,${0.3 + r() * 0.7})`;
+    ctx.beginPath();
+    ctx.arc(x + r() * w, y + r() * h, 0.3 + r() * 0.9, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
+/** A cell's surface for the skin; the textured ones share the same sunken edge. */
+function cellSurface(ctx: CanvasRenderingContext2D, skin: BoardSkin, x: number, y: number, w: number, h: number, base: string, seed: number, outline?: string) {
   if (skin.cellTexture === 'cork') return cork(ctx, x, y, w, h, base, seed);
+  if (skin.cellTexture === 'envelope') return envelope(ctx, x, y, w, h, base, seed);
+  if (skin.cellTexture === 'flat') {
+    roundRect(ctx, x + 1.25, y + 1.25, w - 2.5, h - 2.5, 12);
+    ctx.fillStyle = base;
+    ctx.fill();
+    ctx.strokeStyle = outline ?? '#1a1a1a';
+    ctx.lineWidth = 2.5;
+    ctx.stroke();
+    return;
+  }
   ctx.save();
   roundRect(ctx, x, y, w, h, 5);
   ctx.clip();
-  (skin.cellTexture === 'felt' ? felt : concrete)(ctx, x, y, w, h, base, seed);
+  ({ felt, concrete, pegboard, stars }[skin.cellTexture] ?? felt)(ctx, x, y, w, h, base, seed);
   const hl = ctx.createRadialGradient(x + w * 0.3, y + h * 0.15, 0, x + w * 0.3, y + h * 0.15, Math.max(w, h) * 0.8);
   hl.addColorStop(0, 'rgba(255,255,255,0.1)');
   hl.addColorStop(1, 'rgba(255,255,255,0)');
@@ -353,22 +441,15 @@ function cellSurface(ctx: CanvasRenderingContext2D, skin: BoardSkin, x: number, 
   ctx.restore();
 }
 
-export function paintBackground(theme: Theme, L: Layout, skinId = 'cork'): HTMLCanvasElement {
+export function paintBackground(theme: Theme, L: Layout, skinId = 'cork', res = 2): HTMLCanvasElement {
   const skin = boardSkin(skinId);
-  const frame = skin.frameTexture === 'metal' ? metal : woodGrain;
+  const frame = { wood: woodGrain, metal, linen, flat }[skin.frameTexture];
+  const sunken = skin.frameTexture === 'wood' || skin.frameTexture === 'metal';
   const BOARD = L.board;
   const S = skin.look[theme];
-  const T = { wood: S.frame, woodDark: S.inner, cork: S.cell, light: S.light };
-  const { c, ctx } = canvas(SCENE_W, L.h, 2);
+  const T = { wood: S.frame, woodDark: S.inner, light: S.light };
+  const { c, ctx } = canvas(SCENE_W, L.h, res);
 
-  ctx.save();
-  ctx.shadowColor = 'rgba(40,20,0,0.6)';
-  ctx.shadowBlur = 40;
-  ctx.shadowOffsetY = 26;
-  roundRect(ctx, BOARD.x, BOARD.y, BOARD.w, BOARD.h, 20);
-  ctx.fillStyle = T.wood;
-  ctx.fill();
-  ctx.restore();
   ctx.save();
   roundRect(ctx, BOARD.x, BOARD.y, BOARD.w, BOARD.h, 20);
   ctx.clip();
@@ -379,17 +460,26 @@ export function paintBackground(theme: Theme, L: Layout, skinId = 'cork'): HTMLC
   roundRect(ctx, 16, 16, SCENE_W - 32, BOARD.h - 32, 8);
   ctx.clip();
   frame(ctx, 16, 16, SCENE_W - 32, BOARD.h - 32, T.woodDark, 23);
-  ctx.shadowColor = 'rgba(0,0,0,0.6)';
-  ctx.shadowBlur = 10;
-  ctx.shadowOffsetY = 3;
-  ctx.strokeStyle = 'rgba(0,0,0,0.5)';
-  ctx.lineWidth = 8;
-  roundRect(ctx, 12, 12, SCENE_W - 24, BOARD.h - 24, 10);
-  ctx.stroke();
+  if (sunken) {
+    ctx.shadowColor = 'rgba(0,0,0,0.6)';
+    ctx.shadowBlur = 10;
+    ctx.shadowOffsetY = 3;
+    ctx.strokeStyle = 'rgba(0,0,0,0.5)';
+    ctx.lineWidth = 8;
+    roundRect(ctx, 12, 12, SCENE_W - 24, BOARD.h - 24, 10);
+    ctx.stroke();
+  }
   ctx.restore();
 
+  if (S.outline) {
+    ctx.strokeStyle = S.outline;
+    ctx.lineWidth = 3;
+    roundRect(ctx, BOARD.x + 1.5, BOARD.y + 1.5, BOARD.w - 3, BOARD.h - 3, 19);
+    ctx.stroke();
+  }
+
   [...L.cells].forEach(([id, r]) => {
-    cellSurface(ctx, skin, r.x, r.y, r.w, r.h, T.cork, hash(id));
+    cellSurface(ctx, skin, r.x, r.y, r.w, r.h, cellColor(S, id), hash(id), S.outline);
   });
 
   // Warm lamp light, and a vignette at night.
@@ -439,12 +529,8 @@ export function paintCrumpled(value: number, cur: Currency): HTMLCanvasElement {
   ctx.beginPath();
   pts.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)));
   ctx.closePath();
-  ctx.shadowColor = 'rgba(40,20,0,0.45)';
-  ctx.shadowBlur = 4;
-  ctx.shadowOffsetY = 2;
   ctx.fillStyle = BILL_PAL[billIndex(cur, value)][1];
   ctx.fill();
-  ctx.shadowColor = 'transparent';
   ctx.clip();
   ctx.translate(W / 2, H / 2);
   ctx.rotate(-0.12);
@@ -547,11 +633,25 @@ function stitches(ctx: CanvasRenderingContext2D, x: number, y: number, w: number
   ctx.restore();
 }
 
+/** One flat piece of the cartoon wallet: colour and a thick contour. */
+function flatPanel(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, radius: number, base: string, outline: string) {
+  roundRect(ctx, x + 1.5, y + 1.5, w - 3, h - 3, radius);
+  ctx.fillStyle = base;
+  ctx.fill();
+  ctx.strokeStyle = outline;
+  ctx.lineWidth = 3;
+  ctx.stroke();
+}
+
 /** Back panel of the wallet, drawn behind the bills. Canvas origin is the pile's top-left. */
-export function paintPurseBack(theme: Theme, L: Layout, skinId = 'leather'): HTMLCanvasElement {
+export function paintPurseBack(theme: Theme, L: Layout, skinId = 'leather', res = 2): HTMLCanvasElement {
   const skin = purseSkin(skinId), P = skin.look[theme], { back } = L.purse, o = L.pile;
-  const { c, ctx } = canvas(o.w, o.h + 8, 2);
+  const { c, ctx } = canvas(o.w, o.h + 8, res);
   const x = back.x - o.x, y = back.y - o.y;
+  if (P.outline) {
+    flatPanel(ctx, x, y, back.w, back.h, 20, P.back, P.outline);
+    return c;
+  }
   ctx.save();
   ctx.shadowColor = 'rgba(30,15,0,0.5)';
   ctx.shadowBlur = 16;
@@ -572,11 +672,57 @@ export function paintPurseBack(theme: Theme, L: Layout, skinId = 'leather'): HTM
   return c;
 }
 
+/** Slots for cards, above and below the caption on the pocket. */
+function cardSlots(ctx: CanvasRenderingContext2D, x: number, y: number, w: number) {
+  for (const sy of [y + 16, y + 64]) {
+    roundRect(ctx, x, sy, w, 14, 4);
+    ctx.fillStyle = 'rgba(30,12,0,0.28)';
+    ctx.fill();
+    ctx.fillStyle = 'rgba(0,0,0,0.3)';
+    ctx.fillRect(x + 3, sy, w - 6, 2);
+    ctx.fillStyle = 'rgba(255,235,205,0.18)';
+    ctx.fillRect(x + 3, sy + 14, w - 6, 1);
+  }
+}
+
+/** The metal mouth of a kiss-lock purse: a rim along the opening and two balls in the middle. */
+function clasp(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, centre: number, color: string, outline: string) {
+  ctx.fillStyle = color;
+  ctx.strokeStyle = outline;
+  ctx.lineWidth = 2.5;
+  roundRect(ctx, x, y - 4, w, 10, 5);
+  ctx.fill();
+  ctx.stroke();
+  for (const bx of [centre - 11, centre + 11]) {
+    ctx.beginPath();
+    ctx.arc(bx, y - 8, 10, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+  }
+}
+
 /** Front pocket and coin pocket, drawn over the bills. */
-export function paintPurseFront(theme: Theme, L: Layout, skinId = 'leather'): HTMLCanvasElement {
+export function paintPurseFront(theme: Theme, L: Layout, skinId = 'leather', res = 2): HTMLCanvasElement {
   const skin = purseSkin(skinId), P = skin.look[theme], { pocket, coinPocket } = L.purse, o = L.pile;
-  const { c, ctx } = canvas(o.w, o.h + 8, 2);
+  const { c, ctx } = canvas(o.w, o.h + 8, res);
   const px = pocket.x - o.x, py = pocket.y - o.y;
+  const cx = coinPocket.x - o.x, cy = coinPocket.y - o.y;
+  const bx = cx + coinPocket.w / 2, by = cy + 22;
+
+  if (P.outline) {
+    flatPanel(ctx, px, py, pocket.w, pocket.h, 16, P.front, P.outline);
+    clasp(ctx, px + 4, py + 2, cx - px - 4, px + (cx - px) / 2, P.accent ?? P.front, P.outline);
+    flatPanel(ctx, cx, cy, coinPocket.w, coinPocket.h, 14, P.coin, P.outline);
+    ctx.beginPath();
+    ctx.arc(bx, by, 7, 0, Math.PI * 2);
+    ctx.fillStyle = P.accent ?? P.coin;
+    ctx.fill();
+    ctx.strokeStyle = P.outline;
+    ctx.lineWidth = 2.5;
+    ctx.stroke();
+    return c;
+  }
+
   ctx.save();
   ctx.shadowColor = 'rgba(30,15,0,0.45)';
   ctx.shadowBlur = 10;
@@ -591,8 +737,8 @@ export function paintPurseFront(theme: Theme, L: Layout, skinId = 'leather'): HT
   roundRect(ctx, px + 2, py + 1, pocket.w - 4, 5, 3);
   ctx.fill();
   stitches(ctx, px + 7, py + 9, pocket.w - 14, pocket.h - 16, 11, P.stitch);
+  if (skin.trim === 'strap') cardSlots(ctx, px + 22, py, cx - px - 44);
 
-  const cx = coinPocket.x - o.x, cy = coinPocket.y - o.y;
   ctx.save();
   ctx.shadowColor = 'rgba(30,15,0,0.5)';
   ctx.shadowBlur = 8;
@@ -603,8 +749,14 @@ export function paintPurseFront(theme: Theme, L: Layout, skinId = 'leather'): HT
   ctx.restore();
   leather(ctx, cx, cy, coinPocket.w, coinPocket.h, 14, P.coin, 97, 0.18, skin.texture);
   stitches(ctx, cx + 6, cy + 8, coinPocket.w - 12, coinPocket.h - 14, 9, P.stitch);
+  if (skin.trim === 'strap') {
+    // The strap comes over the top of the coin pocket and holds it shut.
+    ctx.beginPath();
+    ctx.roundRect(bx - 18, cy - 5, 36, 48, [4, 4, 14, 14]);
+    ctx.fillStyle = P.accent ?? P.coin;
+    ctx.fill();
+  }
   // Snap button.
-  const bx = cx + coinPocket.w / 2, by = cy + 22;
   const metal = ctx.createRadialGradient(bx - 2, by - 2, 0, bx, by, 7);
   metal.addColorStop(0, '#fff6dc');
   metal.addColorStop(0.5, '#cfb274');

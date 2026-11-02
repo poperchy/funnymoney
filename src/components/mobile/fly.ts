@@ -40,7 +40,7 @@ function ghostOf(value: number, cur: Currency) {
     const img = document.createElement('img');
     img.src = billUrl(value, cur);
     img.alt = '';
-    Object.assign(img.style, { width: `${MBW}px`, height: `${MBH}px`, borderRadius: '3px', boxShadow: '0 3px 3px rgba(0,0,0,0.2), 0 18px 22px -10px rgba(30,15,0,0.6)' });
+    Object.assign(img.style, { width: `${MBW}px`, height: `${MBH}px`, borderRadius: '3px' });
     return { el: img as HTMLElement, w: MBW, h: MBH };
   }
   const { background, edge, size } = coinBg(value, cur);

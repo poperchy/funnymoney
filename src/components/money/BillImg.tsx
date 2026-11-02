@@ -19,7 +19,7 @@ export function BillImg({ value, scale = 1, className = '', style }: { value: nu
       height={BH * scale}
       draggable={false}
       className={`block rounded select-none ${className}`}
-      style={{ boxShadow: '0 1px 1px rgba(0,0,0,0.22), 0 6px 10px -4px rgba(40,20,0,0.45)', ...style }}
+      style={style}
     />
   );
 }

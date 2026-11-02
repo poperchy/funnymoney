@@ -11,7 +11,7 @@ import { dragChanged, draftStarted, exchangeOpened, pigShaken, toastShown, type 
 import { coinLocation, inPiggy, slotKey, type Bill, type BillLocation, type Coin, type DropTarget, type Pose, type Wallet } from '@/model/types';
 import { play } from '@/sound/sfx';
 import { BH, BW, computeLayout, inRect, type Layout, layoutKey, pointToPose, poseToPoint, SCENE_W } from './layout';
-import { coinLook, paintBackground, paintBill, paintCoin, paintCrumpled, paintPurseBack, paintPurseFront, paintShadow, RES } from './paint';
+import { coinLook, paintBackground, paintBill, paintCoin, paintCrumpled, paintPurseBack, paintPurseFront, RES } from './paint';
 import { Piggy } from './piggy';
 
 type BillView = {
@@ -19,7 +19,6 @@ type BillView = {
   value: number;
   root: Container;
   face: Sprite;
-  shadow: Sprite;
   loc: BillLocation;
   pose: Pose;
   inPig: boolean;
@@ -60,7 +59,6 @@ export class WallScene {
   private readonly views = new Map<string, BillView>();
   private readonly coins = new Map<string, number>();
   private readonly textures = new Map<string, Texture>();
-  private shadowTex: Texture;
   private wallet: Wallet | null = null;
   private hidden = new Set<string>();
   private pending: { grab: Grab; sx: number; sy: number } | null = null;
@@ -74,7 +72,6 @@ export class WallScene {
   private lastClick = { id: '', at: 0 };
 
   private constructor(private readonly app: Application) {
-    this.shadowTex = Texture.from(paintShadow());
     this.piggy = new Piggy(this.layout.piggy);
     app.stage.addChild(this.bg, this.piggy.root, this.purseBack, this.purseBills, this.purseCoins, this.purseFront, this.purseTop, this.bills);
     app.ticker.add(t => this.piggy.update(t.deltaMS));
@@ -100,7 +97,7 @@ export class WallScene {
   destroy() {
     window.removeEventListener('pointermove', this.onMove);
     window.removeEventListener('pointerup', this.onUp);
-    for (const v of this.views.values()) gsap.killTweensOf([v.root, v.root.scale, v.face, v.shadow]);
+    for (const v of this.views.values()) gsap.killTweensOf([v.root, v.root.scale, v.face]);
     this.piggy.destroy();
     this.app.destroy(true, { children: true, texture: true, textureSource: true });
   }
@@ -124,9 +121,10 @@ export class WallScene {
   }
 
   setSkins(skins: { board: string; purse: string; hat: string; neck: string }) {
+    const prev = this.skins;
     this.skins = skins;
-    this.paintBg();
-    this.paintPurse();
+    if (skins.board !== prev.board) this.paintBg();
+    if (skins.purse !== prev.purse) this.paintPurse();
     this.piggy.setWear(skins.hat, skins.neck);
   }
 
@@ -151,6 +149,12 @@ export class WallScene {
         gsap.fromTo(v.root, { alpha: 0 }, { alpha: 1, duration: 0.3 });
         gsap.fromTo(v.root.scale, { x: 1.2, y: 1.2 }, { x: 1, y: 1, duration: 0.45, ease: 'back.out(2)' });
       }
+    }
+    for (const [id, c] of this.looseCoins) {
+      const hide = ids.has(id);
+      if (hide === !c.sprite.visible) continue;
+      c.sprite.visible = !hide;
+      if (!hide) gsap.fromTo(c.sprite, { alpha: 0 }, { alpha: 1, duration: 0.3 });
     }
     this.hidden = ids;
   }
@@ -222,8 +226,6 @@ export class WallScene {
   private mount(v: BillView, cur: Currency, crumpled: boolean) {
     v.crumpled = crumpled;
     v.face.texture = crumpled ? this.crumpledTex(cur, v.value) : this.tex(cur, v.value);
-    v.shadow.scale.set(crumpled ? 0.36 : 0.5);
-    v.shadow.alpha = crumpled ? 0.55 : 0.75;
     const layer = v.loc.type !== 'pile' ? this.bills : crumpled ? this.purseTop : this.purseBills;
     if (v.root.parent !== layer) layer.addChild(v.root);
   }
@@ -303,22 +305,16 @@ export class WallScene {
 
   private addView(b: Bill, cur: Currency, instant: boolean, order: number, crumpled: boolean) {
     const root = new Container();
-    const shadow = new Sprite(this.shadowTex);
-    shadow.anchor.set(0.5);
-    shadow.scale.set(0.5);
-    shadow.position.set(0, 3);
-    shadow.alpha = 0.75;
-    shadow.eventMode = 'none';
     const face = new Sprite(this.tex(cur, b.value));
     face.anchor.set(0.5);
     face.scale.set(1 / RES);
-    root.addChild(shadow, face);
+    root.addChild(face);
     root.zIndex = b.z;
     root.hitArea = new Rectangle(-BW / 2, -BH / 2, BW, BH);
     root.eventMode = 'static';
     root.cursor = 'grab';
     root.visible = !this.hidden.has(b.id);
-    const v: BillView = { id: b.id, value: b.value, root, face, shadow, loc: b.location, pose: b.pose, inPig: false, crumpled: false };
+    const v: BillView = { id: b.id, value: b.value, root, face, loc: b.location, pose: b.pose, inPig: false, crumpled: false };
     this.views.set(b.id, v);
     root.on('pointerdown', e => this.onDown({ kind: 'bill', view: v }, e));
     root.on('rightclick', () => this.openExchange({ kind: 'bill', view: v }));
@@ -343,7 +339,7 @@ export class WallScene {
     const v = this.views.get(id);
     if (!v) return;
     if (v.inPig) this.piggy.take(id);
-    gsap.killTweensOf([v.root, v.root.scale, v.face, v.shadow]);
+    gsap.killTweensOf([v.root, v.root.scale, v.face]);
     v.root.destroy({ children: true });
     this.views.delete(id);
   }
@@ -504,7 +500,6 @@ export class WallScene {
     if (!v.root.parent) return;
     if (v.inPig || (on && (this.drag || this.locked))) return;
     gsap.to(v.face, { y: on ? -5 : 0, duration: 0.22, ease: 'power3.out' });
-    gsap.to(v.shadow, { y: on ? 9 : 3, alpha: on ? 0.95 : 0.75, duration: 0.22 });
     gsap.to(v.root.scale, { x: on ? 1.06 : 1, y: on ? 1.06 : 1, duration: 0.22, ease: 'power3.out' });
     v.root.zIndex = on ? 1e5 : (this.wallet?.bills.find(b => b.id === v.id)?.z ?? 0);
   }
@@ -567,7 +562,7 @@ export class WallScene {
       kind: g.kind,
       billId: g.kind === 'bill' ? g.view.id : g.coin.id,
       value: g.kind === 'bill' ? g.view.value : g.coin.value,
-      from: g.kind === 'bill' ? g.view.loc : { type: 'pile' },
+      from: g.kind === 'bill' ? g.view.loc : g.coin.loc,
       x: e.clientX,
       y: e.clientY,
       ox: d.ox,
@@ -644,12 +639,16 @@ export class WallScene {
     }
   };
 
-  /** Coins go into a cell, back into the wallet, or into the piggy. The till only takes bills. */
+  /** Coins go into a cell, back into the wallet, into the piggy, or into the till: a bus ticket is paid in coins too. */
   private dropCoin(c: LooseCoin, target: DropTarget | null, at: { x: number; y: number }) {
     c.sprite.visible = true;
-    if (!target || target.type === 'spent' || slotKey(target) === slotKey(c.loc)) {
+    if (!target || slotKey(target) === slotKey(c.loc)) {
       gsap.from(c.sprite, { y: c.sprite.y - 30, duration: 0.4, ease: 'bounce.out' });
-      if (target?.type === 'spent') toastShown('Касса берёт только купюры. Мелочь — в ячейку или свинке');
+      return;
+    }
+    if (target.type === 'spent') {
+      draftStarted({ billId: c.id, from: c.loc });
+      play('clink');
       return;
     }
     if (target.type === 'piggy') {

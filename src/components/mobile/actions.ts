@@ -18,26 +18,22 @@ const locOf = (key: DropKey): BillLocation | null =>
 const placeName = (key: string) =>
   key === 'pile' ? 'кошелька' : '«' + ($wallet.getState().categories.find(c => c.id === key)?.name ?? '') + '»';
 
-/** Returns false when nothing happened (dropped back where it was, or the till refused a coin). */
+/** Returns false when nothing happened (dropped back where it was). */
 export function dropItem(item: Item, to: DropKey, pose?: Pose): boolean {
   const from = slotKey(item.from);
   const sym = CURRENCIES[$wallet.getState().currency].symbol;
+  if (to === 'spent') {
+    // Same as the "Потратить" button: type the amount. The sound and the flight come after it.
+    sheetOpened({ type: 'spend', source: from });
+    return true;
+  }
   if (item.kind === 'coin') {
-    if (to === 'spent') {
-      toastShown('Касса берёт только купюры. Мелочь — в ячейку или свинке');
-      return false;
-    }
     if (to === from) return false;
     coinMoved({ id: item.id, to: locOf(to)! });
     if (to === 'piggy') {
       toastShown('Мелочь в свинку: +' + moneyShort(item.value) + '. Хрю');
       play('oink', 0.35);
     } else play('clink');
-    return true;
-  }
-  if (to === 'spent') {
-    // Same as the "Потратить" button: type the amount. The sound and the flight come after it.
-    sheetOpened({ type: 'spend', source: from });
     return true;
   }
   if (to === 'piggy') {
