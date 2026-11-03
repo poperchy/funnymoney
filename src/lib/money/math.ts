@@ -1,4 +1,4 @@
-import type { Currency } from './currency';
+import type { Denoms } from './denominations';
 
 const desc = (list: number[]) => [...list].sort((a, b) => b - a);
 
@@ -18,15 +18,15 @@ export function decompose(amount: number, denominations: number[]): number[] {
 export const sum = (list: number[]) => list.reduce((a, b) => a + b, 0);
 
 /** Splits change into bills (go back to the cell) and coins (go to the wallet pocket). */
-export function splitChange(amount: number, cur: Currency) {
-  const bills = decompose(amount, cur.bills);
-  const coins = decompose(amount - sum(bills), cur.coins);
+export function splitChange(amount: number, denoms: Denoms) {
+  const bills = decompose(amount, denoms.bills);
+  const coins = decompose(amount - sum(bills), denoms.coins);
   return { bills, coins };
 }
 
 /** Change handed back for `amount`, as the flat list of bill and coin values. */
-export function changeFor(amount: number, cur: Currency): number[] {
-  const { bills, coins } = splitChange(amount, cur);
+export function changeFor(amount: number, denoms: Denoms): number[] {
+  const { bills, coins } = splitChange(amount, denoms);
   return [...bills, ...coins];
 }
 
@@ -34,19 +34,19 @@ export function changeFor(amount: number, cur: Currency): number[] {
  * Turns an income into bills the way a cashier would if they knew your budgets:
  * each category's budget is counted out separately, so "spread like last time" fits exactly.
  */
-export function payout(amount: number, cur: Currency, budgets: number[]) {
+export function payout(amount: number, denoms: Denoms, budgets: number[]) {
   const bills: number[] = [];
   let left = amount;
   for (const budget of budgets) {
     if (left <= 0) break;
-    const part = decompose(Math.min(budget, left), cur.bills);
+    const part = decompose(Math.min(budget, left), denoms.bills);
     bills.push(...part);
     left -= sum(part);
   }
-  const rest = decompose(left, cur.bills);
+  const rest = decompose(left, denoms.bills);
   bills.push(...rest);
   left -= sum(rest);
-  return { bills, coins: decompose(left, cur.coins) };
+  return { bills, coins: decompose(left, denoms.coins) };
 }
 
 /** Picks bills to pay `amount`: the smallest single bill that covers it, otherwise biggest-first. */

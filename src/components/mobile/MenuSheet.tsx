@@ -2,44 +2,56 @@
 
 import { useUnit } from 'effector-react';
 import { useState } from 'react';
-import { CURRENCY_LIST, type CurrencyCode } from '@/lib/money/currency';
-import { pageHref } from '@/lib/paths';
+import { changeLocale, landingHref, locale, LOCALES, tr } from '@/lib/i18n';
+import { SCALE_LIST, SCALES, type BillScale } from '@/lib/money/denominations';
+import { billRange } from '@/lib/money/format';
 import { sheetClosed, sheetOpened } from '@/model/mobile';
 import { $muted, $theme, incomeOpened, muteToggled, pigGoalToggled, themeToggled, type Theme } from '@/model/ui';
 import { shopToggled } from '@/model/skins';
 import { boardHasMoney } from '@/model/ops';
-import { $currency, $wallet, boardCleared, currencyChanged } from '@/model/wallet';
+import { $denoms, $wallet, boardCleared, scaleChanged } from '@/model/wallet';
 import { useArmed } from '@/components/ui/useArmed';
 import { Sheet } from './Sheet';
 
-/** "⋯": theme, currency, sound and a new salary. */
+/** "⋯": language, theme, bills, sound and a new salary. */
 export function MenuSheet() {
-  const [theme, cur, w, muted] = useUnit([$theme, $currency, $wallet, $muted]);
-  const [pending, setPending] = useState<CurrencyCode | null>(null);
+  const [theme, denoms, w, muted] = useUnit([$theme, $denoms, $wallet, $muted]);
+  const [pending, setPending] = useState<BillScale | null>(null);
   const hasMoney = w.bills.length > 0 || w.coins.length > 0 || w.receipts.length > 0;
   const reset = useArmed(() => {
     boardCleared();
     sheetClosed();
   });
 
-  const pickCurrency = (code: CurrencyCode) => {
-    if (code === cur.code) return;
+  const pickScale = (code: BillScale) => {
+    if (code === denoms.id) return;
     if (hasMoney) setPending(code);
-    else currencyChanged(code);
+    else scaleChanged(code);
   };
   const seg = (on: boolean) =>
     `h-11 rounded-xl text-[15px] font-semibold text-ink ${on ? 'bg-modal shadow-[0_2px_8px_-2px_rgba(0,0,0,0.25)]' : 'bg-transparent'}`;
 
   return (
-    <Sheet title="Настройки" onClose={() => sheetClosed()} className="gap-4 px-5">
-      <span className="text-2xl font-bold tracking-[-0.025em]">Настройки</span>
+    // shrink-0: taller than a short phone, this sheet scrolls; otherwise flex squashes its buttons to fit.
+    <Sheet title={tr.common.settings} onClose={() => sheetClosed()} className="gap-4 px-5 [&>*]:shrink-0">
+      <span className="text-2xl font-bold tracking-[-0.025em]">{tr.common.settings}</span>
       <div className="flex flex-col gap-2">
-        <span className="text-[13px] text-ink2">Тема</span>
+        <span className="text-[13px] text-ink2">{tr.language.label}</span>
+        <div className="grid grid-cols-2 gap-1.5 rounded-2xl bg-field p-1">
+          {LOCALES.map(l => (
+            <button key={l} onClick={() => changeLocale(l)} className={seg(locale === l)}>
+              {tr.language.names[l]}
+            </button>
+          ))}
+        </div>
+      </div>
+      <div className="flex flex-col gap-2">
+        <span className="text-[13px] text-ink2">{tr.mobile.theme}</span>
         <div className="grid grid-cols-2 gap-1.5 rounded-2xl bg-field p-1">
           {(
             [
-              ['light', 'Светлая'],
-              ['dark', 'Тёмная'],
+              ['light', tr.mobile.themeLight],
+              ['dark', tr.mobile.themeDark],
             ] as [Theme, string][]
           ).map(([id, label]) => (
             <button key={id} onClick={() => theme !== id && themeToggled()} className={seg(theme === id)}>
@@ -49,51 +61,49 @@ export function MenuSheet() {
         </div>
       </div>
       <div className="flex flex-col gap-2">
-        <span className="text-[13px] text-ink2">Звук</span>
+        <span className="text-[13px] text-ink2">{tr.mobile.sound}</span>
         <div className="grid grid-cols-2 gap-1.5 rounded-2xl bg-field p-1">
           <button onClick={() => muted && muteToggled()} className={seg(!muted)}>
-            Шуршать
+            {tr.mobile.soundOn}
           </button>
           <button onClick={() => !muted && muteToggled()} className={seg(muted)}>
-            Тихо
+            {tr.mobile.soundOff}
           </button>
         </div>
       </div>
       <div className="flex flex-col gap-2">
-        <span className="text-[13px] text-ink2">Валюта</span>
+        <span className="text-[13px] text-ink2">{tr.scale.label}</span>
         <div className="flex flex-wrap gap-2">
-          {CURRENCY_LIST.map(c => {
-            const on = c.code === (pending ?? cur.code);
+          {SCALE_LIST.map(c => {
+            const on = c.id === (pending ?? denoms.id);
             return (
               <button
-                key={c.code}
-                onClick={() => pickCurrency(c.code)}
+                key={c.id}
+                onClick={() => pickScale(c.id)}
                 className="h-[42px] rounded-full border-[1.5px] px-[15px] text-sm font-semibold text-ink"
                 style={{ borderColor: on ? 'var(--accent)' : 'var(--line)', background: on ? 'var(--accent-wash)' : 'transparent' }}
               >
-                {c.code}
+                {billRange(c.bills)}
               </button>
             );
           })}
         </div>
         {pending && (
           <div className="flex flex-col gap-2.5 rounded-2xl bg-field p-3.5">
-            <span className="text-sm leading-normal text-ink2">
-              Купюры другой страны на эту стену не повесишь. Сменить на {pending}? Стена, копилка и чеки начнутся с нуля.
-            </span>
+            <span className="text-sm leading-normal text-ink2">{tr.scale.changeWhyShort(billRange(SCALES[pending].bills))}</span>
             <div className="flex gap-2">
               <button onClick={() => setPending(null)} className="h-11 flex-1 rounded-full border border-line text-sm font-medium text-ink">
-                Оставить
+                {tr.scale.keepShort}
               </button>
               <button
                 onClick={() => {
-                  currencyChanged(pending);
+                  scaleChanged(pending);
                   setPending(null);
                   sheetClosed();
                 }}
                 className="h-11 flex-1 rounded-full bg-accent text-sm font-semibold text-accent-ink"
               >
-                Начать заново
+                {tr.scale.restart}
               </button>
             </div>
           </div>
@@ -103,11 +113,11 @@ export function MenuSheet() {
         onClick={() => sheetOpened({ type: 'receipts', tab: 'stats' })}
         className="h-[52px] rounded-[18px] border border-line text-[15px] font-medium text-ink"
       >
-        Статистика по месяцам
+        {tr.mobile.statsMonthly}
       </button>
       <div className="flex gap-2">
         <button onClick={() => incomeOpened()} className="h-[52px] flex-1 rounded-[18px] border border-line text-[15px] font-medium text-ink">
-          + Зарплата
+          {tr.common.addIncome}
         </button>
         <button
           onClick={() => {
@@ -116,7 +126,7 @@ export function MenuSheet() {
           }}
           className="h-[52px] flex-1 rounded-[18px] border border-line text-[15px] font-medium text-ink"
         >
-          ✦ Скины
+          {tr.common.skins}
         </button>
       </div>
       <button
@@ -126,15 +136,15 @@ export function MenuSheet() {
         }}
         className="h-[52px] rounded-[18px] border border-line text-[15px] font-medium text-ink"
       >
-        {w.pigGoal ? `Цель копилки: ${w.pigGoal.name}` : 'Цель для копилки'}
+        {w.pigGoal ? tr.mobile.pigGoalNamed(w.pigGoal.name) : tr.mobile.pigGoal}
       </button>
       {boardHasMoney(w) && (
         <button onClick={reset.press} className="h-[52px] rounded-[18px] border border-line text-[15px] font-medium text-ink">
-          {reset.armed ? 'Точно? Всё вернётся в кошелёк' : '↺ Сбросить раскладку'}
+          {reset.armed ? tr.mobile.resetSure : tr.mobile.reset}
         </button>
       )}
-      <a href={pageHref('/')} className="self-center text-[13px] text-ink2 underline underline-offset-[3px]">
-        Что это вообще такое
+      <a href={landingHref()} className="self-center text-[13px] text-ink2 underline underline-offset-[3px]">
+        {tr.mobile.whatIsThis}
       </a>
     </Sheet>
   );

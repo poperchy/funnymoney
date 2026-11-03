@@ -5,16 +5,17 @@ import type { CSSProperties, ReactNode } from 'react';
 import { faceLabel } from '@/lib/money/format';
 import { BH, BW } from '@/scene/layout';
 import { billUrl, coinFaceCss } from '@/scene/paint';
-import { $currency } from '@/model/wallet';
+import { $denoms } from '@/model/wallet';
+import { tr } from '@/lib/i18n';
 
 /** Bill drawn by the same painter as the wall, so DOM and canvas bills match. */
 export function BillImg({ value, scale = 1, className = '', style }: { value: number; scale?: number; className?: string; style?: CSSProperties }) {
-  const cur = useUnit($currency);
+  const denoms = useUnit($denoms);
   return (
     // eslint-disable-next-line @next/next/no-img-element -- generated data URL, nothing to optimise
     <img
-      src={billUrl(value, cur)}
-      alt={`${faceLabel(value)} ${cur.code}`}
+      src={billUrl(value, denoms)}
+      alt={faceLabel(value)}
       width={BW * scale}
       height={BH * scale}
       draggable={false}
@@ -62,7 +63,7 @@ export function CountButton({
       </button>
       <button
         onClick={onRemove}
-        aria-label="Убрать"
+        aria-label={tr.common.remove}
         className={`rounded-full border border-line leading-none text-ink ${big ? 'h-8 w-8 text-lg' : 'h-[26px] w-[26px] text-[15px]'}`}
         style={{ visibility: count ? 'visible' : 'hidden' }}
       >
@@ -73,13 +74,13 @@ export function CountButton({
 }
 
 export function CoinFace({ value, size = 44 }: { value: number; size?: number }) {
-  const cur = useUnit($currency);
+  const denoms = useUnit($denoms);
   const label = faceLabel(value);
   return (
     <span
       className="flex shrink-0 items-center justify-center rounded-full font-bold whitespace-nowrap text-[#3a2a14]"
       // The label shrinks to stay on the coin: "0,50" is four characters on a small circle.
-      style={{ width: size, height: size, fontSize: Math.min(13, (size / label.length) * 1.4), ...coinFaceCss(value, cur) }}
+      style={{ width: size, height: size, fontSize: Math.min(13, (size / label.length) * 1.4), ...coinFaceCss(value, denoms) }}
     >
       {label}
     </span>

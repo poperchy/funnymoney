@@ -4,7 +4,7 @@ import { emptyWallet } from './defaults';
 import * as ops from './ops';
 
 const funded = () => {
-  const w = emptyWallet('BYN');
+  const w = emptyWallet('small');
   return ops.addIncome(w, [20000, 20000, 10000, 5000, 2000, 1000, 500], [200, 50]);
 };
 
@@ -95,7 +95,7 @@ describe('wallet ops', () => {
   });
 
   it('spending from the wallet can use its coins too', () => {
-    const w = ops.addIncome(emptyWallet('BYN'), [500], [200, 200]);
+    const w = ops.addIncome(emptyWallet('small'), [500], [200, 200]);
     const plan = ops.planSpend(w, 'pile', 350);
     expect(plan.ok).toBe(true);
     if (!plan.ok) return;
@@ -139,7 +139,7 @@ describe('wallet ops', () => {
   });
 
   it('breaking the piggy empties it completely: bills where possible, the rest as coins, all to the wallet', () => {
-    let w = ops.addIncome(emptyWallet('BYN'), [], [200, 200, 100, 50, 50, 20, 10, 5, 100]);
+    let w = ops.addIncome(emptyWallet('small'), [], [200, 200, 100, 50, 50, 20, 10, 5, 100]);
     // All coins but the last 1 Br go to the piggy; that one stays in the wallet and must survive.
     for (const c of w.coins.slice(0, -1)) w = ops.moveCoin(w, c.id, { type: 'piggy' });
     const bill = ops.addIncome(w, [2000], []).bills.at(-1)!;
@@ -216,16 +216,16 @@ describe('wallet ops', () => {
     expect(ops.balance(after)).toBe(ops.balance(w));
   });
 
-  it('scales default budgets to the currency', () => {
-    const rub = emptyWallet('RUB').categories.find(c => c.id === 'eda')!;
-    expect(rub.budget).toBe(2400000);
+  it('scales default budgets to the bills', () => {
+    const eda = emptyWallet('medium').categories.find(c => c.id === 'eda')!;
+    expect(eda.budget).toBe(2400000);
   });
 });
 
 describe('exchange', () => {
   const cell = { type: 'cell', cellId: 'eda' } as const;
   const withFood = (values: number[], coins: number[] = []) => {
-    let w = ops.addIncome(emptyWallet('BYN'), values, coins);
+    let w = ops.addIncome(emptyWallet('small'), values, coins);
     for (const b of w.bills) w = ops.moveBill(w, b.id, cell);
     for (const c of w.coins) w = ops.moveCoin(w, c.id, cell);
     return w;
@@ -280,11 +280,11 @@ describe('transfer', () => {
     expect(ops.balance(after)).toBe(ops.balance(w));
   });
 
-  it('refuses more than there is, and amounts the currency has no coin for', () => {
+  it('refuses more than there is, and amounts the coins cannot make up', () => {
     const w = funded();
     expect(ops.planTransfer(w, 'pile', 100000)).toMatchObject({ ok: false, reason: 'not-enough' });
-    const rub = ops.addIncome(emptyWallet('RUB'), [100000], []);
-    expect(ops.planTransfer(rub, 'pile', 15050)).toMatchObject({ ok: false, reason: 'odd' });
+    const large = ops.addIncome(emptyWallet('large'), [100000], []);
+    expect(ops.planTransfer(large, 'pile', 15050)).toMatchObject({ ok: false, reason: 'odd' });
   });
 
   it('feeds the piggy, but nothing can be moved out of it this way', () => {
@@ -316,7 +316,7 @@ describe('spendingByMonth', () => {
 
   it('sums receipts per month and per category', () => {
     const w = {
-      ...emptyWallet('BYN'),
+      ...emptyWallet('small'),
       receipts: [
         receipt('eda', 1500, at(2026, 10, 3)),
         receipt('eda', 2500, at(2026, 10, 20)),

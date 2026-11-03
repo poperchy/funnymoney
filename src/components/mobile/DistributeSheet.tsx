@@ -2,38 +2,38 @@
 
 import { useUnit } from 'effector-react';
 import { useState } from 'react';
-import { money, moneyShort } from '@/lib/money/format';
+import { amountField, money, moneyShort } from '@/lib/money/format';
 import { changeFor, sum } from '@/lib/money/math';
-import { FILL_ORDER } from '@/model/defaults';
+import { catName, FILL_ORDER, placeName } from '@/model/defaults';
 import { sheetClosed } from '@/model/mobile';
 import { sourceLocation, totalIn } from '@/model/ops';
 import { toastShown } from '@/model/ui';
-import { $currency, $wallet, amountsDistributed } from '@/model/wallet';
+import { $denoms, $wallet, amountsDistributed } from '@/model/wallet';
 import { play } from '@/sound/sfx';
 import { flyMoney } from './fly';
 import { parseAmount } from './ManualSpendSheet';
 import { Sheet } from './Sheet';
-
-const fmtInput = (minor: number) => String(minor / 100).replace('.', ',');
+import { tr } from '@/lib/i18n';
 
 /** Distribution by typing: how much goes into each cell. Bills are broken on the way if they don't fit exactly. */
 export function DistributeSheet({ source }: { source: string }) {
-  const [w, cur] = useUnit([$wallet, $currency]);
+  const [w, denoms] = useUnit([$wallet, $denoms]);
   const [texts, setTexts] = useState<Record<string, string>>({});
   const available = totalIn(w, sourceLocation(source));
-  const fromName = source === 'pile' ? 'кошелька' : '«' + (w.categories.find(c => c.id === source)?.name ?? '') + '»';
+  const fromName = placeName(source, w.categories);
+  const inName = source === 'pile' ? tr.common.inWalletPlace : fromName;
   const targets = [
-    ...w.categories.filter(c => c.id !== source).map(c => ({ id: c.id, name: c.name, budget: c.budget })),
-    ...(source === 'pile' ? [] : [{ id: 'pile', name: 'Обратно в кошелёк', budget: 0 }]),
-    { id: 'piggy', name: 'Свинка', budget: 0 },
+    ...w.categories.filter(c => c.id !== source).map(c => ({ id: c.id, name: catName(c), budget: c.budget })),
+    ...(source === 'pile' ? [] : [{ id: 'pile', name: tr.mobile.backToWallet, budget: 0 }]),
+    { id: 'piggy', name: tr.mobile.pig, budget: 0 },
   ];
 
   const amounts = Object.fromEntries(targets.map(t => [t.id, parseAmount(texts[t.id] ?? '')]));
   const total = sum(Object.values(amounts));
   const left = available - total;
-  const odd = targets.filter(t => amounts[t.id] && sum(changeFor(amounts[t.id], cur)) !== amounts[t.id]);
+  const odd = targets.filter(t => amounts[t.id] && sum(changeFor(amounts[t.id], denoms)) !== amounts[t.id]);
   const need = (id: string, budget: number) => Math.max(0, budget - totalIn(w, sourceLocation(id)));
-  const set = (id: string, minor: number) => setTexts(t => ({ ...t, [id]: minor ? fmtInput(minor) : '' }));
+  const set = (id: string, minor: number) => setTexts(t => ({ ...t, [id]: minor ? amountField(minor) : '' }));
 
   /** Tops up each cell to its budget, must-pay first, while the money lasts. */
   const fillBudgets = () => {
@@ -45,7 +45,7 @@ export function DistributeSheet({ source }: { source: string }) {
     });
     for (const t of order) {
       const give = Math.min(need(t.id, t.budget), rest);
-      if (give > 0) next[t.id] = fmtInput(give);
+      if (give > 0) next[t.id] = amountField(give);
       rest -= give;
     }
     setTexts(next);
@@ -57,12 +57,12 @@ export function DistributeSheet({ source }: { source: string }) {
     const hops = parts.map((p, i) => ({
       from: source,
       to: p.target,
-      values: changeFor(p.amount, cur),
+      values: changeFor(p.amount, denoms),
       at: i * 130,
       onLand: () => {
         if (p.target === 'piggy') play('oink', 0.05);
-        else play(p.amount < cur.bills[0] ? 'clink' : 'rustle');
-        if (i === parts.length - 1) toastShown(`Разлетелось: ${money(total)} ${cur.symbol}. Где надо, разменял`);
+        else play(p.amount < denoms.bills[0] ? 'clink' : 'rustle');
+        if (i === parts.length - 1) toastShown(tr.mobile.flew(money(total)));
       },
     }));
     sheetClosed();
@@ -70,22 +70,22 @@ export function DistributeSheet({ source }: { source: string }) {
     flyMoney(hops, () => amountsDistributed({ source, parts }));
   };
 
-  let status = left === available ? `Впиши, сколько куда. Купюры разменяю сам` : `Останется в ${source === 'pile' ? 'кошельке' : fromName}: ${money(Math.max(0, left))} ${cur.symbol}`;
-  if (left < 0) status = `Столько нет: в ${fromName} ${money(available)}, а ты раскладываешь ${money(total)}`;
-  else if (odd.length) status = `В «${odd[0].name}» сумма с копейками, для которых нет монеты. Округли`;
+  let status = left === available ? tr.mobile.enterHint : tr.mobile.remains(inName, money(Math.max(0, left)));
+  if (left < 0) status = tr.mobile.tooMuch(inName, money(available), money(total));
+  else if (odd.length) status = tr.mobile.oddKopecks(odd[0].name);
 
   return (
-    <Sheet title="Разложить вручную" onClose={() => sheetClosed()} className="gap-3.5 px-5 pt-2" flush>
+    <Sheet title={tr.mobile.distributeTitle} onClose={() => sheetClosed()} className="gap-3.5 px-5 pt-2" flush>
       <div className="flex items-start justify-between gap-3">
         <div className="flex min-w-0 flex-col gap-0.5">
-          <span className="text-2xl font-bold tracking-[-0.025em]">{source === 'pile' ? 'Куда полетят?' : `Куда из ${fromName}?`}</span>
+          <span className="text-2xl font-bold tracking-[-0.025em]">{source === 'pile' ? tr.mobile.whereFromWallet : tr.mobile.whereFrom(fromName)}</span>
           <span className="text-sm text-ink2">
-            Есть {money(available)} {cur.symbol}
+            {tr.mobile.available(money(available))}
           </span>
         </div>
         {source === 'pile' && (
           <button onClick={fillBudgets} className="h-11 flex-none rounded-full border-[1.5px] border-accent bg-accent-wash px-3.5 text-sm font-semibold text-ink">
-            По бюджетам
+            {tr.mobile.byBudgets}
           </button>
         )}
       </div>
@@ -101,7 +101,7 @@ export function DistributeSheet({ source }: { source: string }) {
                 <span className="truncate text-[15px] font-semibold">{t.name}</span>
                 <span className="truncate text-xs text-ink2">
                   {moneyShort(has)}
-                  {t.budget > 0 && ` из ${moneyShort(t.budget)}`}
+                  {t.budget > 0 && ` ${tr.mobile.ofBudget(moneyShort(t.budget))}`}
                   {value > 0 && <span className="font-semibold text-accent"> → {moneyShort(has + value)}</span>}
                 </span>
               </div>
@@ -115,12 +115,11 @@ export function DistributeSheet({ source }: { source: string }) {
                   value={texts[t.id] ?? ''}
                   inputMode="decimal"
                   placeholder="0"
-                  aria-label={'Сумма в ' + t.name}
+                  aria-label={tr.mobile.amountIn(t.name)}
                   onChange={e => setTexts(x => ({ ...x, [t.id]: e.target.value.replace(/[^\d.,]/g, '').slice(0, 10) }))}
                   onKeyDown={e => e.key === 'Enter' && submit()}
                   className="w-full min-w-0 bg-transparent text-right text-lg font-semibold text-ink"
                 />
-                <span className="text-xs text-ink2">{cur.symbol}</span>
               </label>
             </div>
           );
@@ -133,7 +132,7 @@ export function DistributeSheet({ source }: { source: string }) {
           {status}
         </span>
         <button onClick={submit} disabled={!total || left < 0 || odd.length > 0} className="h-[64px] rounded-[20px] bg-accent text-[17px] font-semibold text-accent-ink disabled:opacity-40">
-          {total ? `Летите, родные · ${moneyShort(total)} ${cur.symbol}` : 'Сначала сумма'}
+          {total ? tr.mobile.flyAway(moneyShort(total)) : tr.common.firstAmount}
         </button>
       </div>
     </Sheet>

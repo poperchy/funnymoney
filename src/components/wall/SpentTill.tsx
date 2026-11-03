@@ -4,8 +4,8 @@ import { useUnit } from 'effector-react';
 import { motion, type TargetAndTransition } from 'motion/react';
 import { useEffect, useRef } from 'react';
 import { $drag, $shred, $tillBill, tillCleared, type TillBill } from '@/model/ui';
-import { $currency, $wallet } from '@/model/wallet';
-import { billIndex } from '@/lib/money/currency';
+import { $denoms, $wallet } from '@/model/wallet';
+import { billIndex } from '@/lib/money/denominations';
 import { rng } from '@/lib/rng';
 import { BILL_PAL } from '@/scene/palette';
 import { setSpentZone } from '@/scene/WallScene';
@@ -13,6 +13,7 @@ import { $skins } from '@/model/skins';
 import { tillSkin } from '@/scene/skins';
 import { BillImg, CoinFace } from '@/components/money/BillImg';
 import { TillFace, tillTotal } from '@/components/money/TillArt';
+import { tr } from '@/lib/i18n';
 
 const TILL_MOTION: Record<TillBill['state'], TargetAndTransition> = {
   // Hovers over the slot while you decide.
@@ -28,9 +29,9 @@ const COIN_SPARKS = ['#f0d98a', '#d9d9d2', '#b8933c'];
 
 /** The swallowed bill comes out under the slot as a shower of shredded strips and a few sparkles; a coin only sparkles. */
 function Shreds({ burst }: { burst: { key: number; value: number } }) {
-  const cur = useUnit($currency);
-  const coin = burst.value < cur.bills[0];
-  const [p0, p1, p2] = coin ? COIN_SPARKS : BILL_PAL[billIndex(cur, burst.value)];
+  const denoms = useUnit($denoms);
+  const coin = burst.value < denoms.bills[0];
+  const [p0, p1, p2] = coin ? COIN_SPARKS : BILL_PAL[billIndex(denoms, burst.value)];
   const r = rng(burst.key * 7919 + burst.value);
   const pieces = Array.from({ length: 22 }, (_, i) => {
     const strip = !coin && i < 15;
@@ -66,7 +67,7 @@ function Shreds({ burst }: { burst: { key: number; value: number } }) {
 /** "Потрачено" — the cash register where bills are dropped to spend them. */
 export function SpentTill() {
   const ref = useRef<HTMLDivElement>(null);
-  const [w, cur, drag, till, shred, skins] = useUnit([$wallet, $currency, $drag, $tillBill, $shred, $skins]);
+  const [w, denoms, drag, till, shred, skins] = useUnit([$wallet, $denoms, $drag, $tillBill, $shred, $skins]);
   const skin = tillSkin(skins.till);
   const over = drag?.target?.type === 'spent';
 
@@ -76,7 +77,7 @@ export function SpentTill() {
   }, []);
 
   return (
-    <TillFace ref={ref} skin={skin} over={over} caption={over ? 'Отпускай. Не бойся' : drag ? 'Сюда, сюда' : 'Брось сюда купюру или монету'} total={tillTotal(w.receipts)}>
+    <TillFace ref={ref} skin={skin} over={over} caption={over ? tr.wall.tillRelease : drag ? tr.wall.tillHere : tr.wall.tillIdle} total={tillTotal(w.receipts)}>
       {/* Clipped at the slot line, so a bill sliding down disappears into the till. */}
       <div className="absolute inset-x-0 -top-[60px] h-[76px] overflow-hidden">
         {till && (
@@ -87,7 +88,7 @@ export function SpentTill() {
             animate={TILL_MOTION[till.state]}
             onAnimationComplete={() => till.state !== 'waiting' && tillCleared()}
           >
-            {till.value < cur.bills[0] ? (
+            {till.value < denoms.bills[0] ? (
               <span className="mt-3 block">
                 <CoinFace value={till.value} />
               </span>

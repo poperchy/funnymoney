@@ -2,18 +2,20 @@
 
 import { useUnit } from 'effector-react';
 import { moneyShort } from '@/lib/money/format';
+import { sourceLabel } from '@/model/defaults';
 import { exchangeOptions } from '@/model/ops';
 import { $exchangeAt, exchangeOpened, toastShown } from '@/model/ui';
-import { $currency, $wallet, exchangeMerge, exchangeSplit } from '@/model/wallet';
+import { $denoms, $wallet, exchangeMerge, exchangeSplit } from '@/model/wallet';
 import { BillImg, CoinFace } from '@/components/money/BillImg';
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
 import { play } from '@/sound/sfx';
+import { tr } from '@/lib/i18n';
 
 /** A bill or a coin, small. */
 function Money({ value }: { value: number }) {
-  const cur = useUnit($currency);
-  return value >= cur.bills[0] ? <BillImg value={value} scale={0.56} /> : <CoinFace value={value} size={30} />;
+  const denoms = useUnit($denoms);
+  return value >= denoms.bills[0] ? <BillImg value={value} scale={0.56} /> : <CoinFace value={value} size={30} />;
 }
 
 /** A run of money: shows each piece, collapses long runs of the same value into "×N". */
@@ -42,26 +44,26 @@ const Arrow = () => <span className="shrink-0 text-lg text-ink2">→</span>;
 export function ExchangeDialog() {
   const [loc, w] = useUnit([$exchangeAt, $wallet]);
   if (!loc || loc.type === 'piggy') return null;
-  const place = loc.type === 'pile' ? 'Кошелёк' : (w.categories.find(c => c.id === loc.cellId)?.name ?? '');
+  const place = sourceLabel(loc.type === 'pile' ? 'pile' : loc.cellId, w.categories, tr.common.wallet, '');
   const { split, merge } = exchangeOptions(w, loc);
   const close = () => exchangeOpened(null);
 
   return (
-    <Modal open onClose={close} title="Размен" width={560}>
+    <Modal open onClose={close} title={tr.exchange.title} width={560}>
       <div className="flex items-start justify-between gap-4">
         <div className="flex flex-col gap-1">
-          <span className="text-[26px] font-bold tracking-[-0.025em]">Размен · {place}</span>
-          <span className="text-sm text-ink2">Бумажек может стать больше или меньше. Денег — ровно столько же, проверено.</span>
+          <span className="text-[26px] font-bold tracking-[-0.025em]">{tr.exchange.heading(place)}</span>
+          <span className="text-sm text-ink2">{tr.exchange.sub}</span>
         </div>
-        <button onClick={close} aria-label="Закрыть" className="h-11 w-11 shrink-0 rounded-full bg-btn2 text-base">
+        <button onClick={close} aria-label={tr.common.close} className="h-11 w-11 shrink-0 rounded-full bg-btn2 text-base">
           ✕
         </button>
       </div>
 
       <section className="flex flex-col gap-2.5">
-        <span className="text-sm font-semibold text-ink2">Разменять на мелкие</span>
+        <span className="text-sm font-semibold text-ink2">{tr.exchange.split}</span>
         {split.length === 0 ? (
-          <span className="rounded-[14px] bg-field px-4 py-3 text-sm text-ink2">Тут нечего менять. Мельче уже некуда.</span>
+          <span className="rounded-[14px] bg-field px-4 py-3 text-sm text-ink2">{tr.exchange.splitNone}</span>
         ) : (
           split.map(o => (
             <div key={o.value} className="flex items-center gap-3 rounded-[14px] bg-field px-3.5 py-2.5">
@@ -74,10 +76,10 @@ export function ExchangeDialog() {
                 onClick={() => {
                   exchangeSplit(o.id);
                   play('flutter');
-                  toastShown(`Разменял ${moneyShort(o.value)}. Бумажек больше, денег — столько же`);
+                  toastShown(tr.exchange.splitDone(moneyShort(o.value)));
                 }}
               >
-                Разменять
+                {tr.exchange.splitBtn}
               </Button>
             </div>
           ))
@@ -85,9 +87,9 @@ export function ExchangeDialog() {
       </section>
 
       <section className="flex flex-col gap-2.5">
-        <span className="text-sm font-semibold text-ink2">Собрать в крупную</span>
+        <span className="text-sm font-semibold text-ink2">{tr.exchange.merge}</span>
         {merge.length === 0 ? (
-          <span className="rounded-[14px] bg-field px-4 py-3 text-sm text-ink2">Мелочи не хватает ни на одну крупную. Копи дальше.</span>
+          <span className="rounded-[14px] bg-field px-4 py-3 text-sm text-ink2">{tr.exchange.mergeNone}</span>
         ) : (
           merge.map(o => (
             <div key={o.target} className="flex items-center gap-3 rounded-[14px] bg-field px-3.5 py-2.5">
@@ -100,10 +102,10 @@ export function ExchangeDialog() {
                 onClick={() => {
                   exchangeMerge({ loc, target: o.target });
                   play('rustle');
-                  toastShown(`Собрал ${moneyShort(o.target)} одной бумажкой. Кошелёк выдохнул`);
+                  toastShown(tr.exchange.mergeDone(moneyShort(o.target)));
                 }}
               >
-                Собрать
+                {tr.exchange.mergeBtn}
               </Button>
             </div>
           ))

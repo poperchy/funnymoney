@@ -2,65 +2,58 @@
 
 import { useUnit } from 'effector-react';
 import { useState, type CSSProperties } from 'react';
-import { CURRENCY_LIST, type CurrencyCode } from '@/lib/money/currency';
-import { money, plural } from '@/lib/money/format';
+import { changeLocale, locale, LOCALES, tr } from '@/lib/i18n';
+import { SCALE_LIST, SCALES, type BillScale } from '@/lib/money/denominations';
+import { billRange, money } from '@/lib/money/format';
 import { $muted, $theme, $volume, incomeOpened, manualSpendToggled, muteToggled, statsToggled, themeToggled, volumeChanged } from '@/model/ui';
 import { play } from '@/sound/sfx';
 import { shopToggled } from '@/model/skins';
-import { $balance, $currency, $wallet, currencyChanged } from '@/model/wallet';
+import { $balance, $denoms, $wallet, scaleChanged } from '@/model/wallet';
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
+import { Select } from '@/components/ui/Select';
 
 function monthInfo(now = new Date()) {
-  const name = now.toLocaleString('ru-RU', { month: 'long' });
+  const name = now.toLocaleString(tr.intl, { month: 'long' });
   const days = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate() - now.getDate();
-  const hint =
-    days === 0 ? 'последний день, финишная прямая' : days <= 5 ? `осталось ${days} ${plural(days, 'день', 'дня', 'дней')}, держимся` : `ещё ${days} ${plural(days, 'день', 'дня', 'дней')} впереди`;
+  const hint = days === 0 ? tr.header.lastDay : days <= 5 ? tr.header.daysLeftFew(days) : tr.header.daysLeft(days);
   return { title: name[0].toUpperCase() + name.slice(1) + ' ' + now.getFullYear(), hint };
 }
 
-export function CurrencySelect({ size = 'md' }: { size?: 'sm' | 'md' }) {
-  const [cur, w] = useUnit([$currency, $wallet]);
-  const [pending, setPending] = useState<CurrencyCode | null>(null);
+export function ScaleSelect({ size = 'md' }: { size?: 'sm' | 'md' }) {
+  const [denoms, w] = useUnit([$denoms, $wallet]);
+  const [pending, setPending] = useState<BillScale | null>(null);
   const hasMoney = w.bills.length > 0 || w.coins.length > 0 || w.receipts.length > 0;
   return (
     <>
-      <select
-        aria-label="Валюта"
-        value={cur.code}
-        onChange={e => {
-          const code = e.target.value as CurrencyCode;
+      <Select
+        label={tr.scale.label}
+        size={size}
+        value={denoms.id}
+        onChange={code => {
           if (hasMoney) setPending(code);
-          else currencyChanged(code);
+          else scaleChanged(code);
         }}
-        className={`${size === 'sm' ? 'h-10' : 'h-11'} cursor-pointer rounded-full border border-line bg-transparent px-3.5 text-sm font-medium text-ink`}
-      >
-        {CURRENCY_LIST.map(c => (
-          <option key={c.code} value={c.code}>
-            {c.code} · {c.symbol}
-          </option>
-        ))}
-      </select>
-      <Modal open={!!pending} onClose={() => setPending(null)} title="Смена валюты" width={480}>
+        options={SCALE_LIST.map(c => ({ value: c.id, label: billRange(c.bills), hint: tr.scale.hints[c.id], short: billRange(c.bills) }))}
+      />
+      <Modal open={!!pending} onClose={() => setPending(null)} title={tr.scale.changeTitle} width={480}>
         <div className="flex flex-col gap-2">
-          <span className="text-[26px] leading-tight font-bold tracking-[-0.025em]">Сменить валюту на {pending}?</span>
-          <span className="text-[15px] leading-normal text-ink2">
-            Купюры другой страны на эту стену не повесишь. Стена, копилка и чеки начнутся с нуля.
-          </span>
+          <span className="text-[26px] leading-tight font-bold tracking-[-0.025em]">{tr.scale.changeAsk(pending ? billRange(SCALES[pending].bills) : '')}</span>
+          <span className="text-[15px] leading-normal text-ink2">{tr.scale.changeWhy}</span>
         </div>
         <div className="flex justify-end gap-2.5">
           <Button variant="outline" size="lg" onClick={() => setPending(null)}>
-            Оставить как есть
+            {tr.scale.keep}
           </Button>
           <Button
             variant="primary"
             size="lg"
             onClick={() => {
-              if (pending) currencyChanged(pending);
+              if (pending) scaleChanged(pending);
               setPending(null);
             }}
           >
-            Начать заново
+            {tr.scale.restart}
           </Button>
         </div>
       </Modal>
@@ -68,11 +61,15 @@ export function CurrencySelect({ size = 'md' }: { size?: 'sm' | 'md' }) {
   );
 }
 
+export function LanguageSelect({ size = 'md' }: { size?: 'sm' | 'md' }) {
+  return <Select label={tr.language.label} size={size} value={locale} onChange={changeLocale} options={LOCALES.map(l => ({ value: l, label: tr.language.names[l], short: l.toUpperCase() }))} />;
+}
+
 export function ThemeButton({ size = 'md' }: { size?: 'sm' | 'md' }) {
   const theme = useUnit($theme);
   return (
     <Button variant="outline" size={size} onClick={() => themeToggled()}>
-      {theme === 'dark' ? '☀ Днём' : '☾ Ночью'}
+      {theme === 'dark' ? tr.header.themeDay : tr.header.themeNight}
     </Button>
   );
 }
@@ -106,7 +103,7 @@ export function SoundControl({ size = 'md' }: { size?: 'sm' | 'md' }) {
           else muteToggled();
         }}
         aria-pressed={!silent}
-        title={silent ? 'Включить звук' : 'Выключить звук'}
+        title={silent ? tr.header.soundOn : tr.header.soundOff}
         className="flex h-8 w-8 items-center justify-center rounded-full text-ink transition-colors hover:bg-btn2"
       >
         <SpeakerIcon level={silent ? -1 : volume} />
@@ -116,7 +113,7 @@ export function SoundControl({ size = 'md' }: { size?: 'sm' | 'md' }) {
         min={0}
         max={100}
         step={1}
-        aria-label="Громкость"
+        aria-label={tr.header.volume}
         value={silent ? 0 : Math.round(volume * 100)}
         onChange={e => volumeChanged(Number(e.target.value) / 100)}
         onPointerUp={() => play('clink')}
@@ -129,15 +126,15 @@ export function SoundControl({ size = 'md' }: { size?: 'sm' | 'md' }) {
 }
 
 export function Header() {
-  const [balance, cur] = useUnit([$balance, $currency]);
+  const balance = useUnit($balance);
   const month = monthInfo();
   return (
     <header className="flex h-[84px] items-center justify-between gap-6 px-7">
       <div className="flex items-center gap-10">
         <div className="flex flex-col gap-0.5">
-          <span className="text-[13px] text-ink2">Всё твоё богатство</span>
+          <span className="text-[13px] text-ink2">{tr.common.wealth}</span>
           <span className="text-[34px] leading-[1.05] font-semibold tracking-[-0.03em]">
-            {money(balance)} <span className="text-lg font-medium text-ink2">{cur.symbol}</span>
+            {money(balance)}
           </span>
         </div>
         <div className="h-10 w-px bg-line" />
@@ -147,20 +144,20 @@ export function Header() {
         </div>
       </div>
       <div className="flex items-center gap-2.5">
-        <CurrencySelect />
+        <LanguageSelect />
         <ThemeButton />
         <SoundControl />
-        <Button variant="outline" onClick={() => statsToggled(true)} title="Траты по месяцам и ячейкам">
-          Статистика
+        <Button variant="outline" onClick={() => statsToggled(true)} title={tr.header.statsHint}>
+          {tr.common.stats}
         </Button>
-        <Button variant="outline" onClick={() => shopToggled(true)} title="Скины для доски, кошелька и свинки">
-          ✦ Скины
+        <Button variant="outline" onClick={() => shopToggled(true)} title={tr.header.skinsHint}>
+          {tr.common.skins}
         </Button>
         <Button variant="secondary" onClick={() => incomeOpened()}>
-          + Зарплата
+          {tr.common.addIncome}
         </Button>
         <Button variant="primary" className="!h-12 !px-7 !text-base" onClick={() => manualSpendToggled(true)}>
-          Потратить
+          {tr.common.spend}
         </Button>
       </div>
     </header>

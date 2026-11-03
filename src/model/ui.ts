@@ -5,6 +5,7 @@ import { slotKey } from './types';
 import { moneyShort } from '@/lib/money/format';
 import { pigGoalProgress } from './ops';
 import { $wallet, boardCleared, piggyEmptied, spent, spreadDone } from './wallet';
+import { tr } from '@/lib/i18n';
 
 export type Theme = 'light' | 'dark';
 export const themeToggled = createEvent();
@@ -41,7 +42,7 @@ export const $incomeRound = createStore(0).on(incomeOpened, n => n + 1);
 export const welcomeClosed = createEvent();
 export const $welcomeSeen = createStore(false).on(welcomeClosed, () => true);
 persist({ store: $welcomeSeen, key: 'nalichka:welcome' });
-// Fires only when the flag flips: first income, a currency reset, or another tab syncing storage.
+// Fires only when the flag flips: first income, a change of bills, or another tab syncing storage.
 const $onboarded = $wallet.map(w => w.onboarded);
 sample({ clock: $onboarded, fn: (ob): Stop => (ob ? 'wall' : 'hand'), target: $stop });
 
@@ -166,7 +167,7 @@ export const $toast = createStore<{ text: string; key: number } | null>(null)
 
 sample({
   clock: spreadDone,
-  fn: moved => (moved ? 'Разложил как в прошлый раз. Стабильность — признак мастерства' : 'Подходящих купюр нет. Тут нужен человек'),
+  fn: moved => (moved ? tr.toasts.spreadOk : tr.toasts.spreadNone),
   target: toastShown,
 });
 // Fires only when the flag flips, so reloading a reached goal stays quiet.
@@ -179,19 +180,16 @@ sample({
   clock: $goalReached,
   source: $wallet,
   filter: (_, reached) => reached,
-  fn: w => `Накопили на «${w.pigGoal?.name}»! Можно разбивать. А можно подкопить ещё, я не против`,
+  fn: w => tr.toasts.goalReached(w.pigGoal?.name ?? ''),
   target: goalCheeredFx,
 });
 sample({
   clock: boardCleared,
-  fn: () => 'Всё обратно в кошельке. Раскладывай заново, меня не трогали',
+  fn: () => tr.toasts.boardCleared,
   target: toastShown,
 });
 sample({
   clock: piggyEmptied,
-  fn: taken =>
-    taken
-      ? `Забрал ${moneyShort(taken)} в кошелёк. Новая свинка уже на месте и снова голодает`
-      : 'Мелочи не набралось даже на купюру. Свинка возвращается на полку',
+  fn: taken => (taken ? tr.toasts.pigTaken(moneyShort(taken)) : tr.toasts.pigEmpty),
   target: toastShown,
 });

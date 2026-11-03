@@ -1,6 +1,6 @@
 import { createEvent, createStore, sample } from 'effector';
 import { persist } from 'effector-storage/local';
-import type { CurrencyCode } from '@/lib/money/currency';
+import type { BillScale } from '@/lib/money/denominations';
 import { emptyWallet } from './defaults';
 import * as ops from './ops';
 import { computeLayout } from '@/scene/layout';
@@ -21,7 +21,7 @@ export const pigGoalSet = createEvent<PigGoal | null>();
 export const categoryUpdated = createEvent<{ id: string } & ops.CategoryPatch>();
 export const categoryAdded = createEvent<Omit<Category, 'id'>>();
 export const categoryRemoved = createEvent<string>();
-export const currencyChanged = createEvent<CurrencyCode>();
+export const scaleChanged = createEvent<BillScale>();
 export const walletReset = createEvent();
 export const receiptEdited = createEvent<{ id: string; edit: ops.ReceiptEdit }>();
 export const receiptDeleted = createEvent<string>();
@@ -40,8 +40,8 @@ $wallet
   .on(categoryUpdated, (w, { id, ...patch }) => ops.updateCategory(w, id, patch))
   .on(categoryAdded, (w, c) => ops.addCategory(w, c))
   .on(categoryRemoved, (w, id) => ops.removeCategory(w, id))
-  .on(currencyChanged, (_, code) => emptyWallet(code))
-  .on(walletReset, w => emptyWallet(w.currency))
+  .on(scaleChanged, (_, code) => emptyWallet(code))
+  .on(walletReset, w => emptyWallet(w.scale))
   .on(receiptEdited, (w, { id, edit }) => ops.editReceipt(w, id, edit))
   .on(receiptDeleted, (w, id) => ops.deleteReceipt(w, id))
   .on(exchangeSplit, (w, id) => ops.exchangeSplit(w, id))
@@ -60,7 +60,7 @@ export const piggyEmptied = sample({ clock: piggyComputed, fn: r => r.taken });
 
 persist({ store: $wallet, key: 'nalichka:wallet' });
 
-export const $currency = $wallet.map(ops.currencyOf);
+export const $denoms = $wallet.map(ops.denomsOf);
 export const $balance = $wallet.map(ops.balance);
 export const $piggyTotal = $wallet.map(ops.piggyTotal);
 export const $pileTotal = $wallet.map(ops.pileTotal);

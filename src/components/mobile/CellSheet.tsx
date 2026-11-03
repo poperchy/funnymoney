@@ -2,19 +2,20 @@
 
 import { useUnit } from 'effector-react';
 import { moneyShort } from '@/lib/money/format';
-import { DEFAULT_JOKE, JOKES } from '@/model/defaults';
+import { catName, DEFAULT_JOKE, JOKES } from '@/model/defaults';
 import { sheetClosed, sheetOpened } from '@/model/mobile';
 import { exchangeOptions, pileTotal, totalIn } from '@/model/ops';
 import { slotKey, type BillLocation } from '@/model/types';
 import { categoryEditOpened, exchangeOpened } from '@/model/ui';
-import { $currency, $wallet } from '@/model/wallet';
+import { $wallet } from '@/model/wallet';
 import { Sheet } from './Sheet';
+import { tr } from '@/lib/i18n';
 
 const SECONDARY = 'h-[52px] flex-1 whitespace-nowrap rounded-2xl border border-line px-4 text-[15px] font-medium text-ink';
 
 /** Tap on a cell or the wallet: how much is there, and two big buttons to type what happens to it. */
 export function CellSheet({ loc }: { loc: BillLocation }) {
-  const [w, cur] = useUnit([$wallet, $currency]);
+  const w = useUnit($wallet);
   const key = slotKey(loc);
   const cat = loc.type === 'cell' ? w.categories.find(c => c.id === loc.cellId) : null;
   const total = totalIn(w, loc);
@@ -24,16 +25,17 @@ export function CellSheet({ loc }: { loc: BillLocation }) {
     const o = exchangeOptions(w, loc);
     return o.split.length > 0 || o.merge.length > 0;
   })();
-  const status = !total ? 'Тут было что-то. Было.' : low ? 'Осторожно, на донышке' : (JOKES[key] ?? DEFAULT_JOKE);
+  const status = !total ? tr.common.emptyCell : low ? tr.common.lowCell : (JOKES[key] ?? DEFAULT_JOKE);
+  const name = cat ? catName(cat) : tr.common.wallet;
 
   return (
-    <Sheet title={cat?.name ?? 'Кошелёк'} onClose={() => sheetClosed()} className="gap-4 px-5 pt-2">
+    <Sheet title={name} onClose={() => sheetClosed()} className="gap-4 px-5 pt-2">
       <div className="flex flex-col gap-1">
-        <span className="truncate text-[17px] font-semibold text-ink2">{cat?.name ?? 'Кошелёк'}</span>
+        <span className="truncate text-[17px] font-semibold text-ink2">{name}</span>
         <span className="text-[52px] leading-none font-bold tracking-[-0.04em] whitespace-nowrap">
-          {moneyShort(total)} <span className="text-2xl font-medium tracking-normal text-ink2">{cur.symbol}</span>
+          {moneyShort(total)}
         </span>
-        {budget > 0 && <span className="text-[15px] text-ink2">из {moneyShort(budget)}</span>}
+        {budget > 0 && <span className="text-[15px] text-ink2">{tr.mobile.ofBudget(moneyShort(budget))}</span>}
         <span className="mt-1 text-[15px]" style={{ color: low ? 'var(--danger)' : 'var(--ink2)' }}>
           {status}
         </span>
@@ -42,16 +44,16 @@ export function CellSheet({ loc }: { loc: BillLocation }) {
       {total > 0 ? (
         <div className="grid grid-cols-2 gap-2.5">
           <button onClick={() => sheetOpened({ type: 'spend', source: key })} className="h-[68px] rounded-[20px] bg-accent text-[17px] font-semibold text-accent-ink">
-            Потратить
+            {tr.common.spend}
           </button>
           <button onClick={() => sheetOpened({ type: 'distribute', source: key })} className="h-[68px] rounded-[20px] bg-btn2 text-[17px] font-semibold text-ink">
-            {key === 'pile' ? 'Разложить' : 'Переложить'}
+            {key === 'pile' ? tr.mobile.distribute : tr.mobile.move}
           </button>
         </div>
       ) : (
         pileTotal(w) > 0 && (
           <button onClick={() => sheetOpened({ type: 'distribute', source: 'pile' })} className="h-[68px] rounded-[20px] bg-accent text-[17px] font-semibold text-accent-ink">
-            Положить из кошелька
+            {tr.mobile.putFromWallet}
           </button>
         )
       )}
@@ -66,7 +68,7 @@ export function CellSheet({ loc }: { loc: BillLocation }) {
               }}
               className={SECONDARY}
             >
-              ⇄ Размен
+              {tr.common.exchange}
             </button>
           )}
           {cat && (
@@ -77,7 +79,7 @@ export function CellSheet({ loc }: { loc: BillLocation }) {
               }}
               className={SECONDARY}
             >
-              ✎ Ячейка
+              {tr.mobile.editCell}
             </button>
           )}
         </div>

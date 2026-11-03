@@ -9,6 +9,8 @@ import { packCells } from '@/scene/layout';
 import { boardCss, cellCss, PIN, SURFACE } from '@/scene/skinCss';
 import { boardSkin, type BoardSkinId } from '@/scene/skins';
 import type { Theme } from '@/model/ui';
+import { tr } from '@/lib/i18n';
+import { catName } from '@/model/defaults';
 
 const COLS = 4, ROW_H = 82, GAP = 7;
 
@@ -105,7 +107,7 @@ export function MiniBoard({
               <div className="pointer-events-none absolute inset-0 opacity-90" style={{ backgroundImage: SURFACE[board.cellTexture] }} />
               {k === 0 && (
                 <div className="absolute inset-[32px_6px_6px_6px] flex items-center justify-center rounded-md border-2 border-dashed border-[var(--dash)] px-1 py-0.5 text-center text-[11px] leading-[1.25] text-[var(--dash-ink)]">
-                  Тут было что-то. Было.
+                  {tr.common.emptyCell}
                 </div>
               )}
               {show && (
@@ -124,7 +126,7 @@ export function MiniBoard({
                 style={{ transform: `rotate(${(((i * 37) % 5) - 2) * 0.8}deg)` }}
               >
                 <span className="absolute top-2 left-1 h-1.5 w-1.5 rounded-full" style={{ background: PIN }} />
-                <div className="truncate text-[11.5px] leading-[1.2] font-semibold">{c.name}</div>
+                <div className="truncate text-[11.5px] leading-[1.2] font-semibold">{catName(c)}</div>
                 <div className="text-[10.5px] leading-[1.3] whitespace-nowrap" style={{ color: low ? 'var(--danger)' : undefined }}>
                   <span className="font-semibold">{moneyShort(k)}</span>
                   {c.budget > 0 && <span className="opacity-55">/{moneyShort(c.budget)}</span>}

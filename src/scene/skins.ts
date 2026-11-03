@@ -1,4 +1,5 @@
 // Skins for the board and the wallet. The first of each is free; the rest unlock with a donation.
+import { tr } from '@/lib/i18n';
 import type { Theme } from '@/model/ui';
 
 export type BoardSkinId = 'cork' | 'felt' | 'concrete' | 'envelope' | 'fridge' | 'pegboard' | 'cosmos';
@@ -20,7 +21,7 @@ export type BoardSkin = {
   id: BoardSkinId;
   name: string;
   blurb: string;
-  /** Donation in RUB; 0 = free. */
+  /** Donation, shown with `PigMark`; 0 = free. */
   price: number;
   frameTexture: 'wood' | 'metal' | 'linen' | 'flat';
   cellTexture: 'cork' | 'felt' | 'concrete' | 'envelope' | 'flat' | 'pegboard' | 'stars';
@@ -55,9 +56,7 @@ export type PurseSkin = {
 
 export const BOARD_SKINS: BoardSkin[] = [
   {
-    id: 'cork',
-    name: 'Пробка',
-    blurb: 'Классика: дерево и пробка, как у бабушки в прихожей',
+    id: 'cork', ...tr.skins.board.cork,
     price: 0,
     frameTexture: 'wood',
     cellTexture: 'cork',
@@ -68,9 +67,7 @@ export const BOARD_SKINS: BoardSkin[] = [
     swatch: 'radial-gradient(circle at 30% 30%, #d9ab79, #b9875a)',
   },
   {
-    id: 'felt',
-    name: 'Казино',
-    blurb: 'Зелёное сукно и красное дерево. Ставки сделаны',
+    id: 'felt', ...tr.skins.board.felt,
     price: 149,
     frameTexture: 'wood',
     cellTexture: 'felt',
@@ -81,9 +78,7 @@ export const BOARD_SKINS: BoardSkin[] = [
     swatch: 'radial-gradient(circle at 30% 30%, #3f9a66, #22613d)',
   },
   {
-    id: 'concrete',
-    name: 'Лофт',
-    blurb: 'Бетон и сталь. Деньги в индустриальном стиле',
+    id: 'concrete', ...tr.skins.board.concrete,
     price: 149,
     frameTexture: 'metal',
     cellTexture: 'concrete',
@@ -94,9 +89,7 @@ export const BOARD_SKINS: BoardSkin[] = [
     swatch: 'radial-gradient(circle at 30% 30%, #cfccc6, #9d9a94)',
   },
   {
-    id: 'envelope',
-    name: 'Конверты',
-    blurb: 'Бабушкин метод: лён и крафтовый конверт на каждую статью',
+    id: 'envelope', ...tr.skins.board.envelope,
     price: 149,
     frameTexture: 'linen',
     cellTexture: 'envelope',
@@ -107,9 +100,7 @@ export const BOARD_SKINS: BoardSkin[] = [
     swatch: 'linear-gradient(to bottom right, #c49a66 49%, #8a6a42 50%, #d2a874 51%)',
   },
   {
-    id: 'fridge',
-    name: 'Холодильник',
-    blurb: 'Плоско, с контурами и в пастели. Деньги хранятся в холоде',
+    id: 'fridge', ...tr.skins.board.fridge,
     price: 149,
     frameTexture: 'flat',
     cellTexture: 'flat',
@@ -136,9 +127,7 @@ export const BOARD_SKINS: BoardSkin[] = [
     swatch: 'linear-gradient(135deg, #e6f4ff 50%, #ffe6ee 50%)',
   },
   {
-    id: 'pegboard',
-    name: 'Перфощит',
-    blurb: 'Как в гараже: дырочки, порядок и запах масла',
+    id: 'pegboard', ...tr.skins.board.pegboard,
     price: 149,
     frameTexture: 'metal',
     cellTexture: 'pegboard',
@@ -149,9 +138,7 @@ export const BOARD_SKINS: BoardSkin[] = [
     swatch: 'radial-gradient(circle, #1a221d 22%, transparent 26%) 0 0 / 10px 10px, #4a5a51',
   },
   {
-    id: 'cosmos',
-    name: 'Космос',
-    blurb: 'Бюджет бесконечен и расширяется. Жаль, что только этот',
+    id: 'cosmos', ...tr.skins.board.cosmos,
     price: 149,
     frameTexture: 'metal',
     cellTexture: 'stars',
@@ -172,9 +159,7 @@ export function cellColor(look: BoardLook, id: string) {
 
 export const PURSE_SKINS: PurseSkin[] = [
   {
-    id: 'leather',
-    name: 'Кожа',
-    blurb: 'Коричневая кожа со строчкой. Надёжно и скучно',
+    id: 'leather', ...tr.skins.purse.leather,
     price: 0,
     texture: 'leather',
     look: {
@@ -183,9 +168,7 @@ export const PURSE_SKINS: PurseSkin[] = [
     },
   },
   {
-    id: 'croc',
-    name: 'Крокодил',
-    blurb: 'Тиснение под рептилию. Деньги чувствуют себя хищно',
+    id: 'croc', ...tr.skins.purse.croc,
     price: 99,
     texture: 'croc',
     look: {
@@ -194,9 +177,7 @@ export const PURSE_SKINS: PurseSkin[] = [
     },
   },
   {
-    id: 'glam',
-    name: 'Гламур',
-    blurb: 'Розовый с блёстками. Тратить в нём неловко — и это работает',
+    id: 'glam', ...tr.skins.purse.glam,
     price: 99,
     texture: 'glam',
     look: {
@@ -205,9 +186,7 @@ export const PURSE_SKINS: PurseSkin[] = [
     },
   },
   {
-    id: 'bifold',
-    name: 'Бумажник',
-    blurb: 'Кармашки, ремешок, кнопка. Солидно, даже если внутри пятёрка',
+    id: 'bifold', ...tr.skins.purse.bifold,
     price: 99,
     texture: 'leather',
     trim: 'strap',
@@ -217,9 +196,7 @@ export const PURSE_SKINS: PurseSkin[] = [
     },
   },
   {
-    id: 'glutton',
-    name: 'Обжора',
-    blurb: 'Открывает рот, когда несёшь купюру. Поел — довольно жмурится',
+    id: 'glutton', ...tr.skins.purse.glutton,
     price: 129,
     texture: 'flat',
     trim: 'clasp',
@@ -229,9 +206,7 @@ export const PURSE_SKINS: PurseSkin[] = [
     },
   },
   {
-    id: 'canvas',
-    name: 'Брезент',
-    blurb: 'Сумка для инструментов. Деньги — тоже инструмент',
+    id: 'canvas', ...tr.skins.purse.canvas,
     price: 99,
     texture: 'leather',
     trim: 'strap',
@@ -241,9 +216,7 @@ export const PURSE_SKINS: PurseSkin[] = [
     },
   },
   {
-    id: 'nebula',
-    name: 'Туманность',
-    blurb: 'Тёмно-синий с искрами. Деньги исчезают красиво',
+    id: 'nebula', ...tr.skins.purse.nebula,
     price: 99,
     texture: 'glam',
     look: {
@@ -274,19 +247,15 @@ export type TillSkin = {
 const PALE = { ink: '#f6efe3', inkSoft: 'rgba(246,239,227,0.7)' };
 
 export const TILL_SKINS: TillSkin[] = [
-  { id: 'register', name: 'Касса', blurb: 'Тёмная, молчаливая, всё помнит', price: 0, look: { background: 'var(--till)', ...PALE, well: 'rgba(0,0,0,0.35)', slit: '#0b0806' } },
+  { id: 'register', ...tr.skins.till.register, price: 0, look: { background: 'var(--till)', ...PALE, well: 'rgba(0,0,0,0.35)', slit: '#0b0806' } },
   {
-    id: 'retro',
-    name: 'Ретро',
-    blurb: 'Эмаль и кнопочки. Дзынь — и нету',
+    id: 'retro', ...tr.skins.till.retro,
     price: 99,
     look: { background: 'linear-gradient(160deg, #efe3c8, #d8c7a2)', ink: '#3a2a18', inkSoft: 'rgba(58,42,24,0.72)', well: 'rgba(90,60,25,0.22)', slit: '#3a2a18' },
     deco: 'keys',
   },
   {
-    id: 'shredder',
-    name: 'Шредер',
-    blurb: 'Честно о том, что происходит с твоими деньгами',
+    id: 'shredder', ...tr.skins.till.shredder,
     price: 99,
     look: {
       background: 'repeating-linear-gradient(0deg, rgba(255,255,255,0.06) 0 1px, transparent 1px 3px), linear-gradient(160deg, #a6abb0, #6d7277)',
@@ -298,32 +267,24 @@ export const TILL_SKINS: TillSkin[] = [
     deco: 'hazard',
   },
   {
-    id: 'workshop',
-    name: 'Железка',
-    blurb: 'Лотки по номиналам, лязг и никаких вопросов',
+    id: 'workshop', ...tr.skins.till.workshop,
     price: 99,
     look: { background: 'linear-gradient(180deg, #5c615c, #3a3e3a)', ...PALE, well: 'rgba(0,0,0,0.42)', slit: '#141614' },
     deco: 'trays',
   },
   {
-    id: 'croupier',
-    name: 'Крупье',
-    blurb: 'Сукно и золото. Ставки сделаны, ставок больше нет',
+    id: 'croupier', ...tr.skins.till.croupier,
     price: 99,
     look: { background: 'radial-gradient(circle at 30% 20%, #2f7a4f, #174a2e)', ...PALE, well: 'rgba(0,0,0,0.32)', slit: '#0b1f13', outline: '#c9a24a' },
   },
   {
-    id: 'mouth',
-    name: 'Пасть',
-    blurb: 'Смотрит на тебя и ждёт. Щель — это рот, да',
+    id: 'mouth', ...tr.skins.till.mouth,
     price: 129,
     look: { background: '#7be0b0', ink: '#1a1a1a', inkSoft: 'rgba(26,26,26,0.72)', well: 'rgba(255,255,255,0.45)', slit: '#1a1a1a', outline: '#1a1a1a' },
     deco: 'eyes',
   },
   {
-    id: 'blackhole',
-    name: 'Чёрная дыра',
-    blurb: 'Деньги пересекают горизонт событий. Обратно никто не возвращался',
+    id: 'blackhole', ...tr.skins.till.blackhole,
     price: 129,
     look: {
       background:
@@ -341,17 +302,17 @@ export type PigWear = { id: string; name: string; blurb: string; price: number }
 export const NO_WEAR = 'none';
 
 export const HAT_SKINS: PigWear[] = [
-  { id: NO_WEAR, name: 'Без шляпы', blurb: 'Голая правда и голая голова', price: 0 },
-  { id: 'tophat', name: 'Цилиндр', blurb: 'Свинка-капиталист. Смотрит на тебя свысока', price: 79 },
-  { id: 'ushanka', name: 'Ушанка', blurb: 'На чёрный день и холодную зиму', price: 79 },
-  { id: 'crown', name: 'Корона', blurb: 'Её величество Нужная мусорка', price: 129 },
+  { id: NO_WEAR, ...tr.skins.hat.none, price: 0 },
+  { id: 'tophat', ...tr.skins.hat.tophat, price: 79 },
+  { id: 'ushanka', ...tr.skins.hat.ushanka, price: 79 },
+  { id: 'crown', ...tr.skins.hat.crown, price: 129 },
 ];
 
 export const NECK_SKINS: PigWear[] = [
-  { id: NO_WEAR, name: 'Без украшений', blurb: 'Скромность тоже украшает', price: 0 },
-  { id: 'bow', name: 'Бабочка', blurb: 'Официальный приём мелочи', price: 79 },
-  { id: 'pearls', name: 'Жемчуг', blurb: 'Для свинки из приличной семьи', price: 99 },
-  { id: 'chain', name: 'Золотая цепь', blurb: 'Золото ненастоящее. Мелочь настоящая', price: 129 },
+  { id: NO_WEAR, ...tr.skins.neck.none, price: 0 },
+  { id: 'bow', ...tr.skins.neck.bow, price: 79 },
+  { id: 'pearls', ...tr.skins.neck.pearls, price: 99 },
+  { id: 'chain', ...tr.skins.neck.chain, price: 129 },
 ];
 
 /**
@@ -383,16 +344,12 @@ const peas = (color: string) => `radial-gradient(circle, ${color} 0 5px, transpa
 
 export const PAGE_SKINS: PageSkin[] = [
   {
-    id: 'plain',
-    name: 'Обычный',
-    blurb: 'Спокойный и ровный. Ничто не отвлекает от трат',
+    id: 'plain', ...tr.skins.page.plain,
     price: 0,
     look: { light: { color: '#f1ece3', image: 'none', size: 'auto' }, dark: { color: '#17130f', image: 'none', size: 'auto' } },
   },
   {
-    id: 'notebook',
-    name: 'Тетрадь',
-    blurb: 'В клеточку. Как будто ты всё посчитал',
+    id: 'notebook', ...tr.skins.page.notebook,
     price: 79,
     look: {
       light: { color: '#f8f7f1', image: grid('rgba(70,120,190,0.3)'), size: '24px 24px' },
@@ -400,9 +357,7 @@ export const PAGE_SKINS: PageSkin[] = [
     },
   },
   {
-    id: 'wallpaper',
-    name: 'Обои',
-    blurb: 'Как в зале у бабушки. Только ковра не хватает',
+    id: 'wallpaper', ...tr.skins.page.wallpaper,
     price: 79,
     look: {
       light: { color: '#efe6d6', image: `${damask('%23a07a4a33')}, repeating-linear-gradient(90deg, rgba(150,110,70,0.08) 0 36px, transparent 36px 72px)`, size: '72px 72px, auto' },
@@ -410,9 +365,7 @@ export const PAGE_SKINS: PageSkin[] = [
     },
   },
   {
-    id: 'tiles',
-    name: 'Плитка',
-    blurb: 'Кухня: здесь принимаются все финансовые решения',
+    id: 'tiles', ...tr.skins.page.tiles,
     price: 79,
     look: {
       light: { color: '#eef1ee', image: checks('rgba(70,110,110,0.08)'), size: '72px 72px' },
@@ -420,9 +373,7 @@ export const PAGE_SKINS: PageSkin[] = [
     },
   },
   {
-    id: 'parquet',
-    name: 'Паркет',
-    blurb: 'Солидно. Соседи снизу оценят',
+    id: 'parquet', ...tr.skins.page.parquet,
     price: 79,
     look: {
       light: { color: '#e9dcc6', image: planks('%236e461e44', '%236e461e12'), size: '240px 72px' },
@@ -430,9 +381,7 @@ export const PAGE_SKINS: PageSkin[] = [
     },
   },
   {
-    id: 'peas',
-    name: 'Горошек',
-    blurb: 'Весело и немного платье тёти Гали',
+    id: 'peas', ...tr.skins.page.peas,
     price: 79,
     look: {
       light: { color: '#faeee8', image: peas('rgba(225,110,120,0.16)'), size: '44px 44px' },
@@ -440,9 +389,7 @@ export const PAGE_SKINS: PageSkin[] = [
     },
   },
   {
-    id: 'cash',
-    name: 'Денежки',
-    blurb: 'Обои из денег. Единственные деньги, которые не тратятся',
+    id: 'cash', ...tr.skins.page.cash,
     price: 99,
     look: {
       light: { color: '#eef1e3', image: billTile('%234f7a4a33'), size: '92px 92px' },
@@ -457,12 +404,12 @@ export type SkinSet = { board: string; purse: string; till: string; hat: string;
 export type SkinPack = { id: string; name: string; blurb: string; skins: SkinSet };
 
 export const SKIN_PACKS: SkinPack[] = [
-  { id: 'granny', name: 'Бабушка', blurb: 'Конверты, бумажник и касса, которая всё помнит', skins: { board: 'envelope', purse: 'bifold', till: 'retro', hat: 'ushanka', neck: 'pearls' } },
-  { id: 'cartoon', name: 'Мультик', blurb: 'Всё плоское, всё с контуром, всё хочет есть', skins: { board: 'fridge', purse: 'glutton', till: 'mouth', hat: NO_WEAR, neck: 'bow' } },
-  { id: 'garage', name: 'Гараж', blurb: 'Перфощит, брезент и железная касса. Руки в масле', skins: { board: 'pegboard', purse: 'canvas', till: 'workshop', hat: 'ushanka', neck: 'chain' } },
-  { id: 'vegas', name: 'Вегас', blurb: 'Сукно, крокодил, крупье. Свинка в цилиндре', skins: { board: 'felt', purse: 'croc', till: 'croupier', hat: 'tophat', neck: 'bow' } },
-  { id: 'loft', name: 'Лофт', blurb: 'Бетон, блёстки и шредер. Дорого-богато', skins: { board: 'concrete', purse: 'glam', till: 'shredder', hat: 'crown', neck: 'chain' } },
-  { id: 'space', name: 'Космос', blurb: 'Звёзды, туманность и чёрная дыра вместо кассы', skins: { board: 'cosmos', purse: 'nebula', till: 'blackhole', hat: 'crown', neck: NO_WEAR } },
+  { id: 'granny', ...tr.skins.pack.granny, skins: { board: 'envelope', purse: 'bifold', till: 'retro', hat: 'ushanka', neck: 'pearls' } },
+  { id: 'cartoon', ...tr.skins.pack.cartoon, skins: { board: 'fridge', purse: 'glutton', till: 'mouth', hat: NO_WEAR, neck: 'bow' } },
+  { id: 'garage', ...tr.skins.pack.garage, skins: { board: 'pegboard', purse: 'canvas', till: 'workshop', hat: 'ushanka', neck: 'chain' } },
+  { id: 'vegas', ...tr.skins.pack.vegas, skins: { board: 'felt', purse: 'croc', till: 'croupier', hat: 'tophat', neck: 'bow' } },
+  { id: 'loft', ...tr.skins.pack.loft, skins: { board: 'concrete', purse: 'glam', till: 'shredder', hat: 'crown', neck: 'chain' } },
+  { id: 'space', ...tr.skins.pack.space, skins: { board: 'cosmos', purse: 'nebula', till: 'blackhole', hat: 'crown', neck: NO_WEAR } },
 ];
 
 const PACK_DISCOUNT = 0.7;

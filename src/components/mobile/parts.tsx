@@ -2,12 +2,12 @@
 
 import { useUnit } from 'effector-react';
 import { useState, type CSSProperties, type ReactNode } from 'react';
-import type { Currency } from '@/lib/money/currency';
+import type { Denoms } from '@/lib/money/denominations';
 import { faceLabel } from '@/lib/money/format';
 import { rng } from '@/lib/rng';
 import type { Bill, Coin } from '@/model/types';
 import { $skins } from '@/model/skins';
-import { $currency } from '@/model/wallet';
+import { $denoms } from '@/model/wallet';
 import { billUrl, BIMETAL_CSS, coinLook } from '@/scene/paint';
 import { PIG } from '@/scene/palette';
 import { WEAR_BOX, wearUrl } from '@/scene/pigWear';
@@ -41,12 +41,12 @@ export const setLanding = (ms: number) => {
 };
 const useLanding = () => useState(() => landing)[0];
 
-export function billImg(value: number, cur: Currency, width: number, style?: CSSProperties) {
+export function billImg(value: number, denoms: Denoms, width: number, style?: CSSProperties) {
   return (
     // eslint-disable-next-line @next/next/no-img-element -- generated data URL
     <img
-      src={billUrl(value, cur)}
-      alt={`${faceLabel(value)} ${cur.code}`}
+      src={billUrl(value, denoms)}
+      alt={faceLabel(value)}
       width={width}
       height={width / 2}
       draggable={false}
@@ -69,7 +69,7 @@ export function WallBill({
   pos?: { left: string; top: string; r: number };
   onPointerDown: (e: React.PointerEvent<HTMLDivElement>) => void;
 }) {
-  const cur = useUnit($currency);
+  const denoms = useUnit($denoms);
   const arrived = useArrived();
   const land = useLanding();
   const [delay] = useState(() => Math.round(seeded(bill.id)() * 250));
@@ -81,7 +81,7 @@ export function WallBill({
       data-bill={bill.id}
       onPointerDown={onPointerDown}
       onContextMenu={e => e.preventDefault()}
-      aria-label={`${faceLabel(bill.value)} ${cur.code}`}
+      aria-label={faceLabel(bill.value)}
       className="absolute cursor-grab overflow-hidden rounded-[3px] select-none [-webkit-touch-callout:none]"
       style={
         {
@@ -99,29 +99,29 @@ export function WallBill({
         } as CSSProperties
       }
     >
-      {billImg(bill.value, cur, MBW)}
+      {billImg(bill.value, denoms, MBW)}
     </div>
   );
 }
 
-export function coinBg(value: number, cur: Currency) {
-  const { bg, edge, bimetal, size } = coinLook(value, cur);
+export function coinBg(value: number, denoms: Denoms) {
+  const { bg, edge, bimetal, size } = coinLook(value, denoms);
   const background = bimetal ? BIMETAL_CSS : `radial-gradient(ellipse at 35% 30%, ${bg[0]}, ${bg[1]} 72%)`;
   return { background, edge, size };
 }
 
 /** A coin lying flat, seen at an angle. */
 export function FlatCoin({ coin, style, onPointerDown, fall }: { coin: Coin; style?: CSSProperties; onPointerDown?: (e: React.PointerEvent) => void; fall?: boolean }) {
-  const cur = useUnit($currency);
+  const denoms = useUnit($denoms);
   const arrived = useArrived();
   const land = useLanding();
-  const { background, edge, size } = coinBg(coin.value, cur);
+  const { background, edge, size } = coinBg(coin.value, denoms);
   return (
     <div
       data-coin={coin.id}
       onPointerDown={onPointerDown}
       onContextMenu={e => e.preventDefault()}
-      aria-label={`${faceLabel(coin.value)} ${cur.code}`}
+      aria-label={faceLabel(coin.value)}
       className={`absolute rounded-[50%] select-none ${onPointerDown ? 'cursor-grab' : ''}`}
       style={{
         width: size,
@@ -144,7 +144,7 @@ const leg = (x: number) => (
 
 /** The piggy, 232×182: coins piling up inside, bills tucked in. Breaks in two halves when asked. */
 export function PigArt({ coins, bills, broken, target, jolt = 0, wear }: { coins: Coin[]; bills: Bill[]; broken?: boolean; target?: boolean; jolt?: number; wear?: { hat: string; neck: string } }) {
-  const cur = useUnit($currency);
+  const denoms = useUnit($denoms);
   const skins = useUnit($skins);
   const { hat, neck } = wear ?? skins;
   // A few hundred coins look the same as a thousand.
@@ -153,14 +153,14 @@ export function PigArt({ coins, bills, broken, target, jolt = 0, wear }: { coins
     <>
       {shown.map((c, i) => {
         const r = seeded(c.id);
-        const s = coinLook(c.value, cur).size;
+        const s = coinLook(c.value, denoms).size;
         return <FlatCoin key={c.id} coin={c} fall style={{ left: 14 + r() * (150 - s), bottom: 6 + Math.floor(i / 8) * 4.4 + r() * 3 }} />;
       })}
       {bills.map(b => {
         const r = seeded(b.id);
         return (
           <A key={b.id} s={{ left: 24 + r() * 70, top: 34 + r() * 46, transform: `rotate(${(r() - 0.5) * 50}deg)`, borderRadius: 3 }}>
-            {billImg(b.value, cur, 50)}
+            {billImg(b.value, denoms, 50)}
           </A>
         );
       })}
@@ -226,7 +226,7 @@ export function PigArt({ coins, bills, broken, target, jolt = 0, wear }: { coins
         {tail}
         {[42, 68, 128, 154].map(leg)}
         {Array.from({ length: stick }, (_, i) => {
-          const { background, edge, size } = coinBg(coins[coins.length - 1 - i].value, cur);
+          const { background, edge, size } = coinBg(coins[coins.length - 1 - i].value, denoms);
           return (
             <A
               key={'st' + i}
@@ -255,12 +255,12 @@ export function PigArt({ coins, bills, broken, target, jolt = 0, wear }: { coins
         {head}
       </A>
       {coins.slice(-40).map(c => {
-        const { background, edge, size } = coinBg(c.value, cur);
+        const { background, edge, size } = coinBg(c.value, denoms);
         return <A key={'sp' + c.id} s={{ left: 30 + r() * 170, top: 150 + r() * 22, width: size, height: size * 0.5, borderRadius: '50%', background, boxShadow: '0 2px 0 ' + edge, zIndex: 4 }} />;
       })}
       {bills.map((b, i) => (
         <A key={'spb' + b.id} s={{ left: 60 + i * 30, top: 136 + r() * 10, transform: `rotate(${(r() - 0.5) * 40}deg)`, zIndex: 5 }}>
-          {billImg(b.value, cur, 55)}
+          {billImg(b.value, denoms, 55)}
         </A>
       ))}
     </A>

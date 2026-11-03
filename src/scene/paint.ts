@@ -1,6 +1,6 @@
 // Canvas2D painters. Bills and coins are drawn once per value and reused by Pixi (as textures)
 // and by the DOM (as data URLs), so a bill looks the same everywhere.
-import { billIndex, type Currency } from '@/lib/money/currency';
+import { billIndex, type Denoms } from '@/lib/money/denominations';
 import { faceLabel } from '@/lib/money/format';
 import { rng } from '@/lib/rng';
 import type { Theme } from '@/model/ui';
@@ -30,9 +30,9 @@ function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: numbe
   ctx.roundRect(x, y, w, h, r);
 }
 
-export function paintBill(value: number, cur: Currency, res = RES): HTMLCanvasElement {
+export function paintBill(value: number, denoms: Denoms, res = RES): HTMLCanvasElement {
   const { c, ctx } = canvas(BW, BH, res);
-  const [p0, p1, p2] = BILL_PAL[billIndex(cur, value)];
+  const [p0, p1, p2] = BILL_PAL[billIndex(denoms, value)];
   const font = fontFamily();
 
   roundRect(ctx, 0, 0, BW, BH, 4);
@@ -101,12 +101,6 @@ export function paintBill(value: number, cur: Currency, res = RES): HTMLCanvasEl
 
   const label = faceLabel(value);
   ctx.textBaseline = 'alphabetic';
-  ctx.fillStyle = 'rgba(255,255,255,0.9)';
-  ctx.font = `700 7px ${font}`;
-  ctx.textAlign = 'right';
-  ctx.letterSpacing = '0.7px';
-  ctx.fillText(cur.code, BW - 7, 12);
-  ctx.letterSpacing = '0px';
   ctx.textAlign = 'left';
   ctx.fillStyle = 'rgba(255,255,255,0.85)';
   ctx.font = `700 8px ${font}`;
@@ -133,22 +127,22 @@ export function paintBill(value: number, cur: Currency, res = RES): HTMLCanvasEl
 
 const urlCache = new Map<string, string>();
 /** Bill image for the DOM (modals, onboarding, drag ghost). */
-export function billUrl(value: number, cur: Currency): string {
-  const key = cur.code + value;
+export function billUrl(value: number, denoms: Denoms): string {
+  const key = denoms.id + value;
   let url = urlCache.get(key);
   if (!url) {
-    url = paintBill(value, cur, 3).toDataURL();
+    url = paintBill(value, denoms, 3).toDataURL();
     urlCache.set(key, url);
   }
   return url;
 }
 
 /** Crumpled bill for the DOM (the phone wallet). */
-export function crumpledUrl(value: number, cur: Currency): string {
-  const key = 'crumpled' + cur.code + value;
+export function crumpledUrl(value: number, denoms: Denoms): string {
+  const key = 'crumpled' + denoms.id + value;
   let url = urlCache.get(key);
   if (!url) {
-    url = paintCrumpled(value, cur).toDataURL();
+    url = paintCrumpled(value, denoms).toDataURL();
     urlCache.set(key, url);
   }
   return url;
@@ -160,9 +154,9 @@ export type CoinLook = { size: number; bg: string[]; edge: string; bimetal: bool
 const BIMETAL_STOPS: [number, string][] = [[0, '#f6e09a'], [0.42, '#d9b65c'], [0.56, '#b8933c'], [0.585, '#eeeeea'], [1, '#9e9e97']];
 export const BIMETAL_CSS = `radial-gradient(closest-side, ${BIMETAL_STOPS.map(([at, color]) => `${color} ${at * 100}%`).join(', ')})`;
 
-export function coinLook(value: number, cur: Currency): CoinLook {
-  const i = Math.max(0, cur.coins.indexOf(value));
-  const n = cur.coins.length;
+export function coinLook(value: number, denoms: Denoms): CoinLook {
+  const i = Math.max(0, denoms.coins.indexOf(value));
+  const n = denoms.coins.length;
   const f = n > 1 ? i / (n - 1) : 0;
   const bimetal = n >= 6 && i === n - 1;
   const m = bimetal || f >= 0.7 ? METAL.ag : f >= 0.35 ? METAL.br : METAL.cu;
@@ -170,8 +164,8 @@ export function coinLook(value: number, cur: Currency): CoinLook {
 }
 
 /** Coin lying flat, seen at an angle: an ellipse with a visible rim. */
-export function paintCoin(value: number, cur: Currency): HTMLCanvasElement {
-  const { size, bg, edge, bimetal } = coinLook(value, cur);
+export function paintCoin(value: number, denoms: Denoms): HTMLCanvasElement {
+  const { size, bg, edge, bimetal } = coinLook(value, denoms);
   const h = size * 0.5, rim = Math.max(1.5, size * 0.12);
   const { c, ctx } = canvas(size, h + rim, 4);
   ctx.fillStyle = edge;
@@ -204,8 +198,8 @@ export function paintCoin(value: number, cur: Currency): HTMLCanvasElement {
 }
 
 /** Round coin face for change buttons in the DOM. */
-export function coinFaceCss(value: number, cur: Currency) {
-  const { bg, edge, bimetal } = coinLook(value, cur);
+export function coinFaceCss(value: number, denoms: Denoms) {
+  const { bg, edge, bimetal } = coinLook(value, denoms);
   const background = bimetal ? BIMETAL_CSS : `radial-gradient(circle at 35% 30%, ${bg[0]}, ${bg[1]} 72%)`;
   return { background, boxShadow: `inset 0 -3px 0 ${edge}, 0 3px 6px rgba(0,0,0,0.25)` };
 }
@@ -513,7 +507,7 @@ export function paintBackground(theme: Theme, L: Layout, skinId = 'cork', res = 
 }
 
 /** A small bill balled up and smoothed out again: squashed, jagged outline, creases. */
-export function paintCrumpled(value: number, cur: Currency): HTMLCanvasElement {
+export function paintCrumpled(value: number, denoms: Denoms): HTMLCanvasElement {
   const W = 82, H = 44;
   const { c, ctx } = canvas(W, H, RES);
   const r = rng(value * 7 + 3);
@@ -529,12 +523,12 @@ export function paintCrumpled(value: number, cur: Currency): HTMLCanvasElement {
   ctx.beginPath();
   pts.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)));
   ctx.closePath();
-  ctx.fillStyle = BILL_PAL[billIndex(cur, value)][1];
+  ctx.fillStyle = BILL_PAL[billIndex(denoms, value)][1];
   ctx.fill();
   ctx.clip();
   ctx.translate(W / 2, H / 2);
   ctx.rotate(-0.12);
-  ctx.drawImage(paintBill(value, cur, 2), -W * 0.62, -H * 0.62, W * 1.24, H * 1.24);
+  ctx.drawImage(paintBill(value, denoms, 2), -W * 0.62, -H * 0.62, W * 1.24, H * 1.24);
   ctx.setTransform(RES, 0, 0, RES, 0, 0);
   // Facets: light and dark triangles, like paper that's been squeezed.
   for (let i = 0; i < 14; i++) {

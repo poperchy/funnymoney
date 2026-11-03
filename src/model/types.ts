@@ -1,4 +1,4 @@
-import type { CurrencyCode } from '@/lib/money/currency';
+import type { BillScale } from '@/lib/money/denominations';
 
 export type BillLocation = { type: 'cell'; cellId: string } | { type: 'pile' } | { type: 'piggy' };
 
@@ -61,7 +61,7 @@ export type PigGoal = { name: string; amount: number };
 
 export type Wallet = {
   version: 1;
-  currency: CurrencyCode;
+  scale: BillScale;
   categories: Category[];
   bills: Bill[];
   coins: Coin[];

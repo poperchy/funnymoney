@@ -2,17 +2,18 @@
 // between two wallet states, and reports drags back to the model.
 import gsap from 'gsap';
 import { Application, Container, type FederatedPointerEvent, Rectangle, Sprite, Texture } from 'pixi.js';
-import { CURRENCIES, type Currency } from '@/lib/money/currency';
+import type { Denoms } from '@/lib/money/denominations';
 import { moneyShort } from '@/lib/money/format';
 import { billMoved, coinMoved } from '@/model/wallet';
-import { PIG_LINES } from '@/model/defaults';
-import { crumpledInWallet } from '@/model/ops';
+import { PIG_LINES, placeName } from '@/model/defaults';
+import { crumpledInWallet, denomsOf } from '@/model/ops';
 import { dragChanged, draftStarted, exchangeOpened, pigShaken, toastShown, type Theme } from '@/model/ui';
 import { coinLocation, inPiggy, slotKey, type Bill, type BillLocation, type Coin, type DropTarget, type Pose, type Wallet } from '@/model/types';
 import { play } from '@/sound/sfx';
 import { BH, BW, computeLayout, inRect, type Layout, layoutKey, pointToPose, poseToPoint, SCENE_W } from './layout';
 import { coinLook, paintBackground, paintBill, paintCoin, paintCrumpled, paintPurseBack, paintPurseFront, RES } from './paint';
 import { Piggy } from './piggy';
+import { tr } from '@/lib/i18n';
 
 type BillView = {
   id: string;
@@ -146,6 +147,9 @@ export class WallScene {
       if (hide === !v.root.visible) continue;
       v.root.visible = !hide;
       if (!hide) {
+        // It was let go over the till, outside the canvas: it has to travel home, or it stays out of sight.
+        const home = this.pointFor(v);
+        gsap.to(v.root, { x: home.x, y: home.y, rotation: rad(v.pose.r), duration: 0.45, ease: 'power3.out' });
         gsap.fromTo(v.root, { alpha: 0 }, { alpha: 1, duration: 0.3 });
         gsap.fromTo(v.root.scale, { x: 1.2, y: 1.2 }, { x: 1, y: 1, duration: 0.45, ease: 'back.out(2)' });
       }
@@ -191,31 +195,31 @@ export class WallScene {
     play('clink', 0.08);
   }
 
-  private tex(cur: Currency, value: number) {
-    const key = cur.code + value;
+  private tex(denoms: Denoms, value: number) {
+    const key = denoms.id + value;
     let t = this.textures.get(key);
     if (!t) {
-      t = Texture.from(paintBill(value, cur));
+      t = Texture.from(paintBill(value, denoms));
       this.textures.set(key, t);
     }
     return t;
   }
 
-  private coinTex(cur: Currency, value: number) {
-    const key = 'coin' + cur.code + value;
+  private coinTex(denoms: Denoms, value: number) {
+    const key = 'coin' + denoms.id + value;
     let t = this.textures.get(key);
     if (!t) {
-      t = Texture.from(paintCoin(value, cur));
+      t = Texture.from(paintCoin(value, denoms));
       this.textures.set(key, t);
     }
     return t;
   }
 
-  private crumpledTex(cur: Currency, value: number) {
-    const key = 'crumpled' + cur.code + value;
+  private crumpledTex(denoms: Denoms, value: number) {
+    const key = 'crumpled' + denoms.id + value;
     let t = this.textures.get(key);
     if (!t) {
-      t = Texture.from(paintCrumpled(value, cur));
+      t = Texture.from(paintCrumpled(value, denoms));
       this.textures.set(key, t);
     }
     return t;
@@ -223,9 +227,9 @@ export class WallScene {
 
   /** A couple of the smallest bills in the wallet get balled up. Stable: the oldest ones. */
   /** Puts a view into the right layer with the right face for where it lies. */
-  private mount(v: BillView, cur: Currency, crumpled: boolean) {
+  private mount(v: BillView, denoms: Denoms, crumpled: boolean) {
     v.crumpled = crumpled;
-    v.face.texture = crumpled ? this.crumpledTex(cur, v.value) : this.tex(cur, v.value);
+    v.face.texture = crumpled ? this.crumpledTex(denoms, v.value) : this.tex(denoms, v.value);
     const layer = v.loc.type !== 'pile' ? this.bills : crumpled ? this.purseTop : this.purseBills;
     if (v.root.parent !== layer) layer.addChild(v.root);
   }
@@ -241,7 +245,7 @@ export class WallScene {
   /** Applies a new wallet state, animating whatever changed since the previous one. */
   apply(w: Wallet) {
     let prev = this.wallet;
-    if (prev && prev.currency !== w.currency) {
+    if (prev && prev.scale !== w.scale) {
       for (const id of [...this.views.keys()]) this.dropView(id);
       for (const id of [...this.coins.keys()]) this.piggy.take(id)?.view.destroy();
       this.coins.clear();
@@ -254,7 +258,7 @@ export class WallScene {
     // Cells were added, removed or resized: every bill slides to its cell's new place.
     const relaid = sig !== this.layoutSig;
     if (relaid) this.relayout(L, sig);
-    const cur = CURRENCIES[w.currency];
+    const denoms = denomsOf(w);
     const crumpled = crumpledInWallet(w);
     const gone = new Set(this.views.keys());
     let entering = 0;
@@ -263,7 +267,7 @@ export class WallScene {
       gone.delete(b.id);
       const v = this.views.get(b.id);
       if (!v) {
-        this.addView(b, cur, instant, entering, crumpled.has(b.id));
+        this.addView(b, denoms, instant, entering, crumpled.has(b.id));
         if (!instant && b.location.type !== 'piggy') entering++;
         continue;
       }
@@ -277,7 +281,7 @@ export class WallScene {
         if (!v.inPig) this.putInPig(v, false);
         continue;
       }
-      this.mount(v, cur, crush);
+      this.mount(v, denoms, crush);
       const p = this.pointFor(v);
       gsap.to(v.root, { x: p.x, y: p.y, rotation: rad(b.pose.r), duration: 0.55, ease: 'power3.out', delay: Math.min(entering++, 30) * 0.04 });
     }
@@ -289,7 +293,7 @@ export class WallScene {
       else this.flyAway(v);
     }
 
-    this.applyCoins(w, cur, instant);
+    this.applyCoins(w, denoms, instant);
     if (instant) this.piggy.settle();
   }
 
@@ -303,9 +307,9 @@ export class WallScene {
     if (this.wallet) this.placeLooseCoins(this.wallet, false);
   }
 
-  private addView(b: Bill, cur: Currency, instant: boolean, order: number, crumpled: boolean) {
+  private addView(b: Bill, denoms: Denoms, instant: boolean, order: number, crumpled: boolean) {
     const root = new Container();
-    const face = new Sprite(this.tex(cur, b.value));
+    const face = new Sprite(this.tex(denoms, b.value));
     face.anchor.set(0.5);
     face.scale.set(1 / RES);
     root.addChild(face);
@@ -325,7 +329,7 @@ export class WallScene {
       this.putInPig(v, instant);
       return;
     }
-    this.mount(v, cur, crumpled);
+    this.mount(v, denoms, crumpled);
     const p = this.pointFor(v);
     root.position.set(p.x, p.y);
     root.rotation = rad(b.pose.r);
@@ -346,6 +350,8 @@ export class WallScene {
 
   /** Spent without a drag: the bill jumps and flies off towards the till. */
   private flyAway(v: BillView) {
+    // A spent bill may be on its way home: the draft closes in the same tick as the spending.
+    gsap.killTweensOf([v.root, v.root.scale]);
     this.views.delete(v.id);
     v.root.eventMode = 'none';
     v.root.zIndex = 1e6;
@@ -410,7 +416,7 @@ export class WallScene {
     }
   }
 
-  private applyLooseCoins(w: Wallet, cur: Currency, instant: boolean) {
+  private applyLooseCoins(w: Wallet, denoms: Denoms, instant: boolean) {
     const loose = w.coins.filter(c => !inPiggy(c)).slice(0, 120);
     const gone = new Set(this.looseCoins.keys());
     let moved = false;
@@ -426,7 +432,7 @@ export class WallScene {
         }
         continue;
       }
-      const sprite = new Sprite(this.coinTex(cur, c.value));
+      const sprite = new Sprite(this.coinTex(denoms, c.value));
       sprite.anchor.set(0.5);
       sprite.scale.set(PURSE_COIN_SCALE / 4);
       sprite.eventMode = 'static';
@@ -453,16 +459,16 @@ export class WallScene {
     });
   }
 
-  private applyCoins(w: Wallet, cur: Currency, instant: boolean) {
-    this.applyLooseCoins(w, cur, instant);
+  private applyCoins(w: Wallet, denoms: Denoms, instant: boolean) {
+    this.applyLooseCoins(w, denoms, instant);
     const gone = new Set(this.coins.keys());
     let n = 0;
     for (const c of w.coins.filter(inPiggy)) {
       gone.delete(c.id);
       if (this.coins.has(c.id)) continue;
       this.coins.set(c.id, c.value);
-      const look = coinLook(c.value, cur);
-      const s = new Sprite(this.coinTex(cur, c.value));
+      const look = coinLook(c.value, denoms);
+      const s = new Sprite(this.coinTex(denoms, c.value));
       s.anchor.set(0.5);
       s.scale.set(1 / 4);
       const h = look.size * 0.5 + Math.max(1.5, look.size * 0.12);
@@ -619,7 +625,7 @@ export class WallScene {
     v.root.visible = true;
     if (target.type === 'piggy') {
       billMoved({ id: v.id, to: { type: 'piggy' } });
-      toastShown('Свинка довольна: +' + moneyShort(v.value) + '. Хрю');
+      toastShown(tr.toasts.pigFed(moneyShort(v.value)));
       play('oink', 0.3);
       return;
     }
@@ -630,12 +636,7 @@ export class WallScene {
     billMoved({ id: v.id, to, pose: pointToPose(to, cx, cy, tilt, this.layout) });
     play('rustle');
     if (fromKey !== toKey) {
-      const name = (key: string) => (key === 'pile' ? 'кошелька' : '«' + (cats.find(c => c.id === key)?.name ?? '') + '»');
-      toastShown(
-        to.type === 'pile'
-          ? 'Вернул в кошелёк. Подумаем ещё'
-          : 'Переезд: ' + moneyShort(v.value) + ' из ' + name(fromKey) + ' в ' + name(toKey) + '. Прошёл успешно',
-      );
+      toastShown(to.type === 'pile' ? tr.toasts.backToWallet : tr.toasts.moved(moneyShort(v.value), placeName(fromKey, cats), placeName(toKey, cats)));
     }
   };
 
@@ -653,7 +654,7 @@ export class WallScene {
     }
     if (target.type === 'piggy') {
       coinMoved({ id: c.id, to: { type: 'piggy' } });
-      toastShown('Мелочь в свинку: +' + moneyShort(c.value) + '. Хрю');
+      toastShown(tr.toasts.pigFedCoin(moneyShort(c.value)));
       play('oink', 0.35);
       return;
     }

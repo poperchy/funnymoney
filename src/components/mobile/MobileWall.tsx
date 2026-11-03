@@ -2,7 +2,7 @@
 
 import { useUnit } from 'effector-react';
 import { useEffect, useMemo, useRef, useState, type RefObject } from 'react';
-import { money, moneyShort, plural } from '@/lib/money/format';
+import { money, moneyShort } from '@/lib/money/format';
 import { sum } from '@/lib/money/math';
 import { MAX_CATEGORIES } from '@/model/defaults';
 import { sheetOpened } from '@/model/mobile';
@@ -10,7 +10,7 @@ import { billsIn, coinsIn, crumpledInWallet, pigGoalProgress, piggyCoins } from 
 import { coinLocation, type Bill, type BillLocation, type Coin } from '@/model/types';
 import { $skins } from '@/model/skins';
 import { $theme, categoryEditOpened, pigGoalToggled, pigOpened, toastShown } from '@/model/ui';
-import { $balance, $currency, $piggyTotal, $purseMeals, $wallet, spreadRequested } from '@/model/wallet';
+import { $balance, $denoms, $piggyTotal, $purseMeals, $wallet, spreadRequested } from '@/model/wallet';
 import { CoinFace } from '@/components/money/BillImg';
 import { packCells } from '@/scene/layout';
 import { crumpledUrl } from '@/scene/paint';
@@ -21,9 +21,12 @@ import { boardSkin, purseSkin, tillSkin } from '@/scene/skins';
 import { TillDock } from '@/components/money/TillArt';
 import { usePig } from './pig';
 import { askMotion } from './PigSheet';
+import { AddCellTile } from '@/components/wall/AddCellTile';
 import { billImg, FlatCoin, MBH, MBW, PigArt, seeded, setLive, TAG_TOP, WallBill } from './parts';
+import { tr } from '@/lib/i18n';
+import { catName } from '@/model/defaults';
 
-const COLS = 4, ROW_H = 82, GAP = 7;
+const COLS = 4, ROW_H = 82, GAP = 7, ADD_SIZE = 38;
 const ADD_ID = '__add';
 /** Long press that lifts a bill on touch screens; a shorter press is a tap, a move before it is a scroll. */
 const LONG_PRESS_MS = 260;
@@ -163,7 +166,7 @@ function useDrag(scrollRef: RefObject<HTMLDivElement | null>, dockRef: RefObject
 }
 
 function Ghost({ d }: { d: Drag }) {
-  const cur = useUnit($currency);
+  const denoms = useUnit($denoms);
   return (
     <div
       className="pointer-events-none fixed z-[140]"
@@ -174,7 +177,7 @@ function Ghost({ d }: { d: Drag }) {
           <CoinFace value={d.value} size={30} />
         </span>
       ) : (
-        billImg(d.value, cur, MBW)
+        billImg(d.value, denoms, MBW)
       )}
     </div>
   );
@@ -185,9 +188,9 @@ const coinItem = (c: Coin): Item => ({ kind: 'coin', id: c.id, value: c.value, f
 
 /** "Октябрь · ещё 3 дня": the desktop header's month line, short enough for a phone. */
 function monthNote(now = new Date()) {
-  const name = now.toLocaleString('ru-RU', { month: 'long' });
+  const name = now.toLocaleString(tr.intl, { month: 'long' });
   const days = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate() - now.getDate();
-  const left = days === 0 ? 'последний день' : `ещё ${days} ${plural(days, 'день', 'дня', 'дней')}`;
+  const left = days === 0 ? tr.mobile.lastDay : tr.mobile.daysLeft(days);
   return name[0].toUpperCase() + name.slice(1) + ' · ' + left;
 }
 
@@ -200,7 +203,7 @@ function spentThisMonth(receipts: { amount: number; at: string }[]) {
 }
 
 export function MobileWall() {
-  const [w, cur, balance, pigTotal] = useUnit([$wallet, $currency, $balance, $piggyTotal]);
+  const [w, denoms, balance, pigTotal] = useUnit([$wallet, $denoms, $balance, $piggyTotal]);
   const scrollRef = useRef<HTMLDivElement>(null);
   const dockRef = useRef<HTMLDivElement>(null);
   const { drag, down, justDropped } = useDrag(scrollRef, dockRef);
@@ -226,9 +229,10 @@ export function MobileWall() {
     const packed = packCells(withAdd ? [...cats, { id: ADD_ID, colSpan: 1, rowSpan: 1 }] : cats, COLS);
     const plain = withAdd ? packCells(cats, COLS) : packed;
     const add = withAdd ? packed.positions.get(ADD_ID)! : null;
-    // No gap left for the card: it gets a row of its own, across the board.
+    // No gap left for the button: it gets a low row of its own.
     const addOwnRow = !!add && add.row >= plain.rows;
-    return { positions: packed.positions, rows: Math.max(1, packed.rows), add, addOwnRow };
+    const rowsCss = [...Array<string>(plain.rows).fill(`${ROW_H}px`), ...(addOwnRow ? [`${ADD_SIZE}px`] : [])].join(' ');
+    return { positions: packed.positions, rowsCss, add, addOwnRow };
   }, [cats]);
 
   // The oldest small bills lie crumpled on the wallet, as on the desktop.
@@ -257,7 +261,7 @@ export function MobileWall() {
         <div className="flex min-w-0 flex-col gap-px">
           <span className="truncate text-xs text-ink2">{monthNote()}</span>
           <span className="text-[28px] leading-[1.05] font-bold tracking-[-0.035em] whitespace-nowrap">
-            {money(balance)} <span className="text-[15px] font-medium text-ink2">{cur.symbol}</span>
+            {money(balance)}
           </span>
         </div>
         <div className="flex flex-none gap-2">
@@ -266,9 +270,9 @@ export function MobileWall() {
             onClick={() => sheetOpened({ type: 'spend' })}
             className="h-11 rounded-full bg-accent px-4 text-sm font-semibold text-accent-ink shadow-[0_8px_18px_-10px_rgba(30,70,50,0.9)]"
           >
-            Потратить
+            {tr.common.spend}
           </button>
-          <button onClick={() => sheetOpened({ type: 'menu' })} aria-label="Настройки" className="h-11 w-11 rounded-full bg-btn2 text-lg text-ink">
+          <button onClick={() => sheetOpened({ type: 'menu' })} aria-label={tr.common.settings} className="h-11 w-11 rounded-full bg-btn2 text-lg text-ink">
             ⋯
           </button>
         </div>
@@ -291,9 +295,9 @@ export function MobileWall() {
             <div className="pointer-events-none absolute inset-[5px] rounded-[16px] border-[1.5px] border-dashed" style={{ borderColor: purse.stitch }} />
             <div className="relative flex min-w-0 flex-col gap-0.5">
               <span className="text-[15px]">
-                В кошельке: <b className="text-[22px] tracking-[-0.02em] whitespace-nowrap">{moneyShort(pileTotal)} {cur.symbol}</b>
+                {tr.common.inWallet} <b className="text-[22px] tracking-[-0.02em] whitespace-nowrap">{moneyShort(pileTotal)}</b>
               </span>
-              <span className="text-[13px] opacity-75">{allPileBills.length ? 'Грустят без дела. Разложи их' : 'Мелочь. Тоже деньги, между прочим'}</span>
+              <span className="text-[13px] opacity-75">{allPileBills.length ? tr.common.idleBills : tr.common.onlyCoins}</span>
             </div>
             <div className="relative mt-2.5 flex gap-2">
               {allPileBills.length > 0 && (
@@ -304,7 +308,7 @@ export function MobileWall() {
                   }}
                   className="h-11 flex-1 rounded-full bg-[rgba(255,248,235,0.94)] px-3 text-sm font-semibold whitespace-nowrap text-[#2a231b]"
                 >
-                  Как в прошлый раз
+                  {tr.common.likeLastTime}
                 </button>
               )}
               <button
@@ -315,7 +319,7 @@ export function MobileWall() {
                 className="h-11 flex-1 rounded-full border-[1.5px] px-3 text-sm font-semibold whitespace-nowrap"
                 style={{ borderColor: purse.ink ?? 'rgba(255,240,220,0.5)' }}
               >
-                Вписать суммы
+                {tr.mobile.typeAmounts}
               </button>
             </div>
             <div className="relative mt-2.5 h-[58px]">
@@ -340,7 +344,7 @@ export function MobileWall() {
                   data-bill={b.id}
                   onPointerDown={e => down(e, billItem(b))}
                   onContextMenu={e => e.preventDefault()}
-                  aria-label={`${moneyShort(b.value)} ${cur.code}, скомканная`}
+                  aria-label={tr.mobile.crumpled(moneyShort(b.value))}
                   className="absolute cursor-grab select-none [-webkit-touch-callout:none]"
                   style={{
                     right: (pileCoins.length ? 70 : 0) + i * 44,
@@ -352,7 +356,7 @@ export function MobileWall() {
                   }}
                 >
                   {/* eslint-disable-next-line @next/next/no-img-element -- generated data URL */}
-                  <img src={crumpledUrl(b.value, cur)} alt="" width={58} height={31} draggable={false} className="pointer-events-none block" />
+                  <img src={crumpledUrl(b.value, denoms)} alt="" width={58} height={31} draggable={false} className="pointer-events-none block" />
                 </div>
               ))}
               {pileCoins.slice(-24).map((c, i) => (
@@ -376,7 +380,7 @@ export function MobileWall() {
             className="relative grid rounded-lg p-[7px]"
             style={{
               gridTemplateColumns: `repeat(${COLS}, minmax(0, 1fr))`,
-              gridTemplateRows: `repeat(${grid.rows}, ${ROW_H}px)`,
+              gridTemplateRows: grid.rowsCss,
               gap: GAP,
               ...boardStyle.inner,
             }}
@@ -406,7 +410,7 @@ export function MobileWall() {
                   <div className="pointer-events-none absolute inset-0 opacity-90" style={{ backgroundImage: SURFACE[board.cellTexture] }} />
                   {k === 0 && (
                     <div className="absolute inset-[36px_6px_6px_6px] flex items-center justify-center rounded-md border-2 border-dashed border-[var(--dash)] px-1 py-0.5 text-center text-[11px] leading-[1.25] text-[var(--dash-ink)]">
-                      Тут было что-то. Было.
+                      {tr.common.emptyCell}
                     </div>
                   )}
                   {/* Own stacking context: bill z-orders keep growing and must stay under the tag. */}
@@ -432,11 +436,11 @@ export function MobileWall() {
                     style={{ transform: `rotate(${(((i * 37) % 5) - 2) * 0.8}deg)` }}
                   >
                     <span className="absolute top-2 left-1 h-1.5 w-1.5 rounded-full" style={{ background: PIN }} />
-                    <div className="truncate text-[11.5px] leading-[1.2] font-semibold">{c.name}</div>
+                    <div className="truncate text-[11.5px] leading-[1.2] font-semibold">{catName(c)}</div>
                     <div className="text-[10.5px] leading-[1.3] whitespace-nowrap" style={{ color: low ? 'var(--danger)' : undefined }}>
                       <span className="font-semibold">{moneyShort(k)}</span>
                       {c.budget > 0 && <span className="opacity-55">/{moneyShort(c.budget)}</span>}
-                      {low && cs > 1 && <span> · на донышке</span>}
+                      {low && cs > 1 && <span>{tr.mobile.lowCell}</span>}
                     </div>
                   </div>
                   {hot(c.id) && <div className="pointer-events-none absolute inset-0 z-[3] rounded-[5px] border-2 bg-[rgba(255,250,235,0.16)]" style={{ borderColor: look.ink ? 'var(--accent)' : 'rgba(255,250,235,0.95)' }} />}
@@ -444,13 +448,12 @@ export function MobileWall() {
               );
             })}
             {grid.add && (
-              <button
+              <AddCellTile
+                size={ADD_SIZE}
+                ink={look.ink}
                 onClick={() => categoryEditOpened('new')}
-                className="flex items-center justify-center rounded-[5px] border-2 border-dashed border-[var(--dash)] text-[13px] font-semibold text-[var(--dash-ink)]"
-                style={{ gridColumn: grid.addOwnRow ? `1 / span ${COLS}` : `${grid.add.col + 1} / span 1`, gridRow: `${grid.add.row + 1} / span 1` }}
-              >
-                + Ячейка
-              </button>
+                style={{ placeSelf: 'center', gridColumn: grid.addOwnRow ? `1 / span ${COLS}` : `${grid.add.col + 1} / span 1`, gridRow: `${grid.add.row + 1} / span 1` }}
+              />
             )}
             <div
               className="pointer-events-none absolute inset-0 z-10 rounded-lg"
@@ -463,7 +466,7 @@ export function MobileWall() {
           </div>
         </div>
         <div className="mx-7 mt-3.5 text-center text-xs leading-[1.45] text-balance text-ink2">
-          Тапни по ячейке или кошельку и впиши, сколько куда. А для любителей пощупать: зажми купюру и тащи
+          {tr.mobile.wallHint}
         </div>
       </div>
 
@@ -482,11 +485,11 @@ export function MobileWall() {
           caption={
             dragging
               ? drag.target === 'spent'
-                ? 'Отпускай. Прощай, дружок'
-                : 'Тащи сюда, чтобы потратить'
+                ? tr.mobile.tillRelease
+                : tr.mobile.tillDrag
               : spent
-                ? `−${money(spent)} за месяц · чеки, статистика ›`
-                : 'Пока ничего · чеки, статистика ›'
+                ? tr.mobile.tillSpent(money(spent))
+                : tr.mobile.tillNothing
           }
         />
         <div
@@ -499,7 +502,7 @@ export function MobileWall() {
           }}
         >
           {/* The pig itself: poke it, like on the desktop. */}
-          <button aria-label="Потыкать свинку" onClick={() => !justDropped() && poke()} className="absolute inset-y-0 left-0 w-[86px]">
+          <button aria-label={tr.common.pokePig} onClick={() => !justDropped() && poke()} className="absolute inset-y-0 left-0 w-[86px]">
             <div ref={pigRef} data-pig className="pointer-events-none absolute bottom-[3px] left-0.5 h-[62px] w-[79px] origin-bottom">
               <div className="absolute top-0 left-0 h-[182px] w-[232px] origin-top-left scale-[0.34]">
                 <PigArt coins={piggyCoins(w)} bills={billsIn(w, { type: 'piggy' })} target={drag?.target === 'piggy'} jolt={jolt} />
@@ -512,7 +515,7 @@ export function MobileWall() {
               if (justDropped()) return;
               if (!pigTotal) {
                 // An empty pig with no goal: a good moment to give it one.
-                if (goal) toastShown('Свинка голодает. Переложи ей мелочь из кошелька');
+                if (goal) toastShown(tr.toasts.pigHungryHint);
                 else pigGoalToggled(true);
                 return;
               }
@@ -521,12 +524,12 @@ export function MobileWall() {
             }}
             className="absolute inset-y-0 right-0 left-[86px] flex flex-col items-end gap-px pt-[9px] pr-3 text-right"
           >
-            <span className="max-w-full truncate text-[11px] whitespace-nowrap text-ink2">{goal ? goal.name : 'Нужная мусорка'}</span>
+            <span className="max-w-full truncate text-[11px] whitespace-nowrap text-ink2">{goal ? goal.name : tr.common.pigName}</span>
             <span className="text-[15px] font-bold whitespace-nowrap">
-              {moneyShort(pigTotal)} <span className="text-[11px] font-medium text-ink2">{cur.symbol}</span>
+              {moneyShort(pigTotal)}
             </span>
             <span className="text-[11px] font-semibold whitespace-nowrap" style={{ color: pigTotal && !dragging ? 'var(--accent)' : 'var(--ink2)' }}>
-              {dragging ? 'Хрю, сюда' : pigTotal ? 'Разбить ›' : 'Свинка голодает'}
+              {dragging ? tr.mobile.pigHere : pigTotal ? tr.mobile.pigBreak : tr.common.pigHungry}
             </span>
             {goal && !dragging && (
               <span className="absolute right-3 bottom-[5px] left-1 h-1 overflow-hidden rounded-full bg-line">

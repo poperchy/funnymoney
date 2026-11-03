@@ -1,6 +1,7 @@
 import { existsSync, readdirSync } from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { LOCALES } from '@/lib/i18n';
 import { picturePath, previewItems, type PreviewDevice } from './previewBox';
 
 const PUBLIC = path.resolve('public');
@@ -8,10 +9,10 @@ const DEVICES: PreviewDevice[] = ['desktop', 'phone'];
 const THEMES = ['light', 'dark'] as const;
 
 describe('shop pictures', () => {
-  const expected = DEVICES.flatMap(d => THEMES.flatMap(t => previewItems().map(i => picturePath(d, t, i))));
+  const expected = LOCALES.flatMap(l => DEVICES.flatMap(d => THEMES.flatMap(t => previewItems().map(i => picturePath(l, d, t, i)))));
 
   // A new skin without a picture would be a broken image in the shop.
-  it('every skin has a picture for every theme and device: npm run skins:previews', () => {
+  it('every skin has a picture for every language, theme and device: npm run skins:previews', () => {
     expect(expected.filter(p => !existsSync(path.join(PUBLIC, p)))).toEqual([]);
   });
 

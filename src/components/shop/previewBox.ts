@@ -1,5 +1,6 @@
 // What the shop's pictures show. Shared by the renderer that makes them and the shop that shows them,
 // so a card knows its size before its picture arrives and nothing jumps.
+import type { Locale } from '@/lib/i18n';
 import type { Theme } from '@/model/ui';
 import { SCENE_W, type Layout, type Rect } from '@/scene/layout';
 import { BOARD_SKINS, HAT_SKINS, NECK_SKINS, PAGE_SKINS, PURSE_SKINS, SKIN_PACKS, TILL_SKINS } from '@/scene/skins';
@@ -50,4 +51,4 @@ export const previewItems = (): PreviewItem[] => [
 ];
 
 /** Where a picture lives under `public/`. */
-export const picturePath = (device: PreviewDevice, theme: Theme, { part, id }: PreviewItem) => `skins/${device}-${theme}/${part}-${id}.webp`;
+export const picturePath = (lang: Locale, device: PreviewDevice, theme: Theme, { part, id }: PreviewItem) => `skins/${lang}/${device}-${theme}/${part}-${id}.webp`;

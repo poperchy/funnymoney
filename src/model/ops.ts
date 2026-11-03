@@ -1,16 +1,18 @@
 // Pure wallet operations. Effector stores call these; the scene only animates the result.
-import { CURRENCIES, type Currency } from '@/lib/money/currency';
+import { SCALES, type Denoms } from '@/lib/money/denominations';
 import { changeFor, decompose, pickBills, splitChange, sum } from '@/lib/money/math';
 import { gauss, rng, uid } from '@/lib/rng';
-import { FILL_ORDER, MAX_CATEGORIES } from './defaults';
+import { FILL_ORDER, MAX_CATEGORIES, sourceLabel } from './defaults';
 import { coinLocation, coinPlace, inPiggy, inWallet, sameSlot, type Bill, type BillLocation, type Category, type Coin, type PigGoal, type Pose, type Wallet } from './types';
+import { tr } from '@/lib/i18n';
 
 const PILE: BillLocation = { type: 'pile' };
 const PIGGY: BillLocation = { type: 'piggy' };
 /** Enough history to compare months in the stats. */
 const MAX_RECEIPTS = 2000;
 
-export const currencyOf = (w: Wallet): Currency => CURRENCIES[w.currency];
+/** The fallback is for a wallet saved before scales existed. */
+export const denomsOf = (w: Wallet): Denoms => SCALES[w.scale] ?? SCALES.small;
 export const billsIn = (w: Wallet, loc: BillLocation) => w.bills.filter(b => sameSlot(b.location, loc));
 export const coinsIn = (w: Wallet, loc: BillLocation) => w.coins.filter(c => sameSlot(coinLocation(c), loc));
 /** Everything lying somewhere, bills and coins. */
@@ -26,7 +28,7 @@ export const balance = (w: Wallet) => sum(w.bills.map(b => b.value)) + coinTotal
 const MAX_CRUMPLED = 2;
 /** The oldest bills of the two smallest values lie crumpled on the wallet, as forgotten small money does. */
 export function crumpledInWallet(w: Wallet): Set<string> {
-  const small = new Set(currencyOf(w).bills.slice(0, 2));
+  const small = new Set(denomsOf(w).bills.slice(0, 2));
   return new Set(
     w.bills
       .filter(b => b.location.type === 'pile' && small.has(b.value))
@@ -86,7 +88,7 @@ export function spend(w: Wallet, { source, billIds, change, label }: SpendInput)
   const amount = paid - sum(change);
   if (amount <= 0) return w;
   const rest = pay(w, source, ids, change);
-  const name = source === 'pile' ? 'Из кошелька' : w.categories.find(c => c.id === source)?.name ?? '';
+  const name = sourceLabel(source, w.categories, tr.common.fromWallet, '');
   return {
     ...rest,
     receipts: [
@@ -98,20 +100,20 @@ export function spend(w: Wallet, { source, billIds, change, label }: SpendInput)
 
 /** Hands over the given bills/coins; change bills go back to the source, change coins to the wallet pocket. The piggy is fed by hand. */
 function pay(w: Wallet, source: string, ids: Set<string>, change: number[]): Wallet {
-  const cur = currencyOf(w);
+  const denoms = denomsOf(w);
   const rest = { ...w, bills: w.bills.filter(b => !ids.has(b.id)), coins: w.coins.filter(c => !ids.has(c.id)) };
   return {
     ...rest,
-    bills: [...rest.bills, ...makeBills(rest, change.filter(v => v >= cur.bills[0]), sourceLocation(source))],
-    coins: [...rest.coins, ...makeCoins(change.filter(v => v < cur.bills[0]), 'wallet')],
+    bills: [...rest.bills, ...makeBills(rest, change.filter(v => v >= denoms.bills[0]), sourceLocation(source))],
+    coins: [...rest.coins, ...makeCoins(change.filter(v => v < denoms.bills[0]), 'wallet')],
   };
 }
 
 /** Money coming back (a corrected receipt): bills into the source, the odd kopecks into the wallet pocket. */
 function refund(w: Wallet, source: string, amount: number): Wallet {
-  const cur = currencyOf(w);
-  const bills = decompose(amount, cur.bills);
-  const coins = decompose(amount - sum(bills), cur.coins);
+  const denoms = denomsOf(w);
+  const bills = decompose(amount, denoms.bills);
+  const coins = decompose(amount - sum(bills), denoms.coins);
   // The cell may have been taken off the wall since; then the money goes to the wallet.
   const to = source === 'pile' || w.categories.some(c => c.id === source) ? source : 'pile';
   return { ...w, bills: [...w.bills, ...makeBills(w, bills, sourceLocation(to))], coins: [...w.coins, ...makeCoins(coins, 'wallet')] };
@@ -180,7 +182,7 @@ export function planSpend(w: Wallet, source: string, amount: number): SpendPlan 
   const taken = pickBills(available, amount);
   if (!taken) return { ok: false, total, reason: 'not-enough' };
   const paid = sum(taken.map(b => b.value));
-  const { bills, coins } = splitChange(paid - amount, currencyOf(w));
+  const { bills, coins } = splitChange(paid - amount, denomsOf(w));
   return { ok: true, total, taken, paid, back: bills, coins };
 }
 
@@ -247,10 +249,10 @@ export function pigGoalProgress(w: Wallet) {
  * A goal that was reached is done; one that wasn't stays, and the saving starts over.
  */
 export function breakPiggy(w: Wallet): { wallet: Wallet; taken: number } {
-  const cur = currencyOf(w);
+  const denoms = denomsOf(w);
   const coinsSum = sum(piggyCoins(w).map(c => c.value));
-  const exchanged = decompose(coinsSum, cur.bills);
-  const leftover = decompose(coinsSum - sum(exchanged), cur.coins);
+  const exchanged = decompose(coinsSum, denoms.bills);
+  const leftover = decompose(coinsSum - sum(exchanged), denoms.coins);
   const fromPiggy = billsIn(w, PIGGY);
   const r = rng(Date.now() % 1e6);
   const moved = new Map(fromPiggy.map(b => [b.id, { ...b, location: PILE, pose: randomPose(PILE, r) }]));
@@ -266,17 +268,17 @@ export function breakPiggy(w: Wallet): { wallet: Wallet; taken: number } {
   };
 }
 
-// Typical purchases in BYN kopecks: groceries, a lunch, a big shop, a coffee.
-const FREQ_BYN = [1500, 4000, 12000, 850];
+// Typical purchases in minor units, on the small scale: groceries, a lunch, a big shop, a coffee.
+const FREQ = [1500, 4000, 12000, 850];
 
 /** Amounts you spend most often, padded with typical ones for a fresh wallet. */
 export function frequentAmounts(w: Wallet, n = 4): number[] {
-  const cur = currencyOf(w);
+  const denoms = denomsOf(w);
   const counts = new Map<number, number>();
   for (const r of w.receipts) counts.set(r.amount, (counts.get(r.amount) ?? 0) + 1);
   const top = [...counts].filter(([, c]) => c > 1).sort((a, b) => b[1] - a[1]).map(([a]) => a);
-  const step = cur.coins[cur.coins.length - 1];
-  const typical = FREQ_BYN.map(v => Math.max(step, Math.round((v * cur.scale) / step) * step));
+  const step = denoms.coins[denoms.coins.length - 1];
+  const typical = FREQ.map(v => Math.max(step, Math.round((v * denoms.budgets) / step) * step));
   return [...new Set([...top, ...typical])].slice(0, n);
 }
 
@@ -315,21 +317,21 @@ const looseHere = (w: Wallet, loc: BillLocation): Payable[] =>
   loc.type === 'piggy' ? [] : [...billsIn(w, loc), ...coinsIn(w, loc)];
 
 /** What a value breaks into: the next denomination down, then whatever completes it. 100 → 50 + 50, 5 → 2 + 2 + 1. */
-export function piecesFor(value: number, cur: Currency): number[] {
-  const smaller = [...cur.bills, ...cur.coins].filter(d => d < value);
+export function piecesFor(value: number, denoms: Denoms): number[] {
+  const smaller = [...denoms.bills, ...denoms.coins].filter(d => d < value);
   if (!smaller.length) return [];
   const pieces = decompose(value, smaller);
   return sum(pieces) === value ? pieces : [];
 }
 
 export function exchangeOptions(w: Wallet, loc: BillLocation): ExchangeOptions {
-  const cur = currencyOf(w);
+  const denoms = denomsOf(w);
   const items = looseHere(w, loc).sort((a, b) => b.value - a.value);
   const split = [...new Map(items.map(i => [i.value, i])).values()]
-    .map(i => ({ value: i.value, id: i.id, pieces: piecesFor(i.value, cur) }))
+    .map(i => ({ value: i.value, id: i.id, pieces: piecesFor(i.value, denoms) }))
     .filter(o => o.pieces.length > 1);
   const merge: ExchangeOptions['merge'] = [];
-  for (const target of cur.bills) {
+  for (const target of denoms.bills) {
     let total = 0;
     const take: Payable[] = [];
     for (const i of items) {
@@ -345,9 +347,9 @@ export function exchangeOptions(w: Wallet, loc: BillLocation): ExchangeOptions {
 
 /** Adds money of the given values at a location: bills as bills, the rest as coins. */
 function addMoneyAt(w: Wallet, values: number[], loc: BillLocation): Wallet {
-  const cur = currencyOf(w);
-  const bills = values.filter(v => v >= cur.bills[0]);
-  const coins = values.filter(v => v < cur.bills[0]);
+  const denoms = denomsOf(w);
+  const bills = values.filter(v => v >= denoms.bills[0]);
+  const coins = values.filter(v => v < denoms.bills[0]);
   return {
     ...w,
     bills: [...w.bills, ...makeBills(w, bills, loc)],
@@ -365,7 +367,7 @@ export function exchangeSplit(w: Wallet, id: string): Wallet {
   if (!item) return w;
   const loc = bill ? bill.location : coinLocation(coin!);
   if (loc.type === 'piggy') return w;
-  const pieces = piecesFor(item.value, currencyOf(w));
+  const pieces = piecesFor(item.value, denomsOf(w));
   if (pieces.length < 2) return w;
   return addMoneyAt(without(w, new Set([id])), pieces, loc);
 }
@@ -388,16 +390,16 @@ export type TransferPlan =
  * on the way, as a cashier would: the target gets exactly `amount`, the rest comes back to the source.
  */
 export function planTransfer(w: Wallet, source: string, amount: number): TransferPlan {
-  const cur = currencyOf(w);
+  const denoms = denomsOf(w);
   const available: Payable[] = looseHere(w, sourceLocation(source));
   const total = sum(available.map(b => b.value));
   if (amount <= 0) return { ok: false, total, reason: 'no-amount' };
-  // Kopecks the currency has no coin for (half a rouble) can't be moved as cash.
-  if (sum(changeFor(amount, cur)) !== amount) return { ok: false, total, reason: 'odd' };
+  // Kopecks these coins can't make up can't be moved as cash.
+  if (sum(changeFor(amount, denoms)) !== amount) return { ok: false, total, reason: 'odd' };
   const taken = pickBills(available, amount);
   if (!taken) return { ok: false, total, reason: 'not-enough' };
   const paid = sum(taken.map(b => b.value));
-  return { ok: true, total, taken, paid, moved: paid === amount ? taken.map(t => t.value) : changeFor(amount, cur), back: changeFor(paid - amount, cur) };
+  return { ok: true, total, taken, paid, moved: paid === amount ? taken.map(t => t.value) : changeFor(amount, denoms), back: changeFor(paid - amount, denoms) };
 }
 
 export function transfer(w: Wallet, source: string, target: string, amount: number): Wallet {

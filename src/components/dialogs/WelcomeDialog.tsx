@@ -4,34 +4,18 @@ import { useUnit } from 'effector-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useState } from 'react';
 import { $welcomeSeen, welcomeClosed } from '@/model/ui';
-import { $currency } from '@/model/wallet';
+import { $denoms } from '@/model/wallet';
 import { BillImg } from '@/components/money/BillImg';
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
 import { play } from '@/sound/sfx';
+import { tr } from '@/lib/i18n';
 
-const POINTS = [
-  ['Зарплата приходит пачкой', 'Кликаешь по купюрам — пачка толстеет. Самый приятный клик в жизни. После «Отменить подписку», конечно.'],
-  ['Раскладываешь по ячейкам', 'Еда, аренда, котик. Котику побольше — он проверит.'],
-  ['Тратишь — вытаскиваешь', 'Купюру в кассу, сдачу обратно, мелочь в кошелёк. Свинка всё видит, но молчит. Пока.'],
-];
-
-const PROMISES = [
-  ['Не буду врать стене, что кофе — это «еда»', 'Стена тебе верит. Не подведи'],
-  ['Не буду плакать над пустой ячейкой', 'Можно чуть-чуть. Мы отвернёмся'],
-];
-
+const POINTS = tr.welcome.points;
+const PROMISES = tr.welcome.promises;
 /** What bills say when you poke them. */
-const QUIPS = ['Эй, не мни!', 'Пересчитай меня', 'Я не на кофе. Я на мечту', 'Щекотно', 'Положи где взял', 'Меня печатали не для этого', 'Ещё раз — и уйду в «Потрачено»'];
-
-const GREETINGS = [
-  'С возвращением! Купюры на месте, я пересчитал. Дважды',
-  'О, привет. Деньги никуда не убежали. Пока',
-  'Стена скучала. Свинка тоже, но она гордая и не скажет',
-  'Заходи, не стесняйся. Ничего не тратили, пока тебя не было. Честно',
-  'Снова ты! Купюры приосанились',
-  'Привет! Пока тебя не было, сотня пыталась сбежать в «Кафе». Поймали',
-];
+const QUIPS = tr.welcome.quips;
+const GREETINGS = tr.welcome.greetings;
 export const greeting = () => GREETINGS[Math.floor(Math.random() * GREETINGS.length)];
 
 /** First visit: what this is, in a few jokes and a contract nobody has to sign. */
@@ -46,13 +30,11 @@ export function WelcomeDialog() {
   };
 
   return (
-    <Modal open onClose={close} title="Привет" width={560}>
+    <Modal open onClose={close} title={tr.welcome.title} width={560}>
       <WelcomeBills />
       <div className="flex flex-col gap-2 text-center">
-        <span className="text-[30px] leading-[1.1] font-bold tracking-[-0.03em] text-balance">Привет! Теперь твои деньги висят на стене</span>
-        <span className="text-[15px] leading-normal text-balance text-ink2">
-          Как бабушкина заначка в серванте, только с анимацией и без нафталина. Цифры не чувствуются — а вот худеющая пачка очень даже.
-        </span>
+        <span className="text-[30px] leading-[1.1] font-bold tracking-[-0.03em] text-balance">{tr.welcome.heading}</span>
+        <span className="text-[15px] leading-normal text-balance text-ink2">{tr.welcome.sub}</span>
       </div>
 
       <div className="flex flex-col gap-2.5">
@@ -68,7 +50,7 @@ export function WelcomeDialog() {
       </div>
 
       <div className="flex flex-col gap-2 rounded-2xl border border-dashed border-line px-4 py-3">
-        <span className="font-mono text-[11px] tracking-[0.12em] text-ink2 uppercase">Договор, который ни к чему не обязывает</span>
+        <span className="font-mono text-[11px] tracking-[0.12em] text-ink2 uppercase">{tr.welcome.contract}</span>
         {PROMISES.map(([text, reply], i) => (
           <label key={text} className="flex cursor-pointer items-start gap-2.5 text-sm">
             <input
@@ -96,20 +78,18 @@ export function WelcomeDialog() {
 
       <div className="flex flex-col items-center gap-2">
         <Button variant="primary" size="lg" className="!px-8" onClick={close}>
-          {all ? 'Погнали, я готов' : none ? 'Погнали без обещаний' : 'Погнали, пообещал наполовину'}
+          {all ? tr.welcome.goAll : none ? tr.welcome.goNone : tr.welcome.goHalf}
         </Button>
-        <span className="text-center text-[12px] leading-snug text-ink2">
-          Регистрации нет. Всё живёт в твоём браузере — мы не знаем, сколько ты тратишь на кофе. И знать не хотим. Ладно, немного хотим.
-        </span>
+        <span className="text-center text-[12px] leading-snug text-ink2">{tr.welcome.privacy}</span>
       </div>
     </Modal>
   );
 }
 
-/** A fan of the current currency's bills. Poke one — it talks back. */
+/** A fan of the current bills. Poke one — it talks back. */
 function WelcomeBills() {
-  const cur = useUnit($currency);
-  const fan = [cur.bills[1], cur.bills[3], cur.bills[5]];
+  const denoms = useUnit($denoms);
+  const fan = [denoms.bills[1], denoms.bills[3], denoms.bills[5]];
   // Each poke takes the next line, so they never repeat back to back.
   const [poked, setPoked] = useState<{ i: number; n: number } | null>(null);
   const quip = poked && { text: QUIPS[(poked.n - 1) % QUIPS.length], i: poked.i, key: poked.n };
@@ -141,7 +121,7 @@ function WelcomeBills() {
         <motion.button
           key={v}
           onClick={() => poke(i)}
-          aria-label={`Потыкать купюру ${i + 1}`}
+          aria-label={tr.welcome.pokeBill(i + 1)}
           className="absolute top-3 left-[70px] cursor-pointer"
           initial={{ rotate: 0, y: 20, opacity: 0 }}
           animate={{

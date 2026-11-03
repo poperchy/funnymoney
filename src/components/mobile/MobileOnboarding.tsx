@@ -3,14 +3,14 @@
 import { useUnit } from 'effector-react';
 import { motion } from 'motion/react';
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
-import { moneyShort, plural } from '@/lib/money/format';
+import { moneyShort } from '@/lib/money/format';
 import { payout, sum } from '@/lib/money/math';
-import { pageHref } from '@/lib/paths';
+import { landingHref, tr } from '@/lib/i18n';
 import { gauss, rng } from '@/lib/rng';
 import { sheetOpened } from '@/model/mobile';
 import { budgetsInFillOrder } from '@/model/ops';
 import { wallOpened } from '@/model/ui';
-import { $currency, $wallet, incomeReceived } from '@/model/wallet';
+import { $denoms, $wallet, incomeReceived } from '@/model/wallet';
 import { Hand } from '@/components/onboarding/Hand';
 import { Stack } from '@/components/onboarding/Stack';
 import { play } from '@/sound/sfx';
@@ -38,7 +38,7 @@ const useViewport = () => {
 
 /** Bill you tap to add to the wad; "−" or a long press takes one back. */
 function DenomButton({ value, count, onAdd, onRemove }: { value: number; count: number; onAdd: () => void; onRemove: () => void }) {
-  const cur = useUnit($currency);
+  const denoms = useUnit($denoms);
   const hold = useRef<{ t: number; fired: boolean } | null>(null);
   const release = () => {
     if (hold.current) clearTimeout(hold.current.t);
@@ -46,7 +46,7 @@ function DenomButton({ value, count, onAdd, onRemove }: { value: number; count: 
   return (
     <div className="flex flex-col items-center gap-1.5">
       <button
-        aria-label={'Добавить ' + moneyShort(value)}
+        aria-label={tr.onboarding.addBill(moneyShort(value))}
         onPointerDown={() => {
           release();
           const h = { t: 0, fired: false };
@@ -72,12 +72,12 @@ function DenomButton({ value, count, onAdd, onRemove }: { value: number; count: 
         }}
         className="relative h-[52px] w-[104px] select-none transition-transform duration-150 active:scale-[0.96] [-webkit-touch-callout:none]"
       >
-        {billImg(value, cur, 104, { borderRadius: 4 })}
+        {billImg(value, denoms, 104, { borderRadius: 4 })}
       </button>
       <div className="flex h-[30px] items-center gap-2">
         {count > 0 && (
           <>
-            <button onClick={onRemove} aria-label={'Убрать ' + moneyShort(value)} className="h-[30px] w-[30px] rounded-full border border-line bg-btn2 text-[17px] leading-none text-ink">
+            <button onClick={onRemove} aria-label={tr.onboarding.removeBill(moneyShort(value))} className="h-[30px] w-[30px] rounded-full border border-line bg-btn2 text-[17px] leading-none text-ink">
               −
             </button>
             <span className="text-sm font-semibold">×{count}</span>
@@ -90,7 +90,7 @@ function DenomButton({ value, count, onAdd, onRemove }: { value: number; count: 
 
 /** "Сколько получил?" on a phone: tap bills into the hand, it lets go, they land on the table. */
 export function MobileOnboarding() {
-  const [w, cur] = useUnit([$wallet, $currency]);
+  const [w, denoms] = useUnit([$wallet, $denoms]);
   const { vw, vh } = useViewport();
   const [phase, setPhase] = useState<Phase>('income');
   const [bills, setBills] = useState<number[]>([]);
@@ -123,7 +123,7 @@ export function MobileOnboarding() {
   }, [phase, heap.length]);
 
   const fill = (amount: number) => {
-    const p = payout(amount, cur, budgetsInFillOrder(w));
+    const p = payout(amount, denoms, budgetsInFillOrder(w));
     setBills(p.bills.slice(0, MAX_BILLS));
     setCoins(p.coins);
   };
@@ -148,23 +148,23 @@ export function MobileOnboarding() {
     setTimeout(() => incomeReceived({ bills, coins }), 350);
   };
 
-  const rich = total >= 2000 * 100 * cur.scale, poor = total < 700 * 100 * cur.scale;
+  const rich = total >= 2000 * 100 * denoms.budgets, poor = total < 700 * 100 * denoms.budgets;
   const n = bills.length;
   const open = phase !== 'income';
 
   return (
     <div className="fixed inset-0 overflow-hidden bg-page" style={{ background: 'radial-gradient(ellipse 360px 320px at 50% 0%, var(--spot), transparent 72%), var(--page)' }}>
       <div className="absolute inset-x-0 z-30 flex items-center justify-between pr-4 pl-5" style={{ top: 'max(10px, env(safe-area-inset-top))' }}>
-        <a href={pageHref('/')} className="text-[17px] font-bold tracking-[-0.02em] text-ink">
-          наличка
+        <a href={landingHref()} className="text-[17px] font-bold tracking-[-0.02em] text-ink">
+          {tr.brand}
         </a>
         <div className="flex gap-2">
           {w.onboarded && phase === 'income' && (
             <button onClick={() => wallOpened()} className="h-10 rounded-full bg-btn2 px-3.5 text-sm font-medium text-ink">
-              К стене
+              {tr.onboarding.toWallShort}
             </button>
           )}
-          <button onClick={() => sheetOpened({ type: 'menu' })} aria-label="Настройки" className="h-10 w-10 rounded-full bg-btn2 text-lg text-ink">
+          <button onClick={() => sheetOpened({ type: 'menu' })} aria-label={tr.common.settings} className="h-10 w-10 rounded-full bg-btn2 text-lg text-ink">
             ⋯
           </button>
         </div>
@@ -178,17 +178,15 @@ export function MobileOnboarding() {
 
       {phase === 'income' && (
         <div className="absolute inset-x-0 z-[15] flex flex-col items-center text-center" style={{ top: pickTop }}>
-          <h1 className="m-0 text-[32px] leading-[1.1] font-bold tracking-[-0.035em]">Сколько получил?</h1>
+          <h1 className="m-0 text-[32px] leading-[1.1] font-bold tracking-[-0.035em]">{tr.onboarding.title}</h1>
           <div className="mt-1.5 text-[46px] leading-[1.05] font-bold tracking-[-0.04em]">
-            {moneyShort(total)} <span className="text-[22px] font-medium text-ink2">{cur.code}</span>
+            {moneyShort(total)}
           </div>
           <div className="mt-1 min-h-5 text-sm text-ink2">
-            {n
-              ? `${n} ${plural(n, 'купюра', 'купюры', 'купюр')} в пачке` + (coins.length ? ` и ${coins.length} ${plural(coins.length, 'монета', 'монеты', 'монет')}` : '')
-              : 'Тапай по купюрам — пачка в руке растёт'}
+            {n ? tr.onboarding.wadShort(n, coins.length) : tr.onboarding.tapHint}
           </div>
           <div className="mt-4 grid grid-cols-[repeat(3,104px)] gap-x-3.5 gap-y-2.5">
-            {cur.bills.map(v => (
+            {denoms.bills.map(v => (
               <DenomButton key={v} value={v} count={bills.filter(x => x === v).length} onAdd={() => add(v)} onRemove={() => remove(v)} />
             ))}
           </div>
@@ -196,11 +194,11 @@ export function MobileOnboarding() {
             <div className="mt-2.5 flex items-center gap-3.5">
               {w.lastIncome > 0 && (
                 <button onClick={() => fill(w.lastIncome)} className="h-10 rounded-full border-[1.5px] border-accent bg-accent-wash px-4 text-sm font-semibold text-ink">
-                  Как в прошлый раз · {moneyShort(w.lastIncome)}
+                  {tr.common.likeLastTime} · {moneyShort(w.lastIncome)}
                 </button>
               )}
               <button onClick={() => setManual(total ? String(Math.floor(total / 100)) : '')} className="h-10 text-sm text-ink2 underline underline-offset-[3px]">
-                ввести вручную
+                {tr.common.typeIt}
               </button>
             </div>
           ) : (
@@ -218,23 +216,22 @@ export function MobileOnboarding() {
                 onKeyDown={e => e.key === 'Enter' && setManual(null)}
                 className="h-11 w-[140px] rounded-[14px] border border-line bg-field px-3.5 text-right text-lg font-semibold text-ink"
               />
-              <span className="text-[15px] text-ink2">{cur.code}</span>
               <button onClick={() => setManual(null)} className="h-11 rounded-full bg-btn2 px-4 text-sm font-semibold text-ink">
-                Готово
+                {tr.onboarding.done}
               </button>
             </div>
           )}
         </div>
       )}
 
-      {phase === 'falling' && <div className="absolute inset-x-0 top-[300px] z-[15] animate-[fade-up_.3s_ease_both] text-center text-5xl font-bold tracking-[-0.04em]">Лови!</div>}
+      {phase === 'falling' && <div className="absolute inset-x-0 top-[300px] z-[15] animate-[fade-up_.3s_ease_both] text-center text-5xl font-bold tracking-[-0.04em]">{tr.onboarding.catchIt}</div>}
       {phase === 'landed' && (
         <div className="absolute inset-x-7 top-[168px] z-[15] flex animate-[fade-up_.4s_ease_both] flex-col items-center gap-2.5 text-center">
           <h1 className="m-0 text-[30px] leading-[1.12] font-bold tracking-[-0.03em] text-balance">
-            {rich ? 'Ого, богач! Ну давай раскладывать, пока не разлетелось' : poor ? 'Ну… бывает. Зато раскладывать быстро' : 'Неплохо! Давай разложим, пока ветер не поднялся'}
+            {rich ? tr.onboarding.rich : poor ? tr.onboarding.poor : tr.onboarding.fine}
           </h1>
           <span className="text-[15px] text-ink2">
-            {n} {plural(n, 'купюра', 'купюры', 'купюр')} на столе · {moneyShort(total)} {cur.code}
+            {tr.onboarding.billsOnTable(n, moneyShort(total))}
           </span>
         </div>
       )}
@@ -261,7 +258,7 @@ export function MobileOnboarding() {
               }}
               transition={{ duration: 1, delay: b.delay, times: [0, 0.4, 0.74, 0.87, 1], ease: 'easeInOut' }}
             >
-              {billImg(b.value, cur, HEAP.bw)}
+              {billImg(b.value, denoms, HEAP.bw)}
             </motion.div>
           ))}
         </div>
@@ -274,7 +271,7 @@ export function MobileOnboarding() {
             disabled={!total}
             className="h-14 w-full rounded-[18px] bg-accent text-[17px] font-semibold text-accent-ink shadow-[0_12px_26px_-14px_rgba(30,70,50,0.9)] disabled:opacity-40"
           >
-            {total ? `Получил · ${moneyShort(total)} ${cur.code}` : 'Сначала натапай сумму'}
+            {total ? tr.onboarding.gotSum(moneyShort(total)) : tr.onboarding.tapFirst}
           </button>
         )}
         {phase === 'landed' && (
@@ -282,7 +279,7 @@ export function MobileOnboarding() {
             onClick={toWall}
             className="h-14 w-full animate-[fade-up_.4s_ease_both] rounded-[18px] bg-accent text-[17px] font-semibold text-accent-ink shadow-[0_12px_26px_-14px_rgba(0,0,0,0.6)]"
           >
-            Разложить по стене →
+            {tr.onboarding.spread}
           </button>
         )}
       </div>

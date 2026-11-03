@@ -2,21 +2,19 @@
 
 import { useUnit } from 'effector-react';
 import { useState } from 'react';
-import { billIndex, type Currency } from '@/lib/money/currency';
+import { billIndex, type Denoms } from '@/lib/money/denominations';
 import { moneyShort } from '@/lib/money/format';
 import { changeFor } from '@/lib/money/math';
+import { sourceLabel } from '@/model/defaults';
 import { monthKey, prevMonthKey, spendingByMonth } from '@/model/ops';
 import { $statsOpen, statsToggled } from '@/model/ui';
-import { $currency, $wallet } from '@/model/wallet';
+import { $denoms, $wallet } from '@/model/wallet';
 import { Modal } from '@/components/ui/Modal';
 import { billUrl } from '@/scene/paint';
 import { BILL_PAL } from '@/scene/palette';
+import { tr } from '@/lib/i18n';
 
-const MONTHS = ['январь', 'февраль', 'март', 'апрель', 'май', 'июнь', 'июль', 'август', 'сентябрь', 'октябрь', 'ноябрь', 'декабрь'];
-/** "против сентября" */
-const MONTHS_OF = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
-/** "в сентябре" */
-const MONTHS_IN = ['январе', 'феврале', 'марте', 'апреле', 'мае', 'июне', 'июле', 'августе', 'сентябре', 'октябре', 'ноябре', 'декабре'];
+const MONTHS = tr.stats.months;
 const monthOf = (key: string) => Number(key.split('-')[1]) - 1;
 const yearOf = (key: string) => Number(key.split('-')[0]);
 const cap = (s: string) => s[0].toUpperCase() + s.slice(1);
@@ -29,16 +27,16 @@ const LAYER = 3;
  * A stack of money seen from the front: bill edges in the colours of the bills it would be paid with,
  * biggest at the bottom, the top bill lying flat. Height is `amount / unit` layers, so stacks compare.
  */
-export function MoneyStack({ amount, unit, cur, width = 60, dim }: { amount: number; unit: number; cur: Currency; width?: number; dim?: boolean }) {
+export function MoneyStack({ amount, unit, denoms, width = 60, dim }: { amount: number; unit: number; denoms: Denoms; width?: number; dim?: boolean }) {
   const layers = amount > 0 ? Math.max(1, Math.min(40, Math.round(amount / unit))) : 0;
   const top = width * 0.3;
   if (!layers) {
     return <div className="rounded-md border-2 border-dashed border-line" style={{ width, height: top + 4, opacity: dim ? 0.6 : 1 }} />;
   }
-  const bills = changeFor(amount, cur).filter(v => v >= cur.bills[0]);
-  const values = bills.length ? bills : [cur.bills[0]];
+  const bills = changeFor(amount, denoms).filter(v => v >= denoms.bills[0]);
+  const values = bills.length ? bills : [denoms.bills[0]];
   // Bottom layers are the big bills, the top ones the small change; the flat top bill is the smallest.
-  const colorAt = (i: number) => BILL_PAL[billIndex(cur, values[Math.min(values.length - 1, Math.floor((i / layers) * values.length))])];
+  const colorAt = (i: number) => BILL_PAL[billIndex(denoms, values[Math.min(values.length - 1, Math.floor((i / layers) * values.length))])];
   return (
     <div className="relative" style={{ width, height: layers * LAYER + top, opacity: dim ? 0.5 : 1, filter: dim ? 'saturate(0.6)' : undefined }}>
       {Array.from({ length: layers }, (_, i) => {
@@ -61,7 +59,7 @@ export function MoneyStack({ amount, unit, cur, width = 60, dim }: { amount: num
       {/* The top bill, lying flat. */}
       {/* eslint-disable-next-line @next/next/no-img-element -- generated data URL */}
       <img
-        src={billUrl(values[values.length - 1], cur)}
+        src={billUrl(values[values.length - 1], denoms)}
         alt=""
         width={width}
         height={width / 2}
@@ -79,17 +77,17 @@ export function MoneyStack({ amount, unit, cur, width = 60, dim }: { amount: num
   );
 }
 
-function delta(now: number, before: number, prevIn: string) {
+function delta(now: number, before: number, prev: number) {
   if (!before && !now) return '';
-  if (!before) return 'новенькое';
+  if (!before) return tr.stats.isNew;
   const d = now - before;
-  if (d === 0) return `как ${prevIn}`;
-  return d > 0 ? `на ${moneyShort(d)} больше` : `на ${moneyShort(-d)} меньше, экономия`;
+  if (d === 0) return tr.stats.same(prev);
+  return d > 0 ? tr.stats.more(moneyShort(d)) : tr.stats.less(moneyShort(-d));
 }
 
 /** Spending per category, this month next to the month before, as stacks of money. */
 export function StatsView({ compact }: { compact?: boolean }) {
-  const [w, cur] = useUnit([$wallet, $currency]);
+  const [w, denoms] = useUnit([$wallet, $denoms]);
   const byMonth = spendingByMonth(w);
   const now = monthKey(new Date());
   const months = [...new Set([now, ...byMonth.keys()])].sort().reverse().slice(0, 12);
@@ -97,9 +95,9 @@ export function StatsView({ compact }: { compact?: boolean }) {
   const prev = prevMonthKey(month);
   const a = byMonth.get(month) ?? { total: 0, bySource: {} };
   const b = byMonth.get(prev) ?? { total: 0, bySource: {} };
-  const prevIn = 'в ' + MONTHS_IN[monthOf(prev)];
+  const prevMonth = monthOf(prev);
 
-  const nameOf = (s: string) => (s === 'pile' ? 'Из кошелька' : (w.categories.find(c => c.id === s)?.name ?? 'Удалённая ячейка'));
+  const nameOf = (s: string) => sourceLabel(s, w.categories, tr.common.fromWallet, tr.common.deletedCell);
   // Categories in wall order, then whatever else was spent from; empty in both months are left out.
   const sources = [...new Set([...w.categories.map(c => c.id), 'pile', ...Object.keys(a.bySource), ...Object.keys(b.bySource)])].filter(
     s => (a.bySource[s] ?? 0) + (b.bySource[s] ?? 0) > 0,
@@ -109,21 +107,21 @@ export function StatsView({ compact }: { compact?: boolean }) {
   const stackW = compact ? 48 : 56;
 
   let verdict: string;
-  if (!w.receipts.length) verdict = 'Пока не с чем сравнивать. Потрать что-нибудь. Ну, или не трать — это тоже статистика';
-  else if (!a.total) verdict = `В этом месяце ни одного чека. Подозрительно экономно`;
-  else if (!b.total) verdict = `${prevIn[0].toUpperCase() + prevIn.slice(1)} чеков нет, сравнивать не с чем`;
-  else if (a.total > b.total) verdict = `Больше, чем ${prevIn}, на ${moneyShort(a.total - b.total)} ${cur.symbol}. Бывает, жизнь дорожает`;
-  else if (a.total < b.total) verdict = `Меньше, чем ${prevIn}, на ${moneyShort(b.total - a.total)} ${cur.symbol}. Свинка гордится`;
-  else verdict = `Ровно как ${prevIn}. Стабильность — признак мастерства`;
+  if (!w.receipts.length) verdict = tr.stats.verdictNothing;
+  else if (!a.total) verdict = tr.stats.verdictEmptyMonth;
+  else if (!b.total) verdict = tr.stats.verdictNoPrev(prevMonth);
+  else if (a.total > b.total) verdict = tr.stats.verdictMore(prevMonth, moneyShort(a.total - b.total));
+  else if (a.total < b.total) verdict = tr.stats.verdictLess(prevMonth, moneyShort(b.total - a.total));
+  else verdict = tr.stats.verdictSame(prevMonth);
 
   const pair = (now: number, before: number, unit: number, width: number) => (
     <div className="flex items-end gap-3">
       <div className="flex flex-col items-center gap-1.5">
-        <MoneyStack amount={before} unit={unit} cur={cur} width={width} dim />
+        <MoneyStack amount={before} unit={unit} denoms={denoms} width={width} dim />
         <span className="text-[11px] whitespace-nowrap text-ink2">{moneyShort(before)}</span>
       </div>
       <div className="flex flex-col items-center gap-1.5">
-        <MoneyStack amount={now} unit={unit} cur={cur} width={width} />
+        <MoneyStack amount={now} unit={unit} denoms={denoms} width={width} />
         <span className="text-xs font-semibold whitespace-nowrap">{moneyShort(now)}</span>
       </div>
     </div>
@@ -145,11 +143,9 @@ export function StatsView({ compact }: { compact?: boolean }) {
 
       <div className="flex items-end justify-between gap-4 rounded-2xl bg-field px-4 pt-4 pb-3">
         <div className="flex min-w-0 flex-col gap-1 self-center">
-          <span className="text-[13px] text-ink2">
-            {monthName(month)} против {MONTHS_OF[monthOf(prev)]}
-          </span>
+          <span className="text-[13px] text-ink2">{tr.stats.versus(monthName(month), prevMonth)}</span>
           <span className="text-[26px] leading-tight font-bold tracking-[-0.03em]">
-            {moneyShort(a.total)} <span className="text-sm font-medium text-ink2">{cur.symbol}</span>
+            {moneyShort(a.total)}
           </span>
           <span className="text-[13px] leading-snug text-pretty text-ink2">{verdict}</span>
         </div>
@@ -168,7 +164,7 @@ export function StatsView({ compact }: { compact?: boolean }) {
           </div>
           {sources.map(s => {
             const now = a.bySource[s] ?? 0, before = b.bySource[s] ?? 0;
-            const d = delta(now, before, prevIn);
+            const d = delta(now, before, prevMonth);
             return (
               <div key={s} className="flex items-end justify-between gap-3 border-t border-line py-3">
                 <div className="flex min-w-0 flex-col gap-0.5 self-center">
@@ -191,13 +187,13 @@ export function StatsDialog() {
   if (!open) return null;
   const close = () => statsToggled(false);
   return (
-    <Modal open onClose={close} title="Статистика" width={620}>
+    <Modal open onClose={close} title={tr.common.stats} width={620}>
       <div className="flex items-start justify-between gap-4">
         <div className="flex flex-col gap-1">
-          <span className="text-[26px] font-bold tracking-[-0.025em]">Куда уходит</span>
-          <span className="text-sm text-ink2">Месяц к месяцу, стопками. Без графиков и без осуждения</span>
+          <span className="text-[26px] font-bold tracking-[-0.025em]">{tr.stats.heading}</span>
+          <span className="text-sm text-ink2">{tr.stats.sub}</span>
         </div>
-        <button onClick={close} aria-label="Закрыть" className="h-11 w-11 shrink-0 rounded-full bg-btn2 text-base">
+        <button onClick={close} aria-label={tr.common.close} className="h-11 w-11 shrink-0 rounded-full bg-btn2 text-base">
           ✕
         </button>
       </div>

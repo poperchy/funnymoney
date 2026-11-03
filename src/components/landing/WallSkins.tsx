@@ -3,12 +3,12 @@
 import { useUnit } from 'effector-react';
 import { useEffect, useRef, useState } from 'react';
 import { useMobile } from '@/lib/useMobile';
-import type { Currency } from '@/lib/money/currency';
+import type { Denoms } from '@/lib/money/denominations';
 import { moneyShort } from '@/lib/money/format';
 import { sum } from '@/lib/money/math';
 import { useFontsReady } from '@/lib/useFontsReady';
 import { defaultCategories } from '@/model/defaults';
-import { $currency } from '@/model/wallet';
+import { $denoms } from '@/model/wallet';
 import { boardSkin, hatSkin, neckSkin, NO_WEAR, purseSkin, SKIN_PACKS, tillSkin, type SkinSet } from '@/scene/skins';
 import { TillDock } from '@/components/money/TillArt';
 import { purseCss } from '@/scene/skinCss';
@@ -16,6 +16,7 @@ import { PurseTrim } from '@/components/money/PurseTrim';
 import { billImg, PigArt } from '@/components/mobile/parts';
 import './live';
 import { demoBill, MiniBoard, useInView, type DemoCell } from './MiniBoard';
+import { tr } from '@/lib/i18n';
 
 /** How much of each default budget is still there: a wall in the middle of a month, with one cell already empty. */
 const LEFT: Record<string, number> = { podushka: 1, arenda: 0, eda: 0.6, transport: 0.5, fun: 0.4, cafe: 0.15, health: 1, phone: 1, gifts: 0.5 };
@@ -24,7 +25,7 @@ const WALLET = [3, 2, 1];
 
 /** The slider's slides: the free outfit, then the packs from the shop. A new skin shows up here once a pack wears it. */
 const LOOKS: ({ name: string } & SkinSet)[] = [
-  { name: 'Классика', board: 'cork', purse: 'leather', till: 'register', hat: NO_WEAR, neck: NO_WEAR },
+  { name: tr.demo.classic, board: 'cork', purse: 'leather', till: 'register', hat: NO_WEAR, neck: NO_WEAR },
   ...SKIN_PACKS.map(p => ({ name: p.name, ...p.skins })),
 ];
 type Look = (typeof LOOKS)[number];
@@ -32,10 +33,10 @@ const PIG_COINS = 18;
 
 
 /** Counts an amount out in the largest bills it can. Whatever doesn't make up a bill stays out. */
-function billsFor(amount: number, cur: Currency) {
+function billsFor(amount: number, denoms: Denoms) {
   const out: number[] = [];
   let rest = amount;
-  for (const bill of [...cur.bills].reverse()) {
+  for (const bill of [...denoms.bills].reverse()) {
     while (rest >= bill && out.length < MAX_BILLS) {
       out.push(bill);
       rest -= bill;
@@ -44,15 +45,15 @@ function billsFor(amount: number, cur: Currency) {
   return out;
 }
 
-function SkinSlide({ outfit, cur, cols, rowH, show }: { outfit: Look; cur: Currency; cols: number; rowH: number; show: boolean }) {
+function SkinSlide({ outfit, denoms, cols, rowH, show }: { outfit: Look; denoms: Denoms; cols: number; rowH: number; show: boolean }) {
   const wallet = purseSkin(outfit.purse);
   const look = wallet.look.light;
-  const categories = defaultCategories(cur.code);
+  const categories = defaultCategories(denoms.id);
   const cells: DemoCell[] = categories.map(({ id, name, budget, colSpan, rowSpan }) => ({ id, name, budget, colSpan, rowSpan }));
   // Same ids on every slide: the same money lying the same way, only the skin changes.
-  const bills = categories.flatMap(c => billsFor(c.budget * (LEFT[c.id] ?? 1), cur).map((v, n) => demoBill(`${c.id}-${n}`, v, c.id, n)));
-  const inWallet = WALLET.map(i => cur.bills[i]);
-  const coins = Array.from({ length: PIG_COINS }, (_, i) => ({ id: 'cskin' + i * 31, value: cur.coins[i % cur.coins.length], location: 'piggy' as const }));
+  const bills = categories.flatMap(c => billsFor(c.budget * (LEFT[c.id] ?? 1), denoms).map((v, n) => demoBill(`${c.id}-${n}`, v, c.id, n)));
+  const inWallet = WALLET.map(i => denoms.bills[i]);
+  const coins = Array.from({ length: PIG_COINS }, (_, i) => ({ id: 'cskin' + i * 31, value: denoms.coins[i % denoms.coins.length], location: 'piggy' as const }));
 
   return (
     <>
@@ -63,19 +64,19 @@ function SkinSlide({ outfit, cur, cols, rowH, show }: { outfit: Look; cur: Curre
         <div className="pointer-events-none absolute inset-[5px] rounded-[14px] border-[1.5px] border-dashed" style={{ borderColor: look.stitch }} />
         <div className="relative flex items-center justify-between gap-2">
           <span className="text-sm whitespace-nowrap">
-            В кошельке: <b className="text-[17px]">{moneyShort(sum(inWallet))} {cur.symbol}</b>
+            {tr.common.inWallet} <b className="text-[17px]">{moneyShort(sum(inWallet))}</b>
           </span>
           <div className="relative h-[30px] flex-none max-[520px]:hidden" style={{ width: 46 + (inWallet.length - 1) * 22, marginRight: wallet.trim ? 64 : 0 }}>
             {show &&
               inWallet.map((v, i) => (
                 <div key={i} className="absolute top-0" style={{ left: i * 22, transform: `rotate(${(i - 1) * 7}deg)`, zIndex: i }}>
-                  {billImg(v, cur, 56)}
+                  {billImg(v, denoms, 56)}
                 </div>
               ))}
           </div>
         </div>
       </div>
-      <TillDock skin={tillSkin(outfit.till)} height={86} caption="Сюда улетают деньги" className="w-[176px] flex-none max-[720px]:hidden" />
+      <TillDock skin={tillSkin(outfit.till)} height={86} caption={tr.demo.tillCaption} className="w-[176px] flex-none max-[720px]:hidden" />
       {/* The hat is allowed to stick out over the wall. */}
       <div className="relative h-[86px] w-[110px] flex-none">
         <div className="absolute top-0 left-0 h-[182px] w-[232px] origin-top-left scale-[0.47]">
@@ -90,7 +91,7 @@ function SkinSlide({ outfit, cur, cols, rowH, show }: { outfit: Look; cur: Curre
 /** The default wall on a slider: swipe it or pick a skin below, and the same wall changes clothes. */
 export function WallSkins() {
   const ready = useFontsReady();
-  const cur = useUnit($currency);
+  const denoms = useUnit($denoms);
   const narrow = useMobile();
   const { ref, seen } = useInView(0.2);
   const track = useRef<HTMLDivElement>(null);
@@ -139,14 +140,14 @@ export function WallSkins() {
             className={`flex-none snap-center transition-opacity duration-300 ${i === active ? '' : 'cursor-pointer opacity-50'}`}
             style={{ width: 'var(--slide)' }}
           >
-            <SkinSlide outfit={s} cur={cur} cols={narrow ? 4 : 8} rowH={narrow ? 82 : 96} show={seen} />
+            <SkinSlide outfit={s} denoms={denoms} cols={narrow ? 4 : 8} rowH={narrow ? 82 : 96} show={seen} />
           </div>
         ))}
       </div>
 
       <div className="mx-auto flex max-w-[720px] flex-col items-center gap-3 px-4 text-center">
         <div className="flex max-w-full items-center gap-2">
-          <button onClick={() => go((active + LOOKS.length - 1) % LOOKS.length)} aria-label="Предыдущий скин" className={arrow}>
+          <button onClick={() => go((active + LOOKS.length - 1) % LOOKS.length)} aria-label={tr.demo.prevSkin} className={arrow}>
             ←
           </button>
           <div ref={chips} className="no-scrollbar relative flex min-w-0 gap-2 overflow-x-auto py-0.5 pl-0.5">
@@ -162,12 +163,12 @@ export function WallSkins() {
             </button>
           ))}
           </div>
-          <button onClick={() => go((active + 1) % LOOKS.length)} aria-label="Следующий скин" className={arrow}>
+          <button onClick={() => go((active + 1) % LOOKS.length)} aria-label={tr.demo.nextSkin} className={arrow}>
             →
           </button>
         </div>
         <p className="m-0 min-h-[46px] text-[15px] leading-normal text-balance text-ink2">
-          {worn.join(' + ')}. {parts.some(p => p.price) ? 'Скины за донат.' : 'Бесплатно.'}
+          {worn.join(' + ')}. {parts.some(p => p.price) ? tr.demo.forDonation : tr.demo.free}
         </p>
       </div>
     </div>

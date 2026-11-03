@@ -1,7 +1,8 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import { useSyncExternalStore } from 'react';
+import { useSyncExternalStore, type ReactNode } from 'react';
+import { landingHref, saveLocale, type Locale } from '@/lib/i18n';
 import { pageHref } from '@/lib/paths';
 
 // Painted bills, stores and sounds are browser-only. The placeholders hold the space, so the text doesn't jump.
@@ -19,11 +20,20 @@ function hasWall() {
 }
 
 /** The main button. Someone who already has a wall goes back to it, without being sold it again. */
-export function StartLink({ className = '', label = 'Повесить зарплату на стену →', back = 'Вернуться к своей стене →' }: { className?: string; label?: string; back?: string }) {
+export function StartLink({ className = '', label, back }: { className?: string; label: string; back: string }) {
   const returning = useSyncExternalStore(noSubscribe, hasWall, () => false);
   return (
     <a href={pageHref('/app/')} className={className}>
       {returning ? back : label}
+    </a>
+  );
+}
+
+/** To the landing page in another language. The choice sticks: the app behind it speaks the same. */
+export function LanguageLink({ to, className, children }: { to: Locale; className?: string; children: ReactNode }) {
+  return (
+    <a href={landingHref(to)} hrefLang={to} lang={to} onClick={() => saveLocale(to)} className={className}>
+      {children}
     </a>
   );
 }

@@ -5,6 +5,7 @@ import { AnimatePresence, motion } from 'motion/react';
 import { useEffect, useSyncExternalStore } from 'react';
 import { $incomeRound, $stop, $theme, $welcomeSeen, toastShown, type Stop } from '@/model/ui';
 import { $layout, $wallet } from '@/model/wallet';
+import { locale, tr } from '@/lib/i18n';
 import { useFontsReady } from '@/lib/useFontsReady';
 import { preload } from '@/sound/sfx';
 import { CategoryDialog } from './dialogs/CategoryDialog';
@@ -100,6 +101,18 @@ export default function MoneyApp() {
     document.body.style.backgroundImage = look.image;
     document.body.style.backgroundSize = look.size;
   }, [pageId, theme]);
+  // The app is one static page for every language; the language is known only here.
+  useEffect(() => {
+    document.documentElement.lang = locale;
+    const keepTitle = () => {
+      if (document.title !== tr.meta.appTitle) document.title = tr.meta.appTitle;
+    };
+    keepTitle();
+    // Next writes the static page's title back while it hydrates, which can be after this effect.
+    const head = new MutationObserver(keepTitle);
+    head.observe(document.head, { childList: true, subtree: true, characterData: true });
+    return () => head.disconnect();
+  }, []);
   useEffect(preload, []);
   // Returning visitors get a hello; first-timers get the welcome card instead.
   useEffect(() => {

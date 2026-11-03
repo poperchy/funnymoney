@@ -1,4 +1,4 @@
-// Renders the shop's pictures into public/skins/, for every skin, theme and device.
+// Renders the shop's pictures into public/skins/, for every skin, language, theme and device.
 // Needs the dev server: `npm run dev`, then `npm run skins:previews` (another address: `... -- http://localhost:3001`).
 // Run it again after adding or changing a skin; a test fails while a picture is missing.
 import { existsSync, mkdirSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs';
@@ -10,6 +10,7 @@ const BASE = process.argv[2] ?? 'http://localhost:3000';
 const OUT = path.resolve('public/skins');
 const DEVICES = { desktop: { width: 1440, height: 1000 }, phone: { width: 390, height: 844 } };
 const THEMES = ['light', 'dark'];
+const LOCALES = ['ru', 'en'];
 
 /** Playwright's own Chromium if it's there, otherwise the Chrome installed on this computer. */
 function browserOptions() {
@@ -50,19 +51,22 @@ rmSync(OUT, { recursive: true, force: true });
 const browser = await chromium.launch({ ...browserOptions(), args: ['--use-gl=swiftshader', '--enable-webgl', '--ignore-gpu-blocklist'] });
 let count = 0, bytes = 0;
 
-for (const [device, viewport] of Object.entries(DEVICES)) {
+for (const lang of LOCALES) for (const [device, viewport] of Object.entries(DEVICES)) {
   for (const theme of THEMES) {
     const ctx = await browser.newContext({ viewport, deviceScaleFactor: 2 });
     const page = await ctx.newPage();
     page.on('pageerror', e => {
-      console.error(`${device}-${theme}: ${e.message}`);
+      console.error(`${lang}/${device}-${theme}: ${e.message}`);
       process.exitCode = 1;
     });
-    await page.addInitScript(t => localStorage.setItem('nalichka:theme', JSON.stringify(t)), theme);
+    await page.addInitScript(([t, l]) => {
+      localStorage.setItem('nalichka:theme', JSON.stringify(t));
+      localStorage.setItem('nalichka:locale', l);
+    }, [theme, lang]);
     await page.goto(`${BASE}/skin-render`, { waitUntil: 'load' });
     await page.waitForFunction(() => !!window.__showSkin, undefined, { timeout: 60000 });
     const items = await page.evaluate(() => window.__skinItems);
-    const dir = path.join(OUT, `${device}-${theme}`);
+    const dir = path.join(OUT, lang, `${device}-${theme}`);
     mkdirSync(dir, { recursive: true });
 
     for (const item of items) {
@@ -87,7 +91,7 @@ for (const [device, viewport] of Object.entries(DEVICES)) {
       count++;
       bytes += statSync(file).size;
     }
-    console.log(`${device}-${theme}: ${items.length}`);
+    console.log(`${lang}/${device}-${theme}: ${items.length}`);
     await ctx.close();
   }
 }

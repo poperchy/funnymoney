@@ -2,8 +2,8 @@
 
 import { useUnit } from 'effector-react';
 import { motion } from 'motion/react';
-import { billIndex } from '@/lib/money/currency';
-import { $currency } from '@/model/wallet';
+import { billIndex } from '@/lib/money/denominations';
+import { $denoms } from '@/model/wallet';
 import { BILL_PAL } from '@/scene/palette';
 import { BillImg } from '@/components/money/BillImg';
 
@@ -11,7 +11,7 @@ const W = 220, H = 110;
 
 /** The wad in the hand: edges of the bills below, the latest bill on top, a paper band once it's thick. */
 export function Stack({ bills }: { bills: number[] }) {
-  const cur = useUnit($currency);
+  const denoms = useUnit($denoms);
   if (!bills.length) return <div className="rounded-[10px] border-2 border-dashed border-[rgba(120,90,60,0.35)]" style={{ width: W, height: H }} />;
   const layers = Math.min(30, bills.length);
   const top = bills[bills.length - 1];
@@ -19,7 +19,7 @@ export function Stack({ bills }: { bills: number[] }) {
     <div className="relative" style={{ width: W + layers * 1.5, height: H + layers * 1.8 }}>
       {Array.from({ length: layers - 1 }, (_, j) => {
         const i = layers - 1 - j;
-        const [p0, p1] = BILL_PAL[billIndex(cur, bills[(bills.length - 1 - i + bills.length) % bills.length])];
+        const [p0, p1] = BILL_PAL[billIndex(denoms, bills[(bills.length - 1 - i + bills.length) % bills.length])];
         return (
           <div
             key={i}

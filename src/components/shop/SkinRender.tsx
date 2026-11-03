@@ -6,17 +6,21 @@ import { useFontsReady } from '@/lib/useFontsReady';
 import { useMobile } from '@/lib/useMobile';
 import { $skins } from '@/model/skins';
 import { $theme } from '@/model/ui';
-import { $wallet, coinMoved, incomeReceived, spent } from '@/model/wallet';
+import { $denoms, $wallet, coinMoved, incomeReceived, scaleChanged, spent } from '@/model/wallet';
 import { SKIN_PACKS } from '@/scene/skins';
 import { previewItems, type PreviewItem } from './previewBox';
 import { SkinPreview } from './SkinPreview';
+import { tr } from '@/lib/i18n';
 
 /** The money every picture shows: the demo bills on the wall, plus a fed pig and one purchase. */
 function seedDemoMoney() {
-  incomeReceived({ bills: [], coins: [200, 200, 100, 100, 50, 50, 20, 20, 10, 10, 200] });
+  // Pictures show the same bills to everyone, wherever they were rendered.
+  scaleChanged('small');
+  const [a, b, c, d, e] = [...$denoms.getState().coins].reverse();
+  incomeReceived({ bills: [], coins: [a, a, b, b, c, c, d, d, e, e, a] });
   const [paid, ...rest] = $wallet.getState().coins;
   for (const c of rest) coinMoved({ id: c.id, to: { type: 'piggy' } });
-  spent({ source: 'pile', billIds: [paid.id], change: [], label: 'Кофе' });
+  spent({ source: 'pile', billIds: [paid.id], change: [], label: tr.common.coffee });
 }
 
 declare global {

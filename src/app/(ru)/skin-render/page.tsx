@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { RenderClient } from './RenderClient';
 
 export const metadata: Metadata = {
-  title: 'Рендер скинов',
+  title: 'Skin render',
   robots: { index: false },
 };
 

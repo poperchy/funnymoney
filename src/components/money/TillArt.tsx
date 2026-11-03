@@ -2,6 +2,7 @@ import type { CSSProperties, HTMLAttributes, ReactNode, Ref } from 'react';
 import { money } from '@/lib/money/format';
 import type { Receipt } from '@/model/types';
 import type { TillSkin } from '@/scene/skins';
+import { tr } from '@/lib/i18n';
 
 const INK = '#1a1a1a';
 const KEYS = ['#c8452f', '#e9dcc0', '#e9dcc0', '#3a2a18', '#e9dcc0', '#c8452f'];
@@ -51,9 +52,9 @@ const sameMonth = (iso: string, now = new Date()) => {
   return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
 };
 export const spentThisMonth = (receipts: Receipt[]) => receipts.filter(r => sameMonth(r.at)).reduce((a, r) => a + r.amount, 0);
-const monthName = () => new Date().toLocaleString('ru-RU', { month: 'long' }).toLowerCase();
+const monthName = () => new Date().toLocaleString(tr.intl, { month: 'long' });
 /** What the till says it has swallowed. */
-export const tillTotal = (receipts: Receipt[]) => `−${money(spentThisMonth(receipts))} за ${monthName()}`;
+export const tillTotal = (receipts: Receipt[]) => tr.wall.tillTotal(money(spentThisMonth(receipts)), monthName());
 
 const shadows = (...list: (string | false | undefined)[]) => list.filter(Boolean).join(', ');
 
@@ -73,7 +74,7 @@ export function TillFace({ skin, over, caption, total, children, ref }: { skin: 
     >
       <TillDeco skin={skin} />
       <div className="relative z-[3] flex flex-col gap-0.5">
-        <span className="text-lg font-bold tracking-[-0.01em]">Потрачено</span>
+        <span className="text-lg font-bold tracking-[-0.01em]">{tr.common.spent}</span>
         <span className="text-[13px]" style={{ color: look.inkSoft }}>
           {caption}
         </span>
@@ -116,7 +117,7 @@ export function TillDock({
       <TillDeco skin={skin} small top={19} />
       <div className="absolute inset-x-4 top-[9px] h-1 rounded-sm shadow-[0_1px_0_rgba(255,255,255,0.1)]" style={{ background: look.slit }} />
       <div className="relative mt-2 flex flex-col gap-0.5">
-        <span className="text-[17px] font-bold">Потрачено</span>
+        <span className="text-[17px] font-bold">{tr.common.spent}</span>
         <span className="truncate text-[13px]" style={{ color: look.inkSoft }}>
           {caption}
         </span>

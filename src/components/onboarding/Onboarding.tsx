@@ -3,17 +3,17 @@
 import { useUnit } from 'effector-react';
 import { motion } from 'motion/react';
 import { useEffect, useMemo, useState } from 'react';
-import { moneyShort, plural } from '@/lib/money/format';
+import { moneyShort } from '@/lib/money/format';
 import { payout, sum } from '@/lib/money/math';
 import { gauss, rng } from '@/lib/rng';
 import { budgetsInFillOrder } from '@/model/ops';
 import { tableReached, wallOpened } from '@/model/ui';
-import { $currency, $wallet, incomeReceived } from '@/model/wallet';
+import { $denoms, $wallet, incomeReceived } from '@/model/wallet';
 import { BillImg, CoinFace, CountButton } from '@/components/money/BillImg';
 import { Button } from '@/components/ui/Button';
-import { CurrencySelect, SoundControl, ThemeButton } from '@/components/wall/Header';
+import { ScaleSelect, LanguageSelect, SoundControl, ThemeButton } from '@/components/wall/Header';
 import { BH, BW } from '@/scene/layout';
-import { pageHref } from '@/lib/paths';
+import { landingHref, tr } from '@/lib/i18n';
 import { play } from '@/sound/sfx';
 import { Hand } from './Hand';
 import { Stack } from './Stack';
@@ -32,7 +32,7 @@ type Phase = 'income' | 'falling' | 'landed';
  * the hand with the wad on top, the table below. Bills fall from the hand and the camera follows.
  */
 export function Onboarding({ hd }: { hd: number }) {
-  const [w, cur] = useUnit([$wallet, $currency]);
+  const [w, denoms] = useUnit([$wallet, $denoms]);
   const [phase, setPhase] = useState<Phase>('income');
   const [bills, setBills] = useState<number[]>([]);
   const [coins, setCoins] = useState<number[]>([]);
@@ -76,9 +76,9 @@ export function Onboarding({ hd }: { hd: number }) {
     play('clink');
   };
   // The three biggest coins are enough to round any salary.
-  const handCoins = cur.coins.slice(-3).reverse();
+  const handCoins = denoms.coins.slice(-3).reverse();
   const fill = (amount: number) => {
-    const p = payout(amount, cur, budgets);
+    const p = payout(amount, denoms, budgets);
     setBills(p.bills);
     setCoins(p.coins);
   };
@@ -93,7 +93,7 @@ export function Onboarding({ hd }: { hd: number }) {
     setTimeout(() => incomeReceived({ bills, coins }), 750);
   };
 
-  const rich = total >= 2000 * 100 * cur.scale, poor = total < 700 * 100 * cur.scale;
+  const rich = total >= 2000 * 100 * denoms.budgets, poor = total < 700 * 100 * denoms.budgets;
   const handTitleTop = Math.min(330, hd * 0.37);
 
   return (
@@ -101,16 +101,17 @@ export function Onboarding({ hd }: { hd: number }) {
       {/* ── Stop 1: the hand ── */}
       <div className="absolute inset-x-0 top-0" style={{ height: hd, background: 'radial-gradient(ellipse 760px 520px at 50% 0%, var(--spot), transparent 70%)' }}>
         <div className="absolute inset-x-7 top-6 z-20 flex items-center justify-between">
-          <a href={pageHref('/')} className="text-lg font-bold tracking-[-0.02em] text-ink">
-            наличка
+          <a href={landingHref()} className="text-lg font-bold tracking-[-0.02em] text-ink">
+            {tr.brand}
           </a>
           <div className="flex gap-2.5">
-            <CurrencySelect size="sm" />
+            <LanguageSelect size="sm" />
+            <ScaleSelect size="sm" />
             <ThemeButton size="sm" />
             <SoundControl size="sm" />
             {w.onboarded && phase === 'income' && (
               <Button variant="secondary" size="sm" className="font-medium" onClick={() => wallOpened()}>
-                Не сейчас
+                {tr.onboarding.notNow}
               </Button>
             )}
           </div>
@@ -119,16 +120,13 @@ export function Onboarding({ hd }: { hd: number }) {
         <Hand open={phase !== 'income'}>{phase === 'income' && <Stack bills={bills} />}</Hand>
 
         <div className="absolute inset-x-0 z-[15] flex flex-col items-center gap-3.5 text-center" style={{ top: handTitleTop }}>
-          <h1 className="m-0 text-[54px] leading-[1.02] font-bold tracking-[-0.04em]">Сколько получил?</h1>
+          <h1 className="m-0 text-[54px] leading-[1.02] font-bold tracking-[-0.04em]">{tr.onboarding.title}</h1>
           <div className="text-lg text-ink2">
-            {total
-              ? `В пачке ${moneyShort(total)} ${cur.symbol} · ${bills.length} ${plural(bills.length, 'купюра', 'купюры', 'купюр')}` +
-                (coins.length ? ` и ${coins.length} ${plural(coins.length, 'монета', 'монеты', 'монет')}` : '')
-              : 'Пока пусто. Накидай купюр в руку'}
+            {total ? tr.onboarding.wad(moneyShort(total), bills.length, coins.length) : tr.onboarding.empty}
           </div>
           <div className="mt-1 flex items-start justify-center gap-4">
-            {cur.bills.map(v => (
-              <CountButton key={v} big label={'Добавить ' + moneyShort(v)} count={bills.filter(x => x === v).length} onAdd={() => add(v)} onRemove={() => remove(v)}>
+            {denoms.bills.map(v => (
+              <CountButton key={v} big label={tr.onboarding.addBill(moneyShort(v))} count={bills.filter(x => x === v).length} onAdd={() => add(v)} onRemove={() => remove(v)}>
                 <BillImg value={v} scale={1.5} />
               </CountButton>
             ))}
@@ -137,7 +135,7 @@ export function Onboarding({ hd }: { hd: number }) {
                 {handCoins.map(v => (
                   <CountButton
                     key={v}
-                    label={'Добавить монету ' + moneyShort(v)}
+                    label={tr.onboarding.addCoin(moneyShort(v))}
                     count={coins.filter(x => x === v).length}
                     onAdd={() => addCoin(v)}
                     onRemove={() => setCoins(c => removeLast(c, v))}
@@ -146,16 +144,16 @@ export function Onboarding({ hd }: { hd: number }) {
                   </CountButton>
                 ))}
               </div>
-              <span className="text-xs text-ink2">мелочь — в кошелёк</span>
+              <span className="text-xs text-ink2">{tr.onboarding.coinsNote}</span>
             </div>
           </div>
           <div className="mt-1 flex items-center gap-3">
             <Button variant="primary" className="!h-[54px] !px-[30px] !text-[17px]" disabled={!total || phase !== 'income'} onClick={confirm}>
-              Получил
+              {tr.onboarding.got}
             </Button>
             {w.lastIncome > 0 && (
               <Button variant="secondary" className="!h-[54px] !px-[22px] border-[1.5px] border-line !text-[15px]" onClick={() => fill(w.lastIncome)}>
-                Как в прошлый раз · {moneyShort(w.lastIncome)}
+                {tr.common.likeLastTime} · {moneyShort(w.lastIncome)}
               </Button>
             )}
             {total > 0 && (
@@ -168,12 +166,12 @@ export function Onboarding({ hd }: { hd: number }) {
                   setManual(null);
                 }}
               >
-                Сбросить
+                {tr.onboarding.reset}
               </Button>
             )}
             {manual === null ? (
               <Button variant="link" onClick={() => setManual('')}>
-                ввести вручную
+                {tr.common.typeIt}
               </Button>
             ) : (
               <label className="flex h-11 items-center gap-2 rounded-full border border-line bg-field px-3.5">
@@ -181,7 +179,7 @@ export function Onboarding({ hd }: { hd: number }) {
                   autoFocus
                   value={manual}
                   inputMode="numeric"
-                  placeholder="сумма"
+                  placeholder={tr.onboarding.amount}
                   onChange={e => {
                     const raw = e.target.value.replace(/\D/g, '').slice(0, 7);
                     setManual(raw);
@@ -190,11 +188,10 @@ export function Onboarding({ hd }: { hd: number }) {
                   onKeyDown={e => e.key === 'Enter' && confirm()}
                   className="w-[90px] bg-transparent text-base font-semibold text-ink"
                 />
-                <span className="text-[13px] text-ink2">{cur.symbol}</span>
               </label>
             )}
           </div>
-          <div className="text-[13px] text-ink2">Клик по купюре добавляет её в пачку, правый клик или «−» убирает</div>
+          <div className="text-[13px] text-ink2">{tr.onboarding.hint}</div>
         </div>
       </div>
 
@@ -203,16 +200,16 @@ export function Onboarding({ hd }: { hd: number }) {
         <div className="absolute inset-x-0 flex flex-col items-center gap-[18px] text-center" style={{ top: Math.max(90, (hd - TABLE_H) * 0.38) }}>
           {phase !== 'income' && (
             <h2 className="m-0 text-[54px] leading-[1.02] font-bold tracking-[-0.04em]">
-              {phase === 'landed' ? `${moneyShort(total)} ${cur.symbol} на столе` : 'Лови!'}
+              {phase === 'landed' ? tr.onboarding.onTable(moneyShort(total)) : tr.onboarding.catchIt}
             </h2>
           )}
           {phase === 'landed' && (
             <motion.div className="flex flex-col items-center gap-[18px]" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
               <span className="max-w-[560px] text-xl text-balance text-ink2">
-                {rich ? 'Ого, богач! Ну давай раскладывать, пока не разлетелось' : poor ? 'Ну… бывает. Зато раскладывать быстро' : 'Неплохо! Давай разложим, пока ветер не поднялся'}
+                {rich ? tr.onboarding.rich : poor ? tr.onboarding.poor : tr.onboarding.fine}
               </span>
               <Button variant="primary" className="!h-[54px] !px-[30px] !text-[17px]" onClick={toWall}>
-                К стене ↓
+                {tr.onboarding.toWall}
               </Button>
             </motion.div>
           )}

@@ -1,7 +1,7 @@
 // Money flying across the phone wall after a typed spend or move. The model changes at once; this is only the show.
-import { $currency } from '@/model/wallet';
+import { $denoms } from '@/model/wallet';
 import { billUrl } from '@/scene/paint';
-import type { Currency } from '@/lib/money/currency';
+import type { Denoms } from '@/lib/money/denominations';
 import { coinBg, MBH, MBW, setLanding } from './parts';
 
 const FLIGHT_MS = 480;
@@ -35,28 +35,28 @@ function centerOf(key: string) {
   return { x, y: Math.min(window.innerHeight - 30, Math.max(70, y)) };
 }
 
-function ghostOf(value: number, cur: Currency) {
-  if (value >= cur.bills[0]) {
+function ghostOf(value: number, denoms: Denoms) {
+  if (value >= denoms.bills[0]) {
     const img = document.createElement('img');
-    img.src = billUrl(value, cur);
+    img.src = billUrl(value, denoms);
     img.alt = '';
     Object.assign(img.style, { width: `${MBW}px`, height: `${MBH}px`, borderRadius: '3px' });
     return { el: img as HTMLElement, w: MBW, h: MBH };
   }
-  const { background, edge, size } = coinBg(value, cur);
+  const { background, edge, size } = coinBg(value, denoms);
   const coin = document.createElement('div');
   Object.assign(coin.style, { width: `${size}px`, height: `${size}px`, borderRadius: '50%', background, boxShadow: `0 2px 0 ${edge}, 0 6px 8px -2px rgba(30,15,0,0.5)` });
   return { el: coin, w: size, h: size };
 }
 
-function launch(hop: Hop, start: { x: number; y: number }, cur: Currency) {
+function launch(hop: Hop, start: { x: number; y: number }, denoms: Denoms) {
   const end = centerOf(hop.to);
   const rect = place(hop.to)?.getBoundingClientRect();
   // The biggest ones are what you remember.
   const values = [...hop.values].sort((a, b) => b - a).slice(0, MAX_GHOSTS);
   let landed = false;
   values.forEach((value, i) => {
-    const { el, w, h } = ghostOf(value, cur);
+    const { el, w, h } = ghostOf(value, denoms);
     Object.assign(el.style, { position: 'fixed', left: '0', top: '0', zIndex: '140', pointerEvents: 'none', opacity: '0', willChange: 'transform' });
     document.body.append(el);
     const jitter = (spread: number) => (Math.random() - 0.5) * spread;
@@ -98,7 +98,7 @@ export function flyMoney(hops: Hop[], commit: () => void) {
     hops.forEach(h => h.onLand?.());
     return;
   }
-  const cur = $currency.getState();
+  const denoms = $denoms.getState();
   const starts = hops.map(h => centerOf(h.from));
   const arrivals = hops.filter(h => !h.swallow);
   setLanding(Math.max(0, ...arrivals.map(h => (h.at ?? 0) + flightTime(h.values.length))));
@@ -107,6 +107,6 @@ export function flyMoney(hops: Hop[], commit: () => void) {
     setLanding(0);
     // Bring the destination into view. With several, the first one: the wall can't jump around for each.
     if (arrivals[0] && arrivals[0].to !== 'piggy') place(arrivals[0].to)?.scrollIntoView({ block: 'nearest' });
-    hops.forEach((h, i) => launch(h, starts[i], cur));
+    hops.forEach((h, i) => launch(h, starts[i], denoms));
   });
 }

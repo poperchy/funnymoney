@@ -5,14 +5,14 @@
 // phone draw walls differently, so each gets its own.
 import { useUnit } from 'effector-react';
 import { useEffect, useState, type CSSProperties, type ReactNode } from 'react';
-import type { Currency } from '@/lib/money/currency';
+import type { Denoms } from '@/lib/money/denominations';
 import { money, moneyShort } from '@/lib/money/format';
 import { useMobile } from '@/lib/useMobile';
 import { billsIn, crumpledInWallet, piggyCoins, pileTotal } from '@/model/ops';
 import { $skins } from '@/model/skins';
 import type { Bill, Wallet } from '@/model/types';
 import { $theme, type Theme } from '@/model/ui';
-import { $currency, $layout, $wallet } from '@/model/wallet';
+import { $denoms, $layout, $wallet } from '@/model/wallet';
 import { BH, BW, layoutKey, poseToPoint, SCENE_W, type Layout, type Rect } from '@/scene/layout';
 import { desktopRegion, PHONE_H, PHONE_W, TILL_W, TILL_X, type PreviewPart } from './previewBox';
 import { crumpledUrl, paintBackground, paintPurseBack, paintPurseFront } from '@/scene/paint';
@@ -23,7 +23,9 @@ import { billImg, PigArt } from '@/components/mobile/parts';
 import { BillImg } from '@/components/money/BillImg';
 import { PurseFace, PurseTrim } from '@/components/money/PurseTrim';
 import { spentThisMonth, TillDock, TillFace } from '@/components/money/TillArt';
-import { AddCellTile, CellLabels } from '@/components/wall/WallOverlay';
+import { AddCellTile } from '@/components/wall/AddCellTile';
+import { CellLabels } from '@/components/wall/WallOverlay';
+import { tr } from '@/lib/i18n';
 
 /** A card is far narrower than the wall, so this is sharp enough and paints much faster. */
 const PREVIEW_RES = 1;
@@ -95,24 +97,24 @@ function usePainted(key: string, paint: () => HTMLCanvasElement) {
 }
 
 /** Your own money where you have it; where you don't, a few bills so the skin isn't shown empty. */
-function previewBills(w: Wallet, cur: Currency) {
+function previewBills(w: Wallet, denoms: Denoms) {
   const onBoard = w.bills.filter(b => b.location.type === 'cell');
-  const cells: Bill[] = onBoard.length ? onBoard : w.categories.slice(0, 5).flatMap((c, i) => [demoBill(`${c.id}-a`, cur.bills[(i + 2) % cur.bills.length], c.id, i * 2), demoBill(`${c.id}-b`, cur.bills[i % cur.bills.length], c.id, i * 2 + 1)]);
+  const cells: Bill[] = onBoard.length ? onBoard : w.categories.slice(0, 5).flatMap((c, i) => [demoBill(`${c.id}-a`, denoms.bills[(i + 2) % denoms.bills.length], c.id, i * 2), demoBill(`${c.id}-b`, denoms.bills[i % denoms.bills.length], c.id, i * 2 + 1)]);
   const inPile = billsIn(w, { type: 'pile' });
   const pile: Bill[] = inPile.length
     ? inPile
-    : [3, 2, 1].map((n, i) => ({ id: 'demo-pile' + i, value: cur.bills[n % cur.bills.length], location: { type: 'pile' }, pose: { x: 0.15 + i * 0.3, y: 0.4, r: (i - 1) * 9 }, z: i }));
+    : [3, 2, 1].map((n, i) => ({ id: 'demo-pile' + i, value: denoms.bills[n % denoms.bills.length], location: { type: 'pile' }, pose: { x: 0.15 + i * 0.3, y: 0.4, r: (i - 1) * 9 }, z: i }));
   return { cells, pile };
 }
 
 
 /** The desktop wall, whole: board, wallet, pig and till, in the same coordinates as the real scene. */
-function DesktopWall({ skins, theme, L, w, cur, region }: { skins: SkinSet; theme: Theme; L: Layout; w: Wallet; cur: Currency; region: Rect }) {
+function DesktopWall({ skins, theme, L, w, denoms, region }: { skins: SkinSet; theme: Theme; L: Layout; w: Wallet; denoms: Denoms; region: Rect }) {
   const sig = `${theme}|${layoutKey(L)}`;
   const bg = usePainted(`bg|${skins.board}|${sig}`, () => paintBackground(theme, L, skins.board, PREVIEW_RES));
   const back = usePainted(`back|${skins.purse}|${sig}`, () => paintPurseBack(theme, L, skins.purse, PREVIEW_RES));
   const front = usePainted(`front|${skins.purse}|${sig}`, () => paintPurseFront(theme, L, skins.purse, PREVIEW_RES));
-  const { cells, pile } = previewBills(w, cur);
+  const { cells, pile } = previewBills(w, denoms);
   const crumpled = crumpledInWallet({ ...w, bills: pile });
   const purse = purseSkin(skins.purse), walletLook = purse.look[theme];
   const boardLook = boardSkin(skins.board).look[theme];
@@ -143,7 +145,7 @@ function DesktopWall({ skins, theme, L, w, cur, region }: { skins: SkinSet; them
               </div>
             ) : null;
           })}
-          {L.addCell && <AddCellTile rect={L.addCell} ink={boardLook.ink} />}
+          {L.addCell && <AddCellTile style={{ position: 'absolute', left: L.addCell.x, top: L.addCell.y }} size={L.addCell.w} ink={boardLook.ink} />}
         </>
       ) : (
         <div className="absolute animate-pulse rounded-[20px] bg-field" style={{ left: L.board.x, top: L.board.y, width: L.board.w, height: L.board.h }} />
@@ -164,7 +166,7 @@ function DesktopWall({ skins, theme, L, w, cur, region }: { skins: SkinSet; them
           // eslint-disable-next-line @next/next/no-img-element -- generated data URL
           <img
             key={b.id}
-            src={crumpledUrl(b.value, cur)}
+            src={crumpledUrl(b.value, denoms)}
             alt=""
             width={82}
             height={44}
@@ -176,7 +178,7 @@ function DesktopWall({ skins, theme, L, w, cur, region }: { skins: SkinSet; them
         className="absolute flex items-center justify-center text-center text-[13px] font-medium"
         style={{ color: walletLook.ink ?? 'rgba(255,236,205,0.75)', left: pocket.x, top: pocket.y + 18, width: coinPocket.x - pocket.x, height: pocket.h - 24 }}
       >
-        Грустят без дела. Разложи их
+        {tr.common.idleBills}
       </div>
       {purse.trim === 'clasp' && (
         <div className="absolute" style={{ left: pocket.x + 22, top: pocket.y + 26 }}>
@@ -185,14 +187,14 @@ function DesktopWall({ skins, theme, L, w, cur, region }: { skins: SkinSet; them
       )}
 
       <div className="absolute top-0" style={{ left: TILL_X, width: TILL_W }}>
-        <TillFace skin={tillSkin(skins.till)} caption="Брось сюда купюру или монету" total={`−${money(spentThisMonth(w.receipts))} за месяц`} />
+        <TillFace skin={tillSkin(skins.till)} caption={tr.wall.tillIdle} total={tr.common.perMonth(money(spentThisMonth(w.receipts)))} />
       </div>
     </div>
   );
 }
 
 /** The phone's wallet plaque, as it looks above the wall. */
-function PhonePlaque({ skins, theme, pile, total, cur }: { skins: SkinSet; theme: Theme; pile: Bill[]; total: number; cur: Currency }) {
+function PhonePlaque({ skins, theme, pile, total, denoms }: { skins: SkinSet; theme: Theme; pile: Bill[]; total: number; denoms: Denoms }) {
   const purse = purseSkin(skins.purse), look = purse.look[theme];
   return (
     <div className="relative rounded-[20px] px-3.5 pt-3.5 pb-2.5" style={purseCss(look)}>
@@ -200,20 +202,20 @@ function PhonePlaque({ skins, theme, pile, total, cur }: { skins: SkinSet; theme
       {!look.outline && <div className="pointer-events-none absolute inset-[5px] rounded-[16px] border-[1.5px] border-dashed" style={{ borderColor: look.stitch }} />}
       <div className="relative flex flex-col gap-0.5">
         <span className="text-[15px]">
-          В кошельке: <b className="text-[22px] tracking-[-0.02em] whitespace-nowrap">{moneyShort(total)} {cur.symbol}</b>
+          {tr.common.inWallet} <b className="text-[22px] tracking-[-0.02em] whitespace-nowrap">{moneyShort(total)}</b>
         </span>
-        <span className="text-[13px] opacity-75">Грустят без дела. Разложи их</span>
+        <span className="text-[13px] opacity-75">{tr.common.idleBills}</span>
       </div>
       <div className="relative mt-2.5 flex gap-2">
-        <span className="flex h-11 flex-1 items-center justify-center rounded-full bg-[rgba(255,248,235,0.94)] text-sm font-semibold whitespace-nowrap text-[#2a231b]">Как в прошлый раз</span>
+        <span className="flex h-11 flex-1 items-center justify-center rounded-full bg-[rgba(255,248,235,0.94)] text-sm font-semibold whitespace-nowrap text-[#2a231b]">{tr.common.likeLastTime}</span>
         <span className="flex h-11 flex-1 items-center justify-center rounded-full border-[1.5px] text-sm font-semibold whitespace-nowrap" style={{ borderColor: look.ink ?? 'rgba(255,240,220,0.5)' }}>
-          Вписать суммы
+          {tr.mobile.typeAmounts}
         </span>
       </div>
       <div className="relative mt-2.5 flex h-[46px] items-center">
         {pile.slice(-5).map((b, i) => (
           <div key={b.id} className="absolute" style={{ left: i * 34, top: 5 + (i % 2) * 5, transform: `rotate(${(((i * 37) % 7) - 3) * 2}deg)`, zIndex: i }}>
-            {billImg(b.value, cur, 72)}
+            {billImg(b.value, denoms, 72)}
           </div>
         ))}
       </div>
@@ -222,7 +224,7 @@ function PhonePlaque({ skins, theme, pile, total, cur }: { skins: SkinSet; theme
 }
 
 function PhoneDock({ skins, w }: { skins: SkinSet; w: Wallet }) {
-  return <TillDock skin={tillSkin(skins.till)} height={70} caption={`−${money(spentThisMonth(w.receipts))} за месяц`} />;
+  return <TillDock skin={tillSkin(skins.till)} height={70} caption={tr.common.perMonth(money(spentThisMonth(w.receipts)))} />;
 }
 
 function PhonePig({ skins, w, scale }: { skins: SkinSet; w: Wallet; scale: number }) {
@@ -233,8 +235,8 @@ function PhonePig({ skins, w, scale }: { skins: SkinSet; w: Wallet; scale: numbe
   );
 }
 
-function PhonePreview({ skins, theme, part, w, cur, page }: { skins: SkinSet; theme: Theme; part: PreviewPart; w: Wallet; cur: Currency; page: PageLook }) {
-  const { cells, pile } = previewBills(w, cur);
+function PhonePreview({ skins, theme, part, w, denoms, page }: { skins: SkinSet; theme: Theme; part: PreviewPart; w: Wallet; denoms: Denoms; page: PageLook }) {
+  const { cells, pile } = previewBills(w, denoms);
   const total = pileTotal(w) || pile.reduce((a, b) => a + b.value, 0);
   const cats = w.categories.map(({ id, name, budget, colSpan, rowSpan }) => ({ id, name, budget, colSpan, rowSpan }));
   const skin = boardSkin(skins.board).id;
@@ -250,7 +252,7 @@ function PhonePreview({ skins, theme, part, w, cur, page }: { skins: SkinSet; th
     return (
       <Scaled w={PHONE_W} h={PHONE_H.purse} page={page}>
         <div className="p-2 pt-2.5">
-          <PhonePlaque skins={skins} theme={theme} pile={pile} total={total} cur={cur} />
+          <PhonePlaque skins={skins} theme={theme} pile={pile} total={total} denoms={denoms} />
         </div>
       </Scaled>
     );
@@ -276,7 +278,7 @@ function PhonePreview({ skins, theme, part, w, cur, page }: { skins: SkinSet; th
   return (
     <Scaled w={PHONE_W} h={PHONE_H.pack} page={page}>
       <div className="flex h-[500px] flex-col gap-2.5 p-1">
-        <PhonePlaque skins={skins} theme={theme} pile={pile} total={total} cur={cur} />
+        <PhonePlaque skins={skins} theme={theme} pile={pile} total={total} denoms={denoms} />
         <div className="min-h-0 flex-1 overflow-hidden rounded-[18px]">{board}</div>
         <div className="flex items-end gap-2.5">
           <div className="min-w-0 flex-1">
@@ -293,15 +295,15 @@ function PhonePreview({ skins, theme, part, w, cur, page }: { skins: SkinSet; th
 
 /** What a skin or a pack looks like on the wall, on the device this runs on. */
 export function SkinPreview({ skins, part, pageId }: { skins: SkinSet; part: PreviewPart; pageId?: string }) {
-  const [w, cur, L, theme, worn] = useUnit([$wallet, $currency, $layout, $theme, $skins]);
+  const [w, denoms, L, theme, worn] = useUnit([$wallet, $denoms, $layout, $theme, $skins]);
   const mobile = useMobile();
   // Whatever is on sale stands on the page you have now, unless the page itself is on sale.
   const page = pageSkin(pageId ?? worn.page).look[theme];
-  if (mobile) return <PhonePreview skins={skins} theme={theme} part={part} w={w} cur={cur} page={page} />;
+  if (mobile) return <PhonePreview skins={skins} theme={theme} part={part} w={w} denoms={denoms} page={page} />;
   const region = desktopRegion(part, L);
   return (
     <Scaled w={region.w} h={region.h} page={page}>
-      <DesktopWall skins={skins} theme={theme} L={L} w={w} cur={cur} region={region} />
+      <DesktopWall skins={skins} theme={theme} L={L} w={w} denoms={denoms} region={region} />
     </Scaled>
   );
 }

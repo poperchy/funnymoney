@@ -8,6 +8,8 @@ export const BW = 100;
 export const BH = 50;
 
 const GRID_X = 26, GRID_Y = 26, COL_W = 117.25, ROW_H = 118, GAP = 10;
+/** The "add a cell" button is this small everywhere; a full grid only grows by a low row for it. */
+export const ADD_SIZE = 52;
 export const GRID_COLS = 8;
 // The board is as tall as its cells; the design numbers below are for 4 rows and shift by `dy`.
 const MIN_ROWS = 1;
@@ -74,28 +76,27 @@ export function packCells(cats: (Span & { id: string })[], cols = GRID_COLS) {
 const ADD_ID = '__add';
 
 /**
- * `withAdd` reserves a spot for the "add a cell" card: the first free 1×1 gap among the cells,
- * or, when the grid is full, a whole new row (the card then stretches across it).
+ * `withAdd` reserves a spot for the "add a cell" button: the middle of the first free 1×1 gap among the cells,
+ * or, when the grid is full, the middle of a low row of its own.
  */
 export function computeLayout(cats: Category[], withAdd = cats.length < MAX_CATEGORIES): Layout {
   const packed = packCells(cats);
   let addCell: Rect | null = null;
-  let used = packed.rows;
+  let ownRow = false;
   if (withAdd) {
     const withTile = packCells([...cats, { id: ADD_ID, colSpan: 1, rowSpan: 1 }]);
     const p = withTile.positions.get(ADD_ID)!;
-    const ownRow = p.row >= packed.rows;
+    ownRow = p.row >= packed.rows;
     addCell = {
-      x: GRID_X + (ownRow ? 0 : p.col * (COL_W + GAP)),
-      y: GRID_Y + p.row * (ROW_H + GAP),
-      w: ownRow ? GRID_COLS * COL_W + (GRID_COLS - 1) * GAP : COL_W,
-      h: ROW_H,
+      x: ownRow ? (SCENE_W - ADD_SIZE) / 2 : GRID_X + p.col * (COL_W + GAP) + (COL_W - ADD_SIZE) / 2,
+      y: GRID_Y + p.row * (ROW_H + GAP) + (ownRow ? 0 : (ROW_H - ADD_SIZE) / 2),
+      w: ADD_SIZE,
+      h: ADD_SIZE,
     };
-    used = Math.max(used, p.row + 1);
   }
   const positions = packed.positions;
-  const rows = Math.max(MIN_ROWS, used);
-  const dy = (rows - DESIGN_ROWS) * (ROW_H + GAP);
+  const rows = ownRow ? packed.rows : Math.max(MIN_ROWS, packed.rows);
+  const dy = (rows - DESIGN_ROWS) * (ROW_H + GAP) + (ownRow ? ADD_SIZE + GAP : 0);
   const cells = new Map<string, Rect>();
   for (const c of cats) {
     const p = positions.get(c.id);
